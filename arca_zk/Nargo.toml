@@ -1,0 +1,6 @@
+[package]
+name = "arca_zk"
+type = "bin"
+authors = [""]
+
+[dependencies]
