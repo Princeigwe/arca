@@ -43,9 +43,9 @@ export const arca_identity_registry_abi = [
               "type": "address[]"
             },
             {
-              "internalType": "uint256",
+              "internalType": "bytes32",
               "name": "registeredAt",
-              "type": "uint256"
+              "type": "bytes32"
             },
             {
               "internalType": "bool",
@@ -93,9 +93,9 @@ export const arca_identity_registry_abi = [
     {
       "inputs": [
         {
-          "internalType": "uint256",
+          "internalType": "bytes32",
           "name": "_registeredAt",
-          "type": "uint256"
+          "type": "bytes32"
         }
       ],
       "name": "registerPatient",
@@ -121,9 +121,9 @@ export const arca_identity_registry_abi = [
           "type": "address[]"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "_registeredAt",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "registerPatientWithLinkedAddressAndGuardians",
@@ -139,9 +139,9 @@ export const arca_identity_registry_abi = [
           "type": "address[]"
         },
         {
-          "internalType": "uint32",
+          "internalType": "bytes32",
           "name": "_registeredAt",
-          "type": "uint32"
+          "type": "bytes32"
         }
       ],
       "name": "registerPatientWithLinkedAddresses",

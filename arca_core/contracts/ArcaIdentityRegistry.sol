@@ -23,7 +23,7 @@ contract ArcaIdentityRegistry{
   struct PatientIdentity{
     address primaryAddress;
     address[] linkedAddresses; //optional input on identity registration
-    uint256 registeredAt;
+    bytes32 registeredAt;
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
@@ -33,7 +33,7 @@ contract ArcaIdentityRegistry{
   struct ProviderIdentity{
     address primaryAddress;
     address[] linkedAddresses; //optional input on identity registration
-    uint256 registeredAt;
+    bytes32 registeredAt;
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired;  //optional input on identity registration
@@ -58,7 +58,7 @@ contract ArcaIdentityRegistry{
 
 
 
-  function registerPatient(uint256 _registeredAt) public {
+  function registerPatient(bytes32 _registeredAt) public {
     require(accountExists[msg.sender] == false, AccountExistsError(msg.sender));
     PatientIdentity memory patient = PatientIdentity({
       primaryAddress: msg.sender,
@@ -76,7 +76,7 @@ contract ArcaIdentityRegistry{
   // register patient if they want to operate with multiple addresses
   function registerPatientWithLinkedAddresses(
     address[] memory _linkedAddresses, 
-    uint32 _registeredAt
+    bytes32 _registeredAt
     ) public {
     require(accountExists[msg.sender] == false, AccountExistsError(msg.sender));
     PatientIdentity memory patient = PatientIdentity({
@@ -97,7 +97,7 @@ contract ArcaIdentityRegistry{
     address [] memory _linkedAddresses, 
     uint8 _guardiansRequired,
     address[] memory _guardians,
-    uint32 _registeredAt
+    bytes32 _registeredAt
   ) public {
     require(accountExists[msg.sender] == false, AccountExistsError(msg.sender));
     require(_guardians.length == _guardiansRequired, IncorrectGuardianCountMatchError("Number of guardian address must equal guardians required"));
