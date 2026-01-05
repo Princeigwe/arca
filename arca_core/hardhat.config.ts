@@ -6,6 +6,13 @@ const config: HardhatUserConfig = {
     artifacts: "./artifacts",
   },
   solidity: "0.8.30",
+  networks: {
+    hardhat: {
+      blockGasLimit: 30_000_000,
+      gas: "auto",
+    },
+  },
 };
 
 export default config;
+
