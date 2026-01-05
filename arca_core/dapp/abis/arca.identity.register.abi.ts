@@ -43,9 +43,9 @@ export const arca_identity_registry_abi = [
               "type": "address[]"
             },
             {
-              "internalType": "uint32",
+              "internalType": "uint256",
               "name": "registeredAt",
-              "type": "uint32"
+              "type": "uint256"
             },
             {
               "internalType": "bool",
@@ -93,9 +93,9 @@ export const arca_identity_registry_abi = [
     {
       "inputs": [
         {
-          "internalType": "uint32",
+          "internalType": "uint256",
           "name": "_registeredAt",
-          "type": "uint32"
+          "type": "uint256"
         }
       ],
       "name": "registerPatient",

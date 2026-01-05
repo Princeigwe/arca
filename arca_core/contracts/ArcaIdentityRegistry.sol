@@ -23,7 +23,7 @@ contract ArcaIdentityRegistry{
   struct PatientIdentity{
     address primaryAddress;
     address[] linkedAddresses; //optional input on identity registration
-    uint32 registeredAt;
+    uint256 registeredAt;
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
@@ -33,7 +33,7 @@ contract ArcaIdentityRegistry{
   struct ProviderIdentity{
     address primaryAddress;
     address[] linkedAddresses; //optional input on identity registration
-    uint32 registeredAt;
+    uint256 registeredAt;
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired;  //optional input on identity registration
@@ -58,7 +58,7 @@ contract ArcaIdentityRegistry{
 
 
 
-  function registerPatient(uint32 _registeredAt) public {
+  function registerPatient(uint256 _registeredAt) public {
     require(accountExists[msg.sender] == false, AccountExistsError(msg.sender));
     PatientIdentity memory patient = PatientIdentity({
       primaryAddress: msg.sender,
@@ -68,7 +68,8 @@ contract ArcaIdentityRegistry{
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0
     });
-    providerCount++;
+    patientCount++;
+    accountExists[msg.sender] = true;
     emit PatientRegisteredEvent("Patient registered", patient);
   }
 
@@ -86,7 +87,8 @@ contract ArcaIdentityRegistry{
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0
     });
-    providerCount++;
+    patientCount++;
+    accountExists[msg.sender] = true;
     emit PatientRegisteredEvent("Patient registered", patient);
   }
 
@@ -114,7 +116,8 @@ contract ArcaIdentityRegistry{
       guardians: _guardians,
       guardiansRequired: _guardiansRequired
     });
-    providerCount++;
+    patientCount++;
+    accountExists[msg.sender] = true;
     emit PatientRegisteredEvent("Patient registered", patient);
   }
 

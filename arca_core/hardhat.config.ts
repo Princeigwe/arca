@@ -5,11 +5,20 @@ const config: HardhatUserConfig = {
   paths: {
     artifacts: "./artifacts",
   },
-  solidity: "0.8.30",
+  // solidity: "0.8.30",
+  solidity: {
+    version: "0.8.30",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
-    hardhat: {
+    localhost: {
       blockGasLimit: 30_000_000,
-      gas: "auto",
+      gas: "auto"
     },
   },
 };
