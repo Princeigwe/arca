@@ -68,6 +68,7 @@ contract ArcaIdentityRegistry{
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0
     });
+    providerCount++;
     emit PatientRegisteredEvent("Patient registered", patient);
   }
 
@@ -85,6 +86,7 @@ contract ArcaIdentityRegistry{
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0
     });
+    providerCount++;
     emit PatientRegisteredEvent("Patient registered", patient);
   }
 
@@ -112,7 +114,14 @@ contract ArcaIdentityRegistry{
       guardians: _guardians,
       guardiansRequired: _guardiansRequired
     });
+    providerCount++;
     emit PatientRegisteredEvent("Patient registered", patient);
+  }
+
+  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount){
+    _patientCount = patientCount;
+    _providerCount = providerCount;
+    return (_patientCount, _providerCount);
   }
 
 }
