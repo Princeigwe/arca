@@ -4,6 +4,11 @@ pragma solidity 0.8.30;
 
 
 contract ArcaIdentityRegistry{
+  // Proxy Gateway Admin Mapping
+  mapping(address => bool) isAdmin;
+
+
+  //* ArcaIdentityRegistry storage variables
 
   uint256 patientCount;
   uint256 providerCount;
@@ -50,13 +55,30 @@ contract ArcaIdentityRegistry{
 
   // EVENTS
   event PatientRegisteredEvent(string message, PatientIdentity);
+  event PatientIdentityVerifiedEvent(string message, PatientIdentity);
+  event PatientIdentityFetchedEvent(string message, PatientIdentity);
+
 
 
   // ERRORS
   error AccountExistsError(address caller);
   error IncorrectGuardianCountMatchError(string);
+  error AuthorizationError(string);
 
+  /////////////////////////////////////////////////////////////////
+  // MODIFIERS
+  modifier onlyAdmin(){
+    require(isAdmin[msg.sender] == true, AuthorizationError("Not an Arca admin"));
+    _;
+  }
 
+  function addAdmin()public onlyAdmin{
+    isAdmin[msg.sender] = true;
+  }
+
+  function removeAdmin()public onlyAdmin{
+    isAdmin[msg.sender] = false;
+  }
 
   function registerPatient(bytes32 _registeredAt) public {
     require(accountExists[msg.sender] == false, AccountExistsError(msg.sender));
@@ -119,6 +141,20 @@ contract ArcaIdentityRegistry{
     patientCount++;
     accountExists[msg.sender] = true;
     emit PatientRegisteredEvent("Patient registered", patient);
+  }
+
+
+  function getPatientIdentity(address _patientAddress)public returns(PatientIdentity memory){
+    PatientIdentity memory patient = patientAccount[_patientAddress];
+    emit PatientIdentityFetchedEvent("Patient identity fetched", patient);
+    return patient;
+  }
+
+
+  function verifyPatientIdentity(address _patientAddress)public onlyAdmin{
+    PatientIdentity storage patient = patientAccount[_patientAddress];
+    patient.isVerified = true;
+    emit PatientIdentityVerifiedEvent("Patient identity verified", patient);
   }
 
   function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount){
