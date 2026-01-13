@@ -23,7 +23,7 @@ const arcaDiamondContractConnect1 = new ethers.Contract(
   wallet1
 );
 
-const ownerPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+const ownerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 const ownerWallet = new ethers.Wallet(ownerPrivateKey, provider)
 const arcaDiamondContractOwnerConnect = new ethers.Contract(
   arcaDiamondAddress,
@@ -77,21 +77,27 @@ async function getContractOwner() {
 
 async function transferOwnership(address: string) {
   try {
-    // arcaDiamondContractConnect1.once(
-    //   "OwnershipTransferredEvent",
-    //   (previousOwner, newOwner) => {
-    //     console.log(`Successful transfer. Previous owner: ${previousOwner} to ${newOwner}`)
-    //   }
-    // )
     await arcaDiamondContractOwnerConnect.transferOwnership(address)
   } catch (error) {
     console.log("Error transferring ownership:", error)
   }
 }
 
+
+async function getDiamondFacets(){
+  try {
+    const response = await arcaDiamondContractOwnerConnect.facets()
+    console.log("Facets: ", response)
+  } catch (error) {
+    console.log("Error fetching diamond facets: ", error)
+  }
+}
+
 const newOwner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 
 // getIdentityCount();
-getContractOwner()
+// getContractOwner()
 
 // transferOwnership(newOwner)
+
+getDiamondFacets()
