@@ -7,10 +7,13 @@ dotenv.config();
 const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
 
-const arcaIdentityRegistryAddress = "0x67d269191c92Caf3cD7723F116c85e6E9bf55933";
-const hardhatPrivateKey1 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const arcaIdentityRegistryAddress =
+  "0x67d269191c92Caf3cD7723F116c85e6E9bf55933";
+const hardhatPrivateKey1 =
+  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-const dummyEOAddressPrivateKey1 = process.env.WALLET_PRIVATE_KEY || hardhatPrivateKey1;
+const dummyEOAddressPrivateKey1 =
+  process.env.WALLET_PRIVATE_KEY || hardhatPrivateKey1;
 const wallet1 = new ethers.Wallet(dummyEOAddressPrivateKey1, provider);
 
 const arcaIdentityRegistryContractConnect1 = new ethers.Contract(
@@ -28,7 +31,9 @@ async function registerPatient(
     const currentDate = Date.now();
 
     // converting date string to bytes32
-    const dateString = Number(new Date(currentDate).toISOString().replace(/\D/g, "").slice(0, 12)).toString();
+    const dateString = Number(
+      new Date(currentDate).toISOString().replace(/\D/g, "").slice(0, 12)
+    ).toString();
     const dateHex = ethers.toBeHex(BigInt(dateString));
     const dateBytes32 = ethers.zeroPadValue(dateHex, 32);
 
@@ -53,7 +58,8 @@ async function registerPatient(
         getAddress(linkedAddress);
       });
 
-      const tx = await arcaIdentityRegistryContractConnect1.registerPatientWithLinkedAddresses(
+      const tx =
+        await arcaIdentityRegistryContractConnect1.registerPatientWithLinkedAddresses(
           linkedAddresses,
           dateBytes32
         );
@@ -70,12 +76,13 @@ async function registerPatient(
         getAddress(guardian);
       });
 
-      const tx = await arcaIdentityRegistryContractConnect1.registerPatientWithLinkedAddressAndGuardians(
-        linkedAddresses,
-        guardiansRequired,
-        guardians,
-        dateBytes32
-      )
+      const tx =
+        await arcaIdentityRegistryContractConnect1.registerPatientWithLinkedAddressAndGuardians(
+          linkedAddresses,
+          guardiansRequired,
+          guardians,
+          dateBytes32
+        );
       await tx.wait();
     }
   } catch (error) {
@@ -85,7 +92,8 @@ async function registerPatient(
 
 async function getIdentityCount() {
   try {
-    const response = await arcaIdentityRegistryContractConnect1.getIdentityCount();
+    const response =
+      await arcaIdentityRegistryContractConnect1.getIdentityCount();
     console.log("Identity count: ", response);
   } catch (error) {
     console.error("Error fetching identity count:", error);
@@ -99,10 +107,10 @@ const linkedAddresses = [
 
 const guardians = [
   "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-  "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
-]
+  "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+];
 
 // getIdentityCount()
 // registerPatient()
 // registerPatient(linkedAddresses);
-registerPatient(linkedAddresses, 2, guardians)
+registerPatient(linkedAddresses, 2, guardians);
