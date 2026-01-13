@@ -3,6 +3,7 @@
 pragma solidity 0.8.30;
 
 import '../interfaces/IDiamondCut.sol';
+import '../interfaces/IDiamondLoupe.sol';
 
 library LibArcaDiamondStorage{
   bytes32 constant ARCA_STRUCT_STORAGE_POSITION = keccak256("arca.main.diamond.storage");
@@ -283,5 +284,36 @@ library LibArcaDiamondStorage{
       address oldFacetAddress = ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].facetAddress;
       removeFunction(oldFacetAddress, selector);
     }
+  }
+
+
+  //* IMPLEMENTING DIAMONDLOUPE FUNCTIONS
+
+  function facets() internal view returns(IDiamondLoupe.Facet[] memory _facets){
+    DiamondStorage storage ds = diamondStorage();
+    address[] memory facetAddresses = ds.facetAddresses;
+    _facets = new IDiamondLoupe.Facet[](facetAddresses.length);
+    for (uint i; i < facetAddresses.length; i++ ){
+      bytes4[] memory selectors = ds.addressToFacetAddressPositionAndFunctionSelectors[facetAddresses[i]].functionSelectors;
+      _facets[i] = IDiamondLoupe.Facet({facetAddress: facetAddresses[i], functionSelectors: selectors});
+    }
+  }
+
+
+  function facetFunctionSelectors(address _facetAddress) internal view returns (bytes4[] memory _functionSelectors){
+    DiamondStorage storage ds = diamondStorage();
+    _functionSelectors = ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors;
+  }
+
+
+  function facetAddresses() internal view returns (address[] memory _facetAddresses){
+    DiamondStorage storage ds = diamondStorage();
+    _facetAddresses = ds.facetAddresses;
+  }
+
+
+  function facetAddressOfFunctionSelector(bytes4 _functionSelector) internal view returns (address _facetAddress){
+    DiamondStorage storage ds = diamondStorage();
+    _facetAddress = ds.selectorToFacetAddressAndFunctionSelectorPosition[_functionSelector].facetAddress;
   }
 }

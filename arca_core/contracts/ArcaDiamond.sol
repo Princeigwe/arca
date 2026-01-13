@@ -19,6 +19,45 @@ contract ArcaDiamond{
     LibArcaDiamondStorage.setContractOwner(_args.owner);
   }
 
+  modifier onlyOwner(){
+    require(msg.sender == LibArcaDiamondStorage.contractOwner(), LibArcaDiamondStorage.AuthorizationError("Not ArcaDiamond Owner"));
+    _;
+  }
+
+  event ReceivedEthEvent(address sender, uint256 amount);
+
+  function facets() public view onlyOwner returns(IDiamondLoupe.Facet[] memory _facets){
+    _facets = LibArcaDiamondStorage.facets();
+  }
+
+
+  function facetFunctionSelectors(address _facetAddress) public view onlyOwner returns (bytes4[] memory _functionSelectors){
+    _functionSelectors = LibArcaDiamondStorage.facetFunctionSelectors(_facetAddress);
+  }
+
+
+  function facetAddresses() public view onlyOwner returns (address[] memory _facetAddresses){
+    _facetAddresses = LibArcaDiamondStorage.facetAddresses();
+  }
+
+
+  function facetAddressOfFunctionSelector(bytes4 _functionSelector) public view onlyOwner returns (address _facetAddress){
+    _facetAddress = LibArcaDiamondStorage.facetAddressOfFunctionSelector(_functionSelector);
+  }
+
+  function transferOwnership(address _newOwner) public onlyOwner{
+    LibArcaDiamondStorage.setContractOwner(_newOwner);
+  }
+
+  function getCurrentOwner()public view returns(address _contractOwner){
+    _contractOwner = LibArcaDiamondStorage.contractOwner();
+  }
+
+  receive() external payable{
+    emit ReceivedEthEvent(msg.sender, msg.value);
+  }
+
+
   fallback() external payable {
     LibArcaDiamondStorage.DiamondStorage storage ds;
     bytes32 position = LibArcaDiamondStorage.ARCA_STRUCT_STORAGE_POSITION;
