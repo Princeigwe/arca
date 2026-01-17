@@ -29,18 +29,13 @@ const ownerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784
 const ownerWallet = new ethers.Wallet(ownerPrivateKey, provider)
 const arcaDiamondContractOwnerConnect = new ethers.Contract(
   arcaDiamondAddress,
-  arca_identity_facet_abi,
+  combinedABIs,
   ownerWallet
 )
 
 
 const arcaIdentityRegistryAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 
-const arcaIdentityFacetContractConnect1 = new ethers.Contract(
-  arcaIdentityRegistryAddress,
-  arca_identity_facet_abi,
-  wallet1
-);
 
 async function getIdentityCount() {
   try {
@@ -48,12 +43,39 @@ async function getIdentityCount() {
       to: arcaDiamondAddress,
       data: ethers.id('getIdentityCount()').substring(0, 10)
     };
-    const response = await wallet1.call(txOption);
+    const response = await wallet1.call(txOption); // fallback call for a view function with call()
     const result = ethers.AbiCoder.defaultAbiCoder().decode(['uint256', 'uint256'], response);
     console.log(result)
 
   } catch (error) {
     console.error("Error fetching identity count:", error);
+  }
+}
+
+async function registerPatient() {
+  try {
+    arcaDiamondContractConnect1.once("PatientRegisteredEvent", (message, patient) => {
+      console.log(`Event received: ${message} - ${patient}` )
+    })
+    const currentDate = Date.now();
+
+    // converting date string to bytes32
+    const dateString = Number(new Date(currentDate).toISOString().replace(/\D/g, "").slice(0, 12)).toString();
+    console.log("Date string:", dateString)
+    const dateHex = ethers.toBeHex(BigInt(dateString));
+    const dateBytes32 = ethers.zeroPadValue(dateHex, 32);
+
+    // const functionSignature = "registerPatient(bytes32 _registeredAt)"
+    const iFace = new ethers.Interface(arca_identity_facet_abi)
+    const data  = iFace.encodeFunctionData("registerPatient", [dateBytes32])
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    const response = await wallet1.sendTransaction(txOption)
+    await response.wait()
+  } catch (error) {
+    console.error("Error registering patient: ", error)
   }
 }
 
@@ -90,6 +112,7 @@ const newOwner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 
 getIdentityCount();
 // getContractOwner()
+// registerPatient()
 
 // transferOwnership(newOwner)
 
