@@ -10,12 +10,13 @@ const provider = new ethers.JsonRpcProvider(providerUrl);
 
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
-const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const arcaDiamondAddress = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0";
 
-const hardhatPrivateKey1 =
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-const dummyEOAddressPrivateKey1 = process.env.WALLET_PRIVATE_KEY || hardhatPrivateKey1;
+const hardhatPrivateKey2 = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
+
+const dummyEOAddressPrivateKey1 = process.env.WALLET_PRIVATE_KEY || hardhatPrivateKey2;
 const wallet1 = new ethers.Wallet(dummyEOAddressPrivateKey1, provider);
 
 const arcaDiamondContractConnect1 = new ethers.Contract(
@@ -24,6 +25,7 @@ const arcaDiamondContractConnect1 = new ethers.Contract(
   wallet1
 );
 
+// diamond-to-owner connection
 const ownerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const ownerWallet = new ethers.Wallet(ownerPrivateKey, provider);
 const arcaDiamondContractOwnerConnect = new ethers.Contract(
@@ -69,7 +71,6 @@ async function registerPatient() {
     const dateHex = ethers.toBeHex(BigInt(dateString));
     const dateBytes32 = ethers.zeroPadValue(dateHex, 32);
 
-    // const functionSignature = "registerPatient(bytes32 _registeredAt)"
     const iFace = new ethers.Interface(arca_identity_facet_abi);
     const data = iFace.encodeFunctionData("registerPatient", [dateBytes32]);
     const txOption = {
@@ -109,7 +110,50 @@ async function getDiamondFacets() {
   }
 }
 
+async function addAdmin(address: string) {
+  try {
+    arcaDiamondContractConnect1.once("AdminAddedEvent",
+      (message, admin) => {
+        console.log(`Event received: ${message}`, admin);
+      })
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("addAdmin", [address]);
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    const response = await ownerWallet.sendTransaction(txOption);
+    await response.wait();
+  } catch (error) {
+    console.log("Error adding admin: ", error);
+  }
+}
+
+
+async function checkIsAdmin(address: string) {
+  try {
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("checkIsAdmin", [address]);
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    const response = await wallet1.call(txOption);
+
+    // decoding ABI encoded returned data
+    const [isAdmin] = iFace.decodeFunctionResult(
+      "checkIsAdmin",
+      response
+    );
+
+    console.log("Is admin: ", isAdmin)
+  } catch (error) {
+    console.error("Error checking if admin: ", error)
+  }
+}
+
 const newOwner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
 
 getIdentityCount();
 // getContractOwner()
@@ -118,3 +162,6 @@ getIdentityCount();
 // transferOwnership(newOwner)
 
 // getDiamondFacets()
+
+// addAdmin(newAdmin)
+// checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")

@@ -26,6 +26,9 @@ library LibArcaDiamondStorage{
   event PatientRegisteredEvent(string message, PatientIdentity);
   event PatientIdentityVerifiedEvent(string message, PatientIdentity);
   event PatientIdentityFetchedEvent(string message, PatientIdentity);
+  event AdminAddedEvent(string message, address admin);
+  event AdminRemovedEvent(string message, address admin);
+  
 
 
   //** FACETS ERRORS
@@ -104,6 +107,7 @@ library LibArcaDiamondStorage{
     DiamondStorage storage ds = diamondStorage();
     address previousOwner = ds.contractOwner;
     ds.contractOwner = _newOwner;
+    ds.isAdmin[_newOwner] = true;
     emit OwnershipTransferredEvent(previousOwner, _newOwner);
   }
 
@@ -291,11 +295,11 @@ library LibArcaDiamondStorage{
 
   function facets() internal view returns(IDiamondLoupe.Facet[] memory _facets){
     DiamondStorage storage ds = diamondStorage();
-    address[] memory facetAddresses = ds.facetAddresses;
-    _facets = new IDiamondLoupe.Facet[](facetAddresses.length);
-    for (uint i; i < facetAddresses.length; i++ ){
-      bytes4[] memory selectors = ds.addressToFacetAddressPositionAndFunctionSelectors[facetAddresses[i]].functionSelectors;
-      _facets[i] = IDiamondLoupe.Facet({facetAddress: facetAddresses[i], functionSelectors: selectors});
+    // address[] memory facetAddresses = ds.facetAddresses;
+    _facets = new IDiamondLoupe.Facet[](ds.facetAddresses.length);
+    for (uint i; i < ds.facetAddresses.length; i++ ){
+      bytes4[] memory selectors = ds.addressToFacetAddressPositionAndFunctionSelectors[ds.facetAddresses[i]].functionSelectors;
+      _facets[i] = IDiamondLoupe.Facet({facetAddress: ds.facetAddresses[i], functionSelectors: selectors});
     }
   }
 
