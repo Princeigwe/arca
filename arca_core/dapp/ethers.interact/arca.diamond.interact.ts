@@ -9,7 +9,9 @@ dotenv.config();
 const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
 
-const arcaDiamondAddress = "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318";
+const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi]
+
+const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const hardhatPrivateKey1 =
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -19,7 +21,7 @@ const wallet1 = new ethers.Wallet(dummyEOAddressPrivateKey1, provider);
 
 const arcaDiamondContractConnect1 = new ethers.Contract(
   arcaDiamondAddress,
-  arca_diamond_abi,
+  combinedABIs,
   wallet1
 );
 
@@ -27,7 +29,7 @@ const ownerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784
 const ownerWallet = new ethers.Wallet(ownerPrivateKey, provider)
 const arcaDiamondContractOwnerConnect = new ethers.Contract(
   arcaDiamondAddress,
-  arca_diamond_abi,
+  arca_identity_facet_abi,
   ownerWallet
 )
 
@@ -42,23 +44,14 @@ const arcaIdentityFacetContractConnect1 = new ethers.Contract(
 
 async function getIdentityCount() {
   try {
-    // arcaDiamondContractConnect1.once(
-    //   "PatientRegisteredEvent",
-    //   (message, patientIdentity) => {
-    //     console.log("EVENT:", message, patientIdentity);
-    //   }
-    // );
     const txOption = {
       to: arcaDiamondAddress,
-      data: "0x652cec06",
+      data: ethers.id('getIdentityCount()').substring(0, 10)
     };
-    const response = await wallet1.sendTransaction(txOption);
-    console.log("Transaction sent: ", response.hash);
+    const response = await wallet1.call(txOption);
+    const result = ethers.AbiCoder.defaultAbiCoder().decode(['uint256', 'uint256'], response);
+    console.log(result)
 
-    const receipt = await response.wait();
-    console.log("Transaction receipts: Identity count: ", receipt);
-    const events = receipt?.logs
-    console.log("Events: ", events)
   } catch (error) {
     console.error("Error fetching identity count:", error);
   }
@@ -95,9 +88,9 @@ async function getDiamondFacets(){
 
 const newOwner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 
-// getIdentityCount();
+getIdentityCount();
 // getContractOwner()
 
 // transferOwnership(newOwner)
 
-getDiamondFacets()
+// getDiamondFacets()
