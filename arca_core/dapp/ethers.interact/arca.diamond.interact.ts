@@ -10,7 +10,7 @@ const provider = new ethers.JsonRpcProvider(providerUrl);
 
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
-const arcaDiamondAddress = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0";
+const arcaDiamondAddress = "0x68B1D87F95878fE05B998F19b66F4baba5De1aed";
 
 
 const hardhatPrivateKey2 = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
@@ -152,16 +152,118 @@ async function checkIsAdmin(address: string) {
   }
 }
 
+
+async function verifyPatientIdentity(address: string) {
+  try {
+    arcaDiamondContractConnect1.once("PatientIdentityVerifiedEvent", (message, patient) => {
+      console.log(`Event received: ${message}`, patient);
+    })
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("verifyPatientIdentity", [address]);
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    await ownerWallet.sendTransaction(txOption);
+  } catch (error) {
+    console.error("Error verifying patient identity: ", error)
+  }
+}
+
+async function getPatientIdentity(address: string) {
+  try {
+    arcaDiamondContractConnect1.once("PatientIdentityFetchedEvent", (message, patient) => {
+      console.log(`Event received: ${message}`, patient);
+    })
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("getPatientIdentity", [address])
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    await wallet1.sendTransaction(txOption)
+  } catch (error) {
+    console.log("Error fetching patient identity: ", error)
+  }
+}
+
+
+async function removeFacet(facetAddress: string, functionSelectors: string[]) {
+  try {
+    const facetCut = [
+      {
+        facetAddress: facetAddress,
+        action: 2,
+        functionSelectors: functionSelectors
+      }
+    ]
+    const response = await arcaDiamondContractOwnerConnect.diamondCut(facetCut);
+    await response.wait();
+  } catch (error) {
+    console.error("Error removing facet: ", error)
+  }
+}
+
+
+async function addFacet(facetAddress: string, functionSelectors: string[]) {
+  try {
+    const facetCut = [
+      {
+        facetAddress: facetAddress,
+        action: 0,
+        functionSelectors: functionSelectors
+      }
+    ]
+    const response = await arcaDiamondContractOwnerConnect.diamondCut(facetCut);
+    await response.wait();
+  } catch (error) {
+    console.error("Error adding facet: ", error)
+  }
+}
+
 const newOwner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
 
-getIdentityCount();
+// getIdentityCount();
 // getContractOwner()
 // registerPatient()
 
 // transferOwnership(newOwner)
 
-// getDiamondFacets()
+getDiamondFacets()
 
 // addAdmin(newAdmin)
 // checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
+
+// verifyPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+// getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+
+// facet address to remove must be the zero address
+const facetToRemove = ethers.ZeroAddress
+const functionSelectorsToRemove = [
+      '0x70480275',
+      '0xd953689d',
+      '0x652cec06',
+      '0xcfd549f7',
+      '0x8ebc10d9',
+      '0x87c636c2',
+      '0x90a29085',
+      '0x1785f53c',
+      '0x63fa311a'
+    ]
+// removeFacet(facetToRemove, functionSelectorsToRemove)
+
+// facet address to add
+const facetToAdd = "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
+const functionSelectorsToAdd = [
+'0x70480275',
+'0xd953689d',
+'0x652cec06',
+'0xcfd549f7',
+'0x8ebc10d9',
+'0x87c636c2',
+'0x90a29085',
+'0x1785f53c',
+'0x63fa311a'
+]
+// addFacet(facetToAdd, functionSelectorsToAdd)

@@ -53,6 +53,11 @@ contract ArcaDiamond{
     _contractOwner = LibArcaDiamondStorage.contractOwner();
   }
 
+  function diamondCut(IDiamondCut.FacetCut[] memory _diamondCut) public onlyOwner{
+    LibArcaDiamondStorage.diamondCut(_diamondCut, address(0), new bytes(0));
+  }
+
+
   receive() external payable{
     emit ReceivedEthEvent(msg.sender, msg.value);
   }

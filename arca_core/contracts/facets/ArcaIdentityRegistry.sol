@@ -49,6 +49,7 @@ contract ArcaIdentityRegistry{
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0
     });
+    ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
   }
@@ -71,6 +72,7 @@ contract ArcaIdentityRegistry{
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0
     });
+    ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
   }
@@ -103,6 +105,7 @@ contract ArcaIdentityRegistry{
       guardians: _guardians,
       guardiansRequired: _guardiansRequired
     });
+    ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
   }

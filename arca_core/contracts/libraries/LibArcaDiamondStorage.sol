@@ -281,7 +281,7 @@ library LibArcaDiamondStorage{
   // this removes all the selectors, leading to total deletion of the facet
   function removeFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal{
     require(_functionSelectors.length > 0, "LibArcaDiamondCut: No selectors found in facet");
-    require(_facetAddress == address(0), "LibArcaDiamondCut: Facet to remove cannot be a zero address");
+    require(_facetAddress == address(0), "LibArcaDiamondCut: Facet to remove must be a zero address");
     DiamondStorage storage ds = diamondStorage();
     for(uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++){
       bytes4 selector = _functionSelectors[selectorIndex];

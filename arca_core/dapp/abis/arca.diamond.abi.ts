@@ -137,6 +137,36 @@ export const arca_diamond_abi = [
     {
       "inputs": [
         {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "facetAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "enum IDiamondCut.FacetCutAction",
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes4[]",
+              "name": "functionSelectors",
+              "type": "bytes4[]"
+            }
+          ],
+          "internalType": "struct IDiamondCut.FacetCut[]",
+          "name": "_diamondCut",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "diamondCut",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes4",
           "name": "_functionSelector",
           "type": "bytes4"
