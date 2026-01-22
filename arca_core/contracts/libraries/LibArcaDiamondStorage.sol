@@ -56,6 +56,7 @@ library LibArcaDiamondStorage{
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
+    bytes32 cid;
   }
 
 
@@ -69,6 +70,7 @@ library LibArcaDiamondStorage{
     bytes LicenseHash;
     uint32 licenseExpiresAt;
     bool licenseIsExpired;
+    bytes32 cid;
   }
 
   // the main storage of Arca diamond contract

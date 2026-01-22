@@ -35,7 +35,7 @@ contract ArcaIdentityRegistry{
     _isAdmin = dsStorage.isAdmin[_addr];
   }
 
-  function registerPatient(bytes32 _registeredAt) public {
+  function registerPatient(bytes32 _registeredAt, bytes32 cid) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
     uint256 patientCount = ds.patientCount;
@@ -47,7 +47,8 @@ contract ArcaIdentityRegistry{
       registeredAt: _registeredAt,
       isVerified: false,
       guardians: new address[](0), // an empty address array
-      guardiansRequired: 0
+      guardiansRequired: 0,
+      cid: cid
     });
     ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
@@ -57,7 +58,8 @@ contract ArcaIdentityRegistry{
   // register patient if they want to operate with multiple addresses
   function registerPatientWithLinkedAddresses(
     address[] memory _linkedAddresses, 
-    bytes32 _registeredAt
+    bytes32 _registeredAt,
+    bytes32 cid
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
@@ -70,7 +72,8 @@ contract ArcaIdentityRegistry{
       registeredAt: _registeredAt,
       isVerified: false,
       guardians: new address[](0), // an empty address array
-      guardiansRequired: 0
+      guardiansRequired: 0,
+      cid: cid
     });
     ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
@@ -82,7 +85,8 @@ contract ArcaIdentityRegistry{
     address [] memory _linkedAddresses, 
     uint8 _guardiansRequired,
     address[] memory _guardians,
-    bytes32 _registeredAt
+    bytes32 _registeredAt,
+    bytes32 cid
   ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
@@ -103,7 +107,8 @@ contract ArcaIdentityRegistry{
       registeredAt: _registeredAt,
       isVerified: false,
       guardians: _guardians,
-      guardiansRequired: _guardiansRequired
+      guardiansRequired: _guardiansRequired,
+      cid: cid
     });
     ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;

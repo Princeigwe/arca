@@ -110,6 +110,11 @@ export const arca_identity_facet_abi = [
               "internalType": "uint8",
               "name": "guardiansRequired",
               "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "cid",
+              "type": "bytes32"
             }
           ],
           "indexed": false,
@@ -161,6 +166,11 @@ export const arca_identity_facet_abi = [
               "internalType": "uint8",
               "name": "guardiansRequired",
               "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "cid",
+              "type": "bytes32"
             }
           ],
           "indexed": false,
@@ -212,6 +222,11 @@ export const arca_identity_facet_abi = [
               "internalType": "uint8",
               "name": "guardiansRequired",
               "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "cid",
+              "type": "bytes32"
             }
           ],
           "indexed": false,
@@ -314,6 +329,11 @@ export const arca_identity_facet_abi = [
               "internalType": "uint8",
               "name": "guardiansRequired",
               "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "cid",
+              "type": "bytes32"
             }
           ],
           "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
@@ -329,6 +349,11 @@ export const arca_identity_facet_abi = [
         {
           "internalType": "bytes32",
           "name": "_registeredAt",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "cid",
           "type": "bytes32"
         }
       ],
@@ -358,6 +383,11 @@ export const arca_identity_facet_abi = [
           "internalType": "bytes32",
           "name": "_registeredAt",
           "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "cid",
+          "type": "bytes32"
         }
       ],
       "name": "registerPatientWithLinkedAddressAndGuardians",
@@ -375,6 +405,11 @@ export const arca_identity_facet_abi = [
         {
           "internalType": "bytes32",
           "name": "_registeredAt",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "cid",
           "type": "bytes32"
         }
       ],

@@ -254,16 +254,16 @@ const functionSelectorsToRemove = [
 // removeFacet(facetToRemove, functionSelectorsToRemove)
 
 // facet address to add
-const facetToAdd = "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
+const facetToAdd = "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
 const functionSelectorsToAdd = [
-'0x70480275',
-'0xd953689d',
-'0x652cec06',
-'0xcfd549f7',
-'0x8ebc10d9',
-'0x87c636c2',
-'0x90a29085',
-'0x1785f53c',
-'0x63fa311a'
+  '0x70480275',
+  '0xd953689d',
+  '0x652cec06',
+  '0xcfd549f7',
+  '0x2101605c',
+  '0x8e63a65c',
+  '0x05fdb67d',
+  '0x1785f53c',
+  '0x63fa311a'
 ]
 // addFacet(facetToAdd, functionSelectorsToAdd)
