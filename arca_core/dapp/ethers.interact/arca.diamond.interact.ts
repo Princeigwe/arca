@@ -62,11 +62,9 @@ async function registerPatient() {
       }
     );
 
-    // converting date string to bytes32
+    // converting unix date to bytes32
     const unixTimestampInSeconds = Math.floor(Date.now() / 1000).toString() //unix timestamp in seconds
     console.log("Unix Timestamp in second:", unixTimestampInSeconds);
-    // const dateHex = ethers.toBeHex(BigInt(dateString));
-    // const dateBytes32 = ethers.zeroPadValue(dateHex, 32);
 
     const unixTimestampSecondsBytes32 = ethers.encodeBytes32String(unixTimestampInSeconds);
 
@@ -187,6 +185,13 @@ async function saveAdminInitializationMessageHash(randomMessage: string, wallet:
 }
 
 
+async function testRetrievePublicKey(messageHash: string, signature: string) {
+  const recoveredPublicKey = ethers.SigningKey.recoverPublicKey(messageHash, signature)
+  const recoveredAddress = ethers.recoverAddress(messageHash, signature)
+  console.log("retrieved data:", {recoveredPublicKey, recoveredAddress})
+}
+
+
 async function verifyPatientIdentity(address: string) {
   try {
     arcaDiamondContractConnect1.once("PatientIdentityVerifiedEvent", (message, patient) => {
@@ -270,7 +275,11 @@ const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
 // checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
 
 const randomMessage = "Hello world"
-saveAdminInitializationMessageHash(randomMessage, ownerWallet, arcaDiamondContractOwnerConnect)
+// saveAdminInitializationMessageHash(randomMessage, ownerWallet, arcaDiamondContractOwnerConnect)
+
+const messageHash = "0x8144a6fa26be252b86456491fbcd43c1de7e022241845ffea1c3df066f7cfede"
+const signature = "0x15a3fe3974ebe469b00e67ad67bb3860ad3fc3d739287cdbc4ba558ce7130bee205e5e38d6ef156f1ff6a4df17bfa72a1e61c429f92613f3efbc58394d00c9891b"
+testRetrievePublicKey(messageHash, signature)
 
 // verifyPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 // getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
