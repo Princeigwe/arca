@@ -7,7 +7,7 @@ dotenv.config();
 const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
 
-const arcaIdentityFacetAddress = "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1";
+const arcaIdentityFacetAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 const hardhatPrivateKey1 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 

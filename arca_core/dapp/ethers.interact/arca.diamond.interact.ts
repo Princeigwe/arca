@@ -10,7 +10,7 @@ const provider = new ethers.JsonRpcProvider(providerUrl);
 
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
-const arcaDiamondAddress = "0x68B1D87F95878fE05B998F19b66F4baba5De1aed";
+const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 
 const hardhatPrivateKey2 = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
@@ -61,18 +61,21 @@ async function registerPatient() {
         console.log(`Event received: ${message}`, patient);
       }
     );
-    const currentDate = Date.now();
 
     // converting date string to bytes32
-    const dateString = Number(
-      new Date(currentDate).toISOString().replace(/\D/g, "").slice(0, 12)
-    ).toString();
-    console.log("Date string:", dateString);
-    const dateHex = ethers.toBeHex(BigInt(dateString));
-    const dateBytes32 = ethers.zeroPadValue(dateHex, 32);
+    const unixTimestampInSeconds = Math.floor(Date.now() / 1000).toString() //unix timestamp in seconds
+    console.log("Unix Timestamp in second:", unixTimestampInSeconds);
+    // const dateHex = ethers.toBeHex(BigInt(dateString));
+    // const dateBytes32 = ethers.zeroPadValue(dateHex, 32);
+
+    const unixTimestampSecondsBytes32 = ethers.encodeBytes32String(unixTimestampInSeconds);
+
+
+    const cid = '123456'
+    const cidBytes32 = ethers.encodeBytes32String(cid);
 
     const iFace = new ethers.Interface(arca_identity_facet_abi);
-    const data = iFace.encodeFunctionData("registerPatient", [dateBytes32]);
+    const data = iFace.encodeFunctionData("registerPatient", [unixTimestampSecondsBytes32, cidBytes32]);
     const txOption = {
       to: arcaDiamondAddress,
       data: data,
@@ -149,6 +152,37 @@ async function checkIsAdmin(address: string) {
     console.log("Is admin: ", isAdmin)
   } catch (error) {
     console.error("Error checking if admin: ", error)
+  }
+}
+
+
+async function saveAdminInitializationMessageHash(randomMessage: string, wallet: ethers.Wallet, contractConnect: ethers.Contract) {
+  try {
+    contractConnect.once("AdminInitializationMessageHashWrittenEvent", (message, writer, customMessageHash) => {
+      const data = {
+        message,
+        writer,
+        customMessageHash
+      }
+      console.log(`Event data:`, data)
+    })
+
+    const signature = await wallet.signMessage(randomMessage)
+    const messageHash = ethers.hashMessage(randomMessage)
+    console.log("Message hash:", messageHash)
+
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const messageHashData = iFace.encodeFunctionData("saveAdminInitializationMessageHash", [messageHash, signature])
+
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: messageHashData
+    }
+    await wallet.sendTransaction(txOption)
+    console.log("Transaction successful")
+
+  } catch (error) {
+    console.error('Error saving admin initialization hash:', error)
   }
 }
 
@@ -230,10 +264,13 @@ const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
 
 // transferOwnership(newOwner)
 
-getDiamondFacets()
+// getDiamondFacets()
 
 // addAdmin(newAdmin)
 // checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
+
+const randomMessage = "Hello world"
+saveAdminInitializationMessageHash(randomMessage, ownerWallet, arcaDiamondContractOwnerConnect)
 
 // verifyPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 // getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
@@ -243,27 +280,31 @@ const facetToRemove = ethers.ZeroAddress
 const functionSelectorsToRemove = [
       '0x70480275',
       '0xd953689d',
+      '0x747ec961',
       '0x652cec06',
       '0xcfd549f7',
-      '0x8ebc10d9',
-      '0x87c636c2',
-      '0x90a29085',
+      '0x2101605c',
+      '0x8e63a65c',
+      '0x05fdb67d',
       '0x1785f53c',
-      '0x63fa311a'
+      '0x80f51291',
+      '0x63fa311a'  
     ]
 // removeFacet(facetToRemove, functionSelectorsToRemove)
 
 // facet address to add
-const facetToAdd = "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
+const facetToAdd = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
 const functionSelectorsToAdd = [
   '0x70480275',
   '0xd953689d',
+  '0x747ec961',
   '0x652cec06',
   '0xcfd549f7',
   '0x2101605c',
   '0x8e63a65c',
   '0x05fdb67d',
   '0x1785f53c',
+  '0x80f51291',
   '0x63fa311a'
 ]
 // addFacet(facetToAdd, functionSelectorsToAdd)

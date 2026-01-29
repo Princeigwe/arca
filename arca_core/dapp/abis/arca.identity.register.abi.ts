@@ -2,13 +2,42 @@ export const arca_identity_registry_abi = [
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "caller",
-          "type": "address"
+          "components": [
+            {
+              "internalType": "address",
+              "name": "facetAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "enum IDiamondCut.FacetCutAction",
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes4[]",
+              "name": "functionSelectors",
+              "type": "bytes4[]"
+            }
+          ],
+          "internalType": "struct IDiamondCut.FacetCut[]",
+          "name": "_diamondCut",
+          "type": "tuple[]"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct ArcaDiamond.DiamondArgs",
+          "name": "_args",
+          "type": "tuple"
         }
       ],
-      "name": "AccountExistsError",
-      "type": "error"
+      "stateMutability": "payable",
+      "type": "constructor"
     },
     {
       "inputs": [
@@ -18,73 +47,150 @@ export const arca_identity_registry_abi = [
           "type": "string"
         }
       ],
-      "name": "IncorrectGuardianCountMatchError",
+      "name": "AuthorizationError",
       "type": "error"
     },
     {
       "anonymous": false,
       "inputs": [
         {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "facetAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "enum IDiamondCut.FacetCutAction",
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes4[]",
+              "name": "functionSelectors",
+              "type": "bytes4[]"
+            }
+          ],
           "indexed": false,
-          "internalType": "string",
-          "name": "message",
-          "type": "string"
+          "internalType": "struct IDiamondCut.FacetCut[]",
+          "name": "_diamondCut",
+          "type": "tuple[]"
         },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "_init",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "_calldata",
+          "type": "bytes"
+        }
+      ],
+      "name": "DiamondCutEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferredEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ReceivedEthEvent",
+      "type": "event"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "inputs": [
         {
           "components": [
             {
               "internalType": "address",
-              "name": "primaryAddress",
+              "name": "facetAddress",
               "type": "address"
             },
             {
-              "internalType": "address[]",
-              "name": "linkedAddresses",
-              "type": "address[]"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "registeredAt",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVerified",
-              "type": "bool"
-            },
-            {
-              "internalType": "address[]",
-              "name": "guardians",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint8",
-              "name": "guardiansRequired",
+              "internalType": "enum IDiamondCut.FacetCutAction",
+              "name": "action",
               "type": "uint8"
+            },
+            {
+              "internalType": "bytes4[]",
+              "name": "functionSelectors",
+              "type": "bytes4[]"
             }
           ],
-          "indexed": false,
-          "internalType": "struct ArcaIdentityRegistry.PatientIdentity",
-          "name": "",
-          "type": "tuple"
+          "internalType": "struct IDiamondCut.FacetCut[]",
+          "name": "_diamondCut",
+          "type": "tuple[]"
         }
       ],
-      "name": "PatientRegisteredEvent",
-      "type": "event"
+      "name": "diamondCut",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "_functionSelector",
+          "type": "bytes4"
+        }
+      ],
+      "name": "facetAddressOfFunctionSelector",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "_facetAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
       "inputs": [],
-      "name": "getIdentityCount",
+      "name": "facetAddresses",
       "outputs": [
         {
-          "internalType": "uint256",
-          "name": "_patientCount",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_providerCount",
-          "type": "uint256"
+          "internalType": "address[]",
+          "name": "_facetAddresses",
+          "type": "address[]"
         }
       ],
       "stateMutability": "view",
@@ -93,60 +199,75 @@ export const arca_identity_registry_abi = [
     {
       "inputs": [
         {
-          "internalType": "bytes32",
-          "name": "_registeredAt",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "_facetAddress",
+          "type": "address"
         }
       ],
-      "name": "registerPatient",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "name": "facetFunctionSelectors",
+      "outputs": [
+        {
+          "internalType": "bytes4[]",
+          "name": "_functionSelectors",
+          "type": "bytes4[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "facets",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "facetAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes4[]",
+              "name": "functionSelectors",
+              "type": "bytes4[]"
+            }
+          ],
+          "internalType": "struct IDiamondLoupe.Facet[]",
+          "name": "_facets",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCurrentOwner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "_contractOwner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
       "inputs": [
         {
-          "internalType": "address[]",
-          "name": "_linkedAddresses",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint8",
-          "name": "_guardiansRequired",
-          "type": "uint8"
-        },
-        {
-          "internalType": "address[]",
-          "name": "_guardians",
-          "type": "address[]"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "_registeredAt",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "_newOwner",
+          "type": "address"
         }
       ],
-      "name": "registerPatientWithLinkedAddressAndGuardians",
+      "name": "transferOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "_linkedAddresses",
-          "type": "address[]"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "_registeredAt",
-          "type": "bytes32"
-        }
-      ],
-      "name": "registerPatientWithLinkedAddresses",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
+      "stateMutability": "payable",
+      "type": "receive"
     }
   ]

@@ -21,7 +21,7 @@ contract ArcaIdentityRegistry{
   modifier onlyAdminWithInitTxnHash(){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.isAdmin[msg.sender] == true, LibADS.AuthorizationError("Not an Arca admin"));
-    require(ds.hasAdminInitializationMessageHash[msg.sender] == true, LibADS.AuthorizationError("Admin must have initialization transaction hash to perform this action"));
+    require(ds.hasAdminInitializationMessageHashAndSignature[msg.sender] == true, LibADS.AuthorizationError("Admin must have initialization transaction hash to perform this action"));
     _;
   }
 
@@ -44,18 +44,22 @@ contract ArcaIdentityRegistry{
   }
 
   // enables the admin to save a transaction hash; generated off-chain, that will be used in public key encryption for IPFS data
-  function saveAdminInitializationMessageHash(bytes32 _messageHash)public onlyAdmin{
+  function saveAdminInitializationMessageHash(bytes32 _messageHash, bytes memory _signature)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(!ds.hasAdminInitializationMessageHash[msg.sender], LibADS.AuthorizationError("Admin already has initialization transaction hash"));
-    ds.adminInitializationMessageHash[msg.sender] = _messageHash;
-    ds.hasAdminInitializationMessageHash[msg.sender] = true;
+    require(!ds.hasAdminInitializationMessageHashAndSignature[msg.sender], LibADS.AuthorizationError("Admin already has initialization transaction hash"));
+    LibADS.AdminInitializationMessageHashAndSignature memory messageHashAndSignature = LibADS.AdminInitializationMessageHashAndSignature({
+      messageHash: _messageHash,
+      messageSignature: _signature
+    });
+    ds.adminInitializationMessageHashAndSignature[msg.sender] = messageHashAndSignature;
+    ds.hasAdminInitializationMessageHashAndSignature[msg.sender] = true;
 
-    emit LibADS.AdminInitializationTxnHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, _messageHash);
+    emit LibADS.AdminInitializationMessageHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, messageHashAndSignature);
   }
 
-  function getAdminInitializationTxnHashes() public {
-    bytes32 [] memory _adminInitializationTxnHashes = LibADS.diamondStorage().adminInitializationMessageHashes;
-    emit LibADS.AdminInitializationTxnHashesEvent("Admin initialization transaction hashes fetched", _adminInitializationTxnHashes);
+  function getAdminInitializationMessageHashesAndSignatures() public {
+    LibADS.AdminInitializationMessageHashAndSignature [] memory _adminInitializationMessageHashesAndSignatures = LibADS.diamondStorage().adminInitializationMessageHashesAndSignatures;
+    emit LibADS.AdminInitializationMessageHashesEvent("Admin initialization transaction hashes fetched", _adminInitializationMessageHashesAndSignatures);
   }
 
 

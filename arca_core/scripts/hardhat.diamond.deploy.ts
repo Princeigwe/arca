@@ -14,15 +14,15 @@ async function hardhatDeployDiamond() {
     functionSelectors: [
       '0x70480275',
       '0xd953689d',
-      '0x747ec961',
+      '0x7c6dcd2e',
       '0x652cec06',
       '0xcfd549f7',
       '0x2101605c',
       '0x8e63a65c',
       '0x05fdb67d',
       '0x1785f53c',
-      '0x80f51291',
-      '0x63fa311a'  
+      '0x5adc56ec',
+      '0x63fa311a'
     ]
   };
 

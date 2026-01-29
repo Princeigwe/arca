@@ -28,8 +28,8 @@ library LibArcaDiamondStorage{
   event PatientIdentityFetchedEvent(string message, PatientIdentity);
   event AdminAddedEvent(string message, address admin);
   event AdminRemovedEvent(string message, address admin);
-  event AdminInitializationTxnHashWrittenEvent(string message, address writer, bytes32 txnHash);
-  event AdminInitializationTxnHashesEvent(string message, bytes32[] txnHashes);
+  event AdminInitializationMessageHashWrittenEvent(string message, address writer, AdminInitializationMessageHashAndSignature);
+  event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
 
@@ -69,10 +69,15 @@ library LibArcaDiamondStorage{
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired;  //optional input on identity registration
-    bytes LicenseHash;
+    bytes licenseHash;
     uint32 licenseExpiresAt;
     bool licenseIsExpired;
     bytes32 cid;
+  }
+
+  struct AdminInitializationMessageHashAndSignature{
+    bytes32 messageHash;
+    bytes messageSignature;
   }
 
   // the main storage of Arca diamond contract
@@ -85,10 +90,10 @@ library LibArcaDiamondStorage{
 
     //* FACETS STATE VARIABLES
     // these hashes will be used for public key cryptography on IPFS data
-    bytes32[] adminInitializationMessageHashes;
-    mapping(address => bool) hasAdminInitializationMessageHash;
+    AdminInitializationMessageHashAndSignature[] adminInitializationMessageHashesAndSignatures;
+    mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
     mapping(address => bool) isAdmin;
-    mapping(address => bytes32) adminInitializationMessageHash;
+    mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
     uint256 patientCount;
     uint256 providerCount;
     ProviderType providerType;

@@ -67,13 +67,25 @@ export const arca_identity_facet_abi = [
           "type": "address"
         },
         {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "messageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "messageSignature",
+              "type": "bytes"
+            }
+          ],
           "indexed": false,
-          "internalType": "bytes32",
-          "name": "txnHash",
-          "type": "bytes32"
+          "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature",
+          "name": "",
+          "type": "tuple"
         }
       ],
-      "name": "AdminInitializationTxnHashWrittenEvent",
+      "name": "AdminInitializationMessageHashWrittenEvent",
       "type": "event"
     },
     {
@@ -86,13 +98,25 @@ export const arca_identity_facet_abi = [
           "type": "string"
         },
         {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "messageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "messageSignature",
+              "type": "bytes"
+            }
+          ],
           "indexed": false,
-          "internalType": "bytes32[]",
-          "name": "txnHashes",
-          "type": "bytes32[]"
+          "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature[]",
+          "name": "",
+          "type": "tuple[]"
         }
       ],
-      "name": "AdminInitializationTxnHashesEvent",
+      "name": "AdminInitializationMessageHashesEvent",
       "type": "event"
     },
     {
@@ -316,7 +340,7 @@ export const arca_identity_facet_abi = [
     },
     {
       "inputs": [],
-      "name": "getAdminInitializationTxnHashes",
+      "name": "getAdminInitializationMessageHashesAndSignatures",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -488,6 +512,11 @@ export const arca_identity_facet_abi = [
           "internalType": "bytes32",
           "name": "_messageHash",
           "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
         }
       ],
       "name": "saveAdminInitializationMessageHash",
