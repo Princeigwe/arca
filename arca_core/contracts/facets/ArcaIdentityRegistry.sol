@@ -18,6 +18,13 @@ contract ArcaIdentityRegistry{
     _;
   }
 
+  modifier onlyAdminWithInitTxnHash(){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.isAdmin[msg.sender] == true, LibADS.AuthorizationError("Not an Arca admin"));
+    require(ds.hasAdminInitializationMessageHash[msg.sender] == true, LibADS.AuthorizationError("Admin must have initialization transaction hash to perform this action"));
+    _;
+  }
+
   function addAdmin(address _newAdmin)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     ds.isAdmin[_newAdmin] = true;
@@ -26,6 +33,7 @@ contract ArcaIdentityRegistry{
 
   function removeAdmin(address _admin)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(_admin != ds.contractOwner, LibADS.AuthorizationError("Cannot remove contract owner"));
     ds.isAdmin[_admin] = false;
     emit LibADS.AdminRemovedEvent("Admin removed", _admin);
   }
@@ -34,6 +42,22 @@ contract ArcaIdentityRegistry{
     LibADS.DiamondStorage storage dsStorage = LibADS.diamondStorage();
     _isAdmin = dsStorage.isAdmin[_addr];
   }
+
+  // enables the admin to save a transaction hash; generated off-chain, that will be used in public key encryption for IPFS data
+  function saveAdminInitializationMessageHash(bytes32 _messageHash)public onlyAdmin{
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.hasAdminInitializationMessageHash[msg.sender], LibADS.AuthorizationError("Admin already has initialization transaction hash"));
+    ds.adminInitializationMessageHash[msg.sender] = _messageHash;
+    ds.hasAdminInitializationMessageHash[msg.sender] = true;
+
+    emit LibADS.AdminInitializationTxnHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, _messageHash);
+  }
+
+  function getAdminInitializationTxnHashes() public {
+    bytes32 [] memory _adminInitializationTxnHashes = LibADS.diamondStorage().adminInitializationMessageHashes;
+    emit LibADS.AdminInitializationTxnHashesEvent("Admin initialization transaction hashes fetched", _adminInitializationTxnHashes);
+  }
+
 
   function registerPatient(bytes32 _registeredAt, bytes32 cid) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
@@ -124,7 +148,7 @@ contract ArcaIdentityRegistry{
   }
 
 
-  function verifyPatientIdentity(address _patientAddress)public onlyAdmin{
+  function verifyPatientIdentity(address _patientAddress)public onlyAdmin onlyAdminWithInitTxnHash{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     LibADS.PatientIdentity storage patient = ds.patientAccount[_patientAddress];
     patient.isVerified = true;

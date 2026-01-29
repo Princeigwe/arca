@@ -63,6 +63,50 @@ export const arca_identity_facet_abi = [
         {
           "indexed": false,
           "internalType": "address",
+          "name": "writer",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "txnHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "AdminInitializationTxnHashWrittenEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32[]",
+          "name": "txnHashes",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "AdminInitializationTxnHashesEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
           "name": "admin",
           "type": "address"
         }
@@ -272,6 +316,13 @@ export const arca_identity_facet_abi = [
     },
     {
       "inputs": [],
+      "name": "getAdminInitializationTxnHashes",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "getIdentityCount",
       "outputs": [
         {
@@ -427,6 +478,19 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "removeAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_messageHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "saveAdminInitializationMessageHash",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

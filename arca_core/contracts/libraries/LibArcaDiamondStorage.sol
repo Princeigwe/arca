@@ -28,7 +28,9 @@ library LibArcaDiamondStorage{
   event PatientIdentityFetchedEvent(string message, PatientIdentity);
   event AdminAddedEvent(string message, address admin);
   event AdminRemovedEvent(string message, address admin);
-  
+  event AdminInitializationTxnHashWrittenEvent(string message, address writer, bytes32 txnHash);
+  event AdminInitializationTxnHashesEvent(string message, bytes32[] txnHashes);
+
 
 
   //** FACETS ERRORS
@@ -82,7 +84,11 @@ library LibArcaDiamondStorage{
 
 
     //* FACETS STATE VARIABLES
+    // these hashes will be used for public key cryptography on IPFS data
+    bytes32[] adminInitializationMessageHashes;
+    mapping(address => bool) hasAdminInitializationMessageHash;
     mapping(address => bool) isAdmin;
+    mapping(address => bytes32) adminInitializationMessageHash;
     uint256 patientCount;
     uint256 providerCount;
     ProviderType providerType;

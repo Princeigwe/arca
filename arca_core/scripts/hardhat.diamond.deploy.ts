@@ -9,19 +9,21 @@ async function hardhatDeployDiamond() {
   const contractOwner = accounts[0];
 
   const arcaIdentityFacetCut = {
-    facetAddress: "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+    facetAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     action: 0,
     functionSelectors: [
-      "0x70480275",
-      "0xd953689d",
-      "0x652cec06",
-      "0xcfd549f7",
-      "0x8ebc10d9",
-      "0x87c636c2",
-      "0x90a29085",
-      "0x1785f53c",
-      "0x63fa311a"
-    ],
+      '0x70480275',
+      '0xd953689d',
+      '0x747ec961',
+      '0x652cec06',
+      '0xcfd549f7',
+      '0x2101605c',
+      '0x8e63a65c',
+      '0x05fdb67d',
+      '0x1785f53c',
+      '0x80f51291',
+      '0x63fa311a'  
+    ]
   };
 
   const facetCutList = [arcaIdentityFacetCut];
