@@ -1,12 +1,12 @@
-import { IPFS } from "../entities/base.entity.type";
+import { EncryptionKeys, IPFS } from "../entities/base.entity.type";
 import { PatientIdentity } from "../entities/patient.identity";
 import { Gender } from "../enums/gender.enum";
 import { EmploymentStatus } from "../enums/employment.status.enum";
 import { IpfsOperator } from "../../utils/ipfs.operator";
+import { SymmetricEncryptDecrypt } from "../../utils/symmetric.encrypt.decrypt";
 
 // const dotenv = require("dotenv");
 // const path = require("path");
-
 
 // dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
@@ -14,6 +14,7 @@ const ipfsOperator = new IpfsOperator();
 
 const storageType = PatientIdentity.name;
 
+const SED = new SymmetricEncryptDecrypt();
 
 export class ArcaIdentityService {
   async registerPatient(
@@ -34,13 +35,28 @@ export class ArcaIdentityService {
       homeAddress,
       employmentStatus,
     );
-    const data = new IPFS(storageType, identityData);
-    const jsonData = JSON.stringify(data);
 
-    const fileName: string = `Patent-Identity-${firstName}-${lastName}.json`
-    const uploadJsonData = await ipfsOperator.uploadJsonData(fileName, jsonData)
-    console.log("Filebase upload response: ", uploadJsonData);
+    const plainIdentityJsonData = JSON.stringify(identityData);
+    const { encryptedData, iv } = (await SED.encryptData(
+      plainIdentityJsonData,
+    ))!;
 
+    console.log("Encrypted data: ", encryptedData);
+    console.log("IV: ", iv);
+    // const encryptedKeys: EncryptionKeys = {};
+    // const data: IPFS = {
+    //   storageType,
+    //   encryptedData,
+    //   // encryptedKeys
+    // };
+    // const jsonData = JSON.stringify(data);
+
+    // const fileName: string = `Patent-Identity-${firstName}-${lastName}.json`;
+    // const uploadJsonData = await ipfsOperator.uploadJsonData(
+    //   fileName,
+    //   jsonData,
+    // );
+    // console.log("Filebase upload response: ", uploadJsonData);
   }
 }
 

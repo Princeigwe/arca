@@ -1,9 +1,11 @@
-export class IPFS{
-  storageType: string;
-  data: any
+export type EncryptionKeys = {
+  rsaEncryptedDEKForAdmin: string;
+  rsaEncryptedDEKForPatient: string;
+  dekIv: string
+}
 
-  constructor(storageType: string, data: any) {
-    this.storageType = storageType;
-    this.data = data;
-  }
+export type IPFS = {
+  storageType: string;
+  encryptedData: string;
+  encryptedKeys?: EncryptionKeys
 }

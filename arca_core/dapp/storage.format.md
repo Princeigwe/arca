@@ -1,4 +1,5 @@
 Pinata Storage Format = {
-  storageType: <entityName>:
-  data: <encryptedData>
+  storageType: <entityName>,
+  encryptedData: <encryptedData>,
+  encryptionKey: <EncryptionKeyEnum>
 }
