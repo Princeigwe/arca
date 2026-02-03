@@ -54,16 +54,17 @@ contract ArcaIdentityRegistry{
     ds.adminInitializationMessageHashAndSignature[msg.sender] = messageHashAndSignature;
     ds.hasAdminInitializationMessageHashAndSignature[msg.sender] = true;
 
+    LibADS.diamondStorage().adminInitializationMessageHashesAndSignatures.push(messageHashAndSignature);
+
     emit LibADS.AdminInitializationMessageHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, messageHashAndSignature);
   }
 
-  function getAdminInitializationMessageHashesAndSignatures() public {
-    LibADS.AdminInitializationMessageHashAndSignature [] memory _adminInitializationMessageHashesAndSignatures = LibADS.diamondStorage().adminInitializationMessageHashesAndSignatures;
-    emit LibADS.AdminInitializationMessageHashesEvent("Admin initialization transaction hashes fetched", _adminInitializationMessageHashesAndSignatures);
+  function getAdminInitializationMessageHashesAndSignatures() public view returns (LibADS.AdminInitializationMessageHashAndSignature[] memory) {
+    return LibADS.diamondStorage().adminInitializationMessageHashesAndSignatures;
   }
 
 
-  function registerPatient(bytes32 _registeredAt, bytes32 cid) public {
+  function registerPatient(uint256 _registeredAt, bytes memory _cid) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
     uint256 patientCount = ds.patientCount;
@@ -76,7 +77,7 @@ contract ArcaIdentityRegistry{
       isVerified: false,
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0,
-      cid: cid
+      cid: _cid
     });
     ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
@@ -86,8 +87,8 @@ contract ArcaIdentityRegistry{
   // register patient if they want to operate with multiple addresses
   function registerPatientWithLinkedAddresses(
     address[] memory _linkedAddresses, 
-    bytes32 _registeredAt,
-    bytes32 cid
+    uint256 _registeredAt,
+    bytes memory _cid
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
@@ -101,7 +102,7 @@ contract ArcaIdentityRegistry{
       isVerified: false,
       guardians: new address[](0), // an empty address array
       guardiansRequired: 0,
-      cid: cid
+      cid: _cid
     });
     ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
     ds.accountExists[msg.sender] = true;
@@ -113,8 +114,8 @@ contract ArcaIdentityRegistry{
     address [] memory _linkedAddresses, 
     uint8 _guardiansRequired,
     address[] memory _guardians,
-    bytes32 _registeredAt,
-    bytes32 cid
+    uint256 _registeredAt,
+    bytes memory cid
   ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));

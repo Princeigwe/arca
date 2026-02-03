@@ -1,11 +1,15 @@
-export type EncryptionKeys = {
+export type RsaEncryptedKeys = {
   rsaEncryptedDEKForAdmin: string;
-  rsaEncryptedDEKForPatient: string;
-  dekIv: string
+  rsaEncryptedDEKForSender: string;
 }
+
+export type EncryptionMetadata = {
+  rsaKeys: RsaEncryptedKeys
+  dekIv: string;
+};
 
 export type IPFS = {
   storageType: string;
   encryptedData: string;
-  encryptedKeys?: EncryptionKeys
-}
+  encryptedKeys?: EncryptionMetadata;
+};

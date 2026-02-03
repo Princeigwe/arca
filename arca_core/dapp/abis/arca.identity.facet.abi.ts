@@ -98,37 +98,6 @@ export const arca_identity_facet_abi = [
           "type": "string"
         },
         {
-          "components": [
-            {
-              "internalType": "bytes32",
-              "name": "messageHash",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "bytes",
-              "name": "messageSignature",
-              "type": "bytes"
-            }
-          ],
-          "indexed": false,
-          "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature[]",
-          "name": "",
-          "type": "tuple[]"
-        }
-      ],
-      "name": "AdminInitializationMessageHashesEvent",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "message",
-          "type": "string"
-        },
-        {
           "indexed": false,
           "internalType": "address",
           "name": "admin",
@@ -160,9 +129,9 @@ export const arca_identity_facet_abi = [
               "type": "address[]"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "uint256",
               "name": "registeredAt",
-              "type": "bytes32"
+              "type": "uint256"
             },
             {
               "internalType": "bool",
@@ -180,9 +149,9 @@ export const arca_identity_facet_abi = [
               "type": "uint8"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "cid",
-              "type": "bytes32"
+              "type": "bytes"
             }
           ],
           "indexed": false,
@@ -216,9 +185,9 @@ export const arca_identity_facet_abi = [
               "type": "address[]"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "uint256",
               "name": "registeredAt",
-              "type": "bytes32"
+              "type": "uint256"
             },
             {
               "internalType": "bool",
@@ -236,9 +205,9 @@ export const arca_identity_facet_abi = [
               "type": "uint8"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "cid",
-              "type": "bytes32"
+              "type": "bytes"
             }
           ],
           "indexed": false,
@@ -272,9 +241,9 @@ export const arca_identity_facet_abi = [
               "type": "address[]"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "uint256",
               "name": "registeredAt",
-              "type": "bytes32"
+              "type": "uint256"
             },
             {
               "internalType": "bool",
@@ -292,9 +261,9 @@ export const arca_identity_facet_abi = [
               "type": "uint8"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "cid",
-              "type": "bytes32"
+              "type": "bytes"
             }
           ],
           "indexed": false,
@@ -341,8 +310,26 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [],
       "name": "getAdminInitializationMessageHashesAndSignatures",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "messageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "messageSignature",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -386,9 +373,9 @@ export const arca_identity_facet_abi = [
               "type": "address[]"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "uint256",
               "name": "registeredAt",
-              "type": "bytes32"
+              "type": "uint256"
             },
             {
               "internalType": "bool",
@@ -406,9 +393,9 @@ export const arca_identity_facet_abi = [
               "type": "uint8"
             },
             {
-              "internalType": "bytes32",
+              "internalType": "bytes",
               "name": "cid",
-              "type": "bytes32"
+              "type": "bytes"
             }
           ],
           "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
@@ -422,14 +409,14 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
-          "internalType": "bytes32",
+          "internalType": "uint256",
           "name": "_registeredAt",
-          "type": "bytes32"
+          "type": "uint256"
         },
         {
-          "internalType": "bytes32",
-          "name": "cid",
-          "type": "bytes32"
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
         }
       ],
       "name": "registerPatient",
@@ -455,14 +442,14 @@ export const arca_identity_facet_abi = [
           "type": "address[]"
         },
         {
-          "internalType": "bytes32",
+          "internalType": "uint256",
           "name": "_registeredAt",
-          "type": "bytes32"
+          "type": "uint256"
         },
         {
-          "internalType": "bytes32",
+          "internalType": "bytes",
           "name": "cid",
-          "type": "bytes32"
+          "type": "bytes"
         }
       ],
       "name": "registerPatientWithLinkedAddressAndGuardians",
@@ -478,14 +465,14 @@ export const arca_identity_facet_abi = [
           "type": "address[]"
         },
         {
-          "internalType": "bytes32",
+          "internalType": "uint256",
           "name": "_registeredAt",
-          "type": "bytes32"
+          "type": "uint256"
         },
         {
-          "internalType": "bytes32",
-          "name": "cid",
-          "type": "bytes32"
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
         }
       ],
       "name": "registerPatientWithLinkedAddresses",

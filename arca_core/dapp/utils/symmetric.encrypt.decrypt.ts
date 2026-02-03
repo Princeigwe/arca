@@ -22,7 +22,7 @@ export class SymmetricEncryptDecrypt {
       );
       let encryptedData = cipher.update(plainData, "utf-8", "hex");
       encryptedData += cipher.final("hex");
-      return { encryptedData, iv };
+      return { encryptedData, iv, dek };
     } catch (error) {
       console.error(`Error encrypting data: ${error}`);
     }

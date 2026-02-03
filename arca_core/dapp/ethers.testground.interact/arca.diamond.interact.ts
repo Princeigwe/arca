@@ -283,7 +283,7 @@ const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
 // transferOwnership(newOwner)
 
-// getDiamondFacets()
+getDiamondFacets()
 
 // addAdmin(newAdmin)
 // checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
@@ -295,7 +295,7 @@ const messageHash =
   "0x8144a6fa26be252b86456491fbcd43c1de7e022241845ffea1c3df066f7cfede";
 const signature =
   "0x15a3fe3974ebe469b00e67ad67bb3860ad3fc3d739287cdbc4ba558ce7130bee205e5e38d6ef156f1ff6a4df17bfa72a1e61c429f92613f3efbc58394d00c9891b";
-testRetrievePublicKey(messageHash, signature);
+// testRetrievePublicKey(messageHash, signature);
 
 // verifyPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 // getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
@@ -303,33 +303,33 @@ testRetrievePublicKey(messageHash, signature);
 // facet address to remove must be the zero address
 const facetToRemove = ethers.ZeroAddress;
 const functionSelectorsToRemove = [
-  "0x70480275",
-  "0xd953689d",
-  "0x747ec961",
-  "0x652cec06",
-  "0xcfd549f7",
-  "0x2101605c",
-  "0x8e63a65c",
-  "0x05fdb67d",
-  "0x1785f53c",
-  "0x80f51291",
-  "0x63fa311a",
+  '0x70480275',
+  '0xd953689d',
+  '0x7c6dcd2e',
+  '0x652cec06',
+  '0xcfd549f7',
+  '0x68761954',
+  '0x059611c4',
+  '0x36135b30',
+  '0x1785f53c',
+  '0x5adc56ec',
+  '0x63fa311a'
 ];
 // removeFacet(facetToRemove, functionSelectorsToRemove)
 
 // facet address to add
-const facetToAdd = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-const functionSelectorsToAdd = [
-  "0x70480275",
-  "0xd953689d",
-  "0x747ec961",
-  "0x652cec06",
-  "0xcfd549f7",
-  "0x2101605c",
-  "0x8e63a65c",
-  "0x05fdb67d",
-  "0x1785f53c",
-  "0x80f51291",
-  "0x63fa311a",
+const facetToAdd = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+const functionSelectorsToAdd =  [
+  '0x70480275',
+  '0xd953689d',
+  '0x7c6dcd2e',
+  '0x652cec06',
+  '0xcfd549f7',
+  '0x841673ec',
+  '0xeee394b8',
+  '0x3ea93bf9',
+  '0x1785f53c',
+  '0x5adc56ec',
+  '0x63fa311a'
 ];
 // addFacet(facetToAdd, functionSelectorsToAdd)

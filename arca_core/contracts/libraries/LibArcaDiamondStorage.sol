@@ -29,7 +29,7 @@ library LibArcaDiamondStorage{
   event AdminAddedEvent(string message, address admin);
   event AdminRemovedEvent(string message, address admin);
   event AdminInitializationMessageHashWrittenEvent(string message, address writer, AdminInitializationMessageHashAndSignature);
-  event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
+  // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
 
@@ -54,25 +54,25 @@ library LibArcaDiamondStorage{
   struct PatientIdentity{
     address primaryAddress;
     address[] linkedAddresses; //optional input on identity registration
-    bytes32 registeredAt;
+    uint256 registeredAt;
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
-    bytes32 cid;
+    bytes cid;
   }
 
 
   struct ProviderIdentity{
     address primaryAddress;
     address[] linkedAddresses; //optional input on identity registration
-    bytes32 registeredAt;
+    uint256 registeredAt;
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired;  //optional input on identity registration
     bytes licenseHash;
     uint32 licenseExpiresAt;
     bool licenseIsExpired;
-    bytes32 cid;
+    bytes cid;
   }
 
   struct AdminInitializationMessageHashAndSignature{
