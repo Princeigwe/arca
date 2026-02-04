@@ -1,0 +1,527 @@
+export const arca_identity_facet_abi = [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "caller",
+          "type": "address"
+        }
+      ],
+      "name": "AccountExistsError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "AuthorizationError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "IncorrectGuardianCountMatchError",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminAddedEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "writer",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "messageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "messageSignature",
+              "type": "bytes"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "name": "AdminInitializationMessageHashWrittenEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminRemovedEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "primaryAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "linkedAddresses",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "registeredAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVerified",
+              "type": "bool"
+            },
+            {
+              "internalType": "address[]",
+              "name": "guardians",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "guardiansRequired",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "name": "PatientIdentityFetchedEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "primaryAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "linkedAddresses",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "registeredAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVerified",
+              "type": "bool"
+            },
+            {
+              "internalType": "address[]",
+              "name": "guardians",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "guardiansRequired",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "name": "PatientIdentityVerifiedEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "primaryAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "linkedAddresses",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "registeredAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVerified",
+              "type": "bool"
+            },
+            {
+              "internalType": "address[]",
+              "name": "guardians",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "guardiansRequired",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "name": "PatientRegisteredEvent",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "addAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_addr",
+          "type": "address"
+        }
+      ],
+      "name": "checkIsAdmin",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isAdmin",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAdminInitializationMessageHashesAndSignatures",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "messageHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "messageSignature",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getIdentityCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_patientCount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_providerCount",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_patientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getPatientIdentity",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "primaryAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "linkedAddresses",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "registeredAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVerified",
+              "type": "bool"
+            },
+            {
+              "internalType": "address[]",
+              "name": "guardians",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "guardiansRequired",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_registeredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "registerPatient",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_linkedAddresses",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_guardiansRequired",
+          "type": "uint8"
+        },
+        {
+          "internalType": "address[]",
+          "name": "_guardians",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_registeredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "registerPatientWithLinkedAddressAndGuardians",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_linkedAddresses",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_registeredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "registerPatientWithLinkedAddresses",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_admin",
+          "type": "address"
+        }
+      ],
+      "name": "removeAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_messageHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "saveAdminInitializationMessageHash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_patientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "verifyPatientIdentity",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
