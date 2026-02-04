@@ -159,4 +159,24 @@ export class IdentityEthersOnchain {
       throw new Error(`Error verifying patient on chain:${error}`)
     }
   }
+
+  async getPatientDataOnChain(wallet: ethers.Wallet, contractConnect: ethers.Contract, patientAddress: string) {
+    try {
+      contractConnect.once(
+        "PatientIdentityFetchedEvent",
+        (message, patient) => {
+          console.log(`Event received: ${message}`, patient);
+        },
+      );
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("getPatientIdentity", [patientAddress]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      await wallet.sendTransaction(txOption);
+    } catch (error) {
+      throw new Error(`Error getting patient data on chain: ${error}`)
+    }
+  }
 }

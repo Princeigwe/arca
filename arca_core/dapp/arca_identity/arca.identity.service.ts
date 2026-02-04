@@ -148,6 +148,15 @@ export class ArcaIdentityService {
     }
   }
 
+
+  async readPatientOnchainData(wallet: ethers.Wallet, contractConnect: ethers.Contract, patientAddress: string) {
+    try {
+      await this.identityEthersOnchain.getPatientDataOnChain(wallet, contractConnect, patientAddress)
+    } catch (error) {
+      throw new Error(`Error reading patient on chain data: ${error}`)
+    }
+  }
+
   async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
     const decryptedData = await SED.decryptData(encryptedData, dek, iv);
     const decryptedJsonData = JSON.parse(decryptedData!);
@@ -207,9 +216,13 @@ const encryptedDekForAdmin = "BPOSV3gSjd3U+E+cBu6BjimUEZur4OuqMv8CR9GGnj7yiHsWfd
 const encryptedPatientData = "920cdd0b2b041d44e1ba4f7385e688d9c603b94a9f2cb40fe806f18023928be026e375910f6a8f652e4371405a1cbace799784a1c3ff70d8949c3504d50fc6cb763cb4774200de259f089a06fcdfe96c9883becc43b08786da1ce6d3fbf59eeb9cb756f6db39eae767d1b7e274c00448fc02f35f427f464af006f5ba8a79b8de65af851434afb4b8f723a624271ef3456dc173f75ce347ef42be75ee91c3ad9dfe9f65e6bd2cf610fcfe7af4b1a9a12287f2b362384f851bd16981df9b3f485e"
 const dekIv = "790845267e816c1bae50ab7ce235b816"
 
-arcaIdentityService.decryptAndReadIPFSPatientData(
-  ownerSecretKey,
-  encryptedDekForAdmin,
-  encryptedPatientData,
-  dekIv
-)
+// arcaIdentityService.decryptAndReadIPFSPatientData(
+//   ownerSecretKey,
+//   encryptedDekForAdmin,
+//   encryptedPatientData,
+//   dekIv
+// )
+
+// arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
+
+arcaIdentityService.readPatientOnchainData(ownerWallet, ownerContractConnect, patient1Wallet.address)
