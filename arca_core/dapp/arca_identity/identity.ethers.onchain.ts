@@ -42,7 +42,7 @@ export class IdentityEthersOnchain {
       await wallet.sendTransaction(txOption);
       console.log("Transaction successful");
     } catch (error) {
-      console.error("Error saving admin initialization hash:", error);
+      throw new Error(`Error saving admin initialization hash: ${error}`)
     }
   }
 
@@ -70,7 +70,7 @@ export class IdentityEthersOnchain {
       console.log("Hash and Signature Formatted Response: ", formattedResponse);
       return formattedResponse;
     } catch (error) {
-      console.error("Error getting message hashes and signatures:", error);
+      throw new Error(`Error getting message hashes and signature: error`)
     }
   }
 
@@ -91,7 +91,7 @@ export class IdentityEthersOnchain {
       );
       return recoveredPublicKey;
     } catch (error) {
-      console.error("Error selecting random PK:", error);
+      throw new Error(`Error selecting random PK: ${error}`)
     }
   }
 
@@ -108,9 +108,7 @@ export class IdentityEthersOnchain {
       );
       console.log(result);
     } catch (error) {
-      console.error(
-        `Error getting identity count from diamond contract: ${error}`,
-      );
+      throw new Error(`Error getting identity from diamond contract: ${error}`)
     }
   }
 
@@ -143,7 +141,22 @@ export class IdentityEthersOnchain {
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
     } catch (error) {
-      console.error("Error registering patient on chain: ", error);
+      throw new Error(`Error registering patient on chain: ${error}`)
+    }
+  }
+
+  async verifyOnchainPatient(wallet: ethers.Wallet, patientAddress: string) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData('verifyPatientIdentity', [patientAddress])
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+      const response = await wallet.sendTransaction(txOption)
+      await response.wait()
+    } catch (error) {
+      throw new Error(`Error verifying patient on chain:${error}`)
     }
   }
 }

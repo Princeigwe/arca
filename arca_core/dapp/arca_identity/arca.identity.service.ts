@@ -119,7 +119,32 @@ export class ArcaIdentityService {
       await this.identityEthersOnchain.registerPatientOnChain(wallet, contractConnect, cid!)
       console.log("Patient registration successful")
     } catch (error) {
-      console.error("Error registering patient: ", error);
+      throw new Error(`Error registering patient: ${error}`)
+    }
+  }
+
+
+  async decryptAndReadIPFSPatientData(
+    privateKey: string,
+    encryptedDekForAdmin: string,
+    encryptedPatientData: string,
+    iv: string
+  ) {
+    try {
+      const decryptedRsaDEK = RED.decryptDek(privateKey, encryptedDekForAdmin)
+      const decryptedPatientData = SED.decryptData(encryptedPatientData, decryptedRsaDEK, iv)
+      console.log("Decrypted patient data:", decryptedPatientData)
+    } catch (error) {
+      throw new Error(`Error decrypting and reading IPFS patient data: ${error}`)
+    }
+  }
+
+
+  async verifyPatient(wallet: ethers.Wallet, patientAddress: string) {
+    try {
+      await this.identityEthersOnchain.verifyOnchainPatient(wallet, patientAddress)
+    } catch (error) {
+      throw new Error(`Error verifying patient: ${error}`)
     }
   }
 
@@ -147,17 +172,17 @@ const patient = new PatientIdentity(
   "123 Main St",
   EmploymentStatus.STUDENT,
 );
-arcaIdentityService.registerPatient(
-  patient1Wallet,
-  patient1ContractConnect,
-  "John",
-  "Doe",
-  new Date(),
-  Gender.MALE,
-  "123456789",
-  "123 Main St",
-  EmploymentStatus.STUDENT,
-);
+// arcaIdentityService.registerPatient(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "John",
+//   "Doe",
+//   new Date(),
+//   Gender.MALE,
+//   "123456789",
+//   "123 Main St",
+//   EmploymentStatus.STUDENT,
+// );
 
 const iv = "89c16532618816bd38342b9170d5f9b4";
 const dek = "d49d0fd9328b899ae38204c8c23fd492e6d742529acecc99e62ae4b2d06f7766";
@@ -175,3 +200,16 @@ let ownerContractConnect = testConnects[0]
 const randomMessage = "Hello world"
 // arcaIdentityService.createAdminMsgAndSig(randomMessage, ownerWallet, ownerContractConnect)
 // arcaIdentityService.getAdminMsgAndSigs(ownerWallet);
+
+
+const ownerSecretKey = ownerWallet.signingKey.privateKey
+const encryptedDekForAdmin = "BPOSV3gSjd3U+E+cBu6BjimUEZur4OuqMv8CR9GGnj7yiHsWfdfQzyKfqFjAcJN3L8cfwR0X5ZEjw8ymjmmdh2Kv5WlHxia9LdFxuM4fMEC3oGEONCCXAKxbxZh3vY8jfusY9mw4idLvs/htpt1Egd9lyCfBFtV0L2MqMwK2rNU+xU8TWrHLZcPQAL9cQY7L1Npy4IyTMuTl/VBlWwVZQlQ="
+const encryptedPatientData = "920cdd0b2b041d44e1ba4f7385e688d9c603b94a9f2cb40fe806f18023928be026e375910f6a8f652e4371405a1cbace799784a1c3ff70d8949c3504d50fc6cb763cb4774200de259f089a06fcdfe96c9883becc43b08786da1ce6d3fbf59eeb9cb756f6db39eae767d1b7e274c00448fc02f35f427f464af006f5ba8a79b8de65af851434afb4b8f723a624271ef3456dc173f75ce347ef42be75ee91c3ad9dfe9f65e6bd2cf610fcfe7af4b1a9a12287f2b362384f851bd16981df9b3f485e"
+const dekIv = "790845267e816c1bae50ab7ce235b816"
+
+arcaIdentityService.decryptAndReadIPFSPatientData(
+  ownerSecretKey,
+  encryptedDekForAdmin,
+  encryptedPatientData,
+  dekIv
+)
