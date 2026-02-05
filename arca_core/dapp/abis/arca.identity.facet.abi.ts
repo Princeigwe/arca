@@ -22,17 +22,6 @@ export const arca_identity_facet_abi = [
       "type": "error"
     },
     {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "name": "IncorrectGuardianCountMatchError",
-      "type": "error"
-    },
-    {
       "anonymous": false,
       "inputs": [
         {
@@ -152,6 +141,28 @@ export const arca_identity_facet_abi = [
               "internalType": "bytes",
               "name": "cid",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "adminInitializationSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKs",
+              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -208,6 +219,28 @@ export const arca_identity_facet_abi = [
               "internalType": "bytes",
               "name": "cid",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "adminInitializationSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKs",
+              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -264,6 +297,28 @@ export const arca_identity_facet_abi = [
               "internalType": "bytes",
               "name": "cid",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "adminInitializationSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKs",
+              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -353,6 +408,25 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "getMessageHashOfAdminInitializationSignature",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "_patientAddress",
           "type": "address"
@@ -396,6 +470,28 @@ export const arca_identity_facet_abi = [
               "internalType": "bytes",
               "name": "cid",
               "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "adminInitializationSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKs",
+              "type": "tuple[]"
             }
           ],
           "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
@@ -417,65 +513,19 @@ export const arca_identity_facet_abi = [
           "internalType": "bytes",
           "name": "_cid",
           "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_adminInitializationSignatureUsed",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDEK",
+          "type": "bytes"
         }
       ],
       "name": "registerPatient",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "_linkedAddresses",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint8",
-          "name": "_guardiansRequired",
-          "type": "uint8"
-        },
-        {
-          "internalType": "address[]",
-          "name": "_guardians",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_registeredAt",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bytes",
-          "name": "cid",
-          "type": "bytes"
-        }
-      ],
-      "name": "registerPatientWithLinkedAddressAndGuardians",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "_linkedAddresses",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_registeredAt",
-          "type": "uint256"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_cid",
-          "type": "bytes"
-        }
-      ],
-      "name": "registerPatientWithLinkedAddresses",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

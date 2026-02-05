@@ -42,7 +42,7 @@ export class IdentityEthersOnchain {
       await wallet.sendTransaction(txOption);
       console.log("Transaction successful");
     } catch (error) {
-      throw new Error(`Error saving admin initialization hash: ${error}`)
+      throw new Error(`Error saving admin initialization hash: ${error}`);
     }
   }
 
@@ -70,11 +70,11 @@ export class IdentityEthersOnchain {
       console.log("Hash and Signature Formatted Response: ", formattedResponse);
       return formattedResponse;
     } catch (error) {
-      throw new Error(`Error getting message hashes and signature: error`)
+      throw new Error(`Error getting message hashes and signature: error`);
     }
   }
 
-  async selectRandomAdminPublicKey(senderWallet: ethers.Wallet) {
+  async selectRandomAdminPublicKeyAndSignature(senderWallet: ethers.Wallet) {
     try {
       const hashesAndSigs =
         await this.getAdminInitializationMessageHashesAndSignatures(
@@ -89,9 +89,12 @@ export class IdentityEthersOnchain {
         randomAdminData.messageHash,
         randomAdminData.messageSignature,
       );
-      return recoveredPublicKey;
+      return {
+        messageSignature: randomAdminData.messageSignature,
+        recoveredPublicKey
+    };
     } catch (error) {
-      throw new Error(`Error selecting random PK: ${error}`)
+      throw new Error(`Error selecting random PK: ${error}`);
     }
   }
 
@@ -108,7 +111,7 @@ export class IdentityEthersOnchain {
       );
       console.log(result);
     } catch (error) {
-      throw new Error(`Error getting identity from diamond contract: ${error}`)
+      throw new Error(`Error getting identity from diamond contract: ${error}`);
     }
   }
 
@@ -116,6 +119,8 @@ export class IdentityEthersOnchain {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     cid: string,
+    adminInitializationSignatureUsed: string,
+    rsaMasterDEK: string,
   ) {
     try {
       contractConnect.once("PatientRegisteredEvent", (message, patient) => {
@@ -126,13 +131,16 @@ export class IdentityEthersOnchain {
       const unixTimestampInSeconds = Math.floor(Date.now() / 1000); //unix timestamp in seconds
       console.log("Unix Timestamp in second:", unixTimestampInSeconds);
 
-      const cidBytes32 = ethers.toUtf8Bytes(cid);
+      const cidBytes = ethers.toUtf8Bytes(cid);
 
+      const rsaMasterDEKbytes = ethers.toUtf8Bytes(rsaMasterDEK);
 
       const iFace = new ethers.Interface(arca_identity_facet_abi);
       const data = iFace.encodeFunctionData("registerPatient", [
         unixTimestampInSeconds,
-        cidBytes32,
+        cidBytes,
+        adminInitializationSignatureUsed, //* already in bytes
+        rsaMasterDEKbytes,
       ]);
       const txOption = {
         to: arcaDiamondAddress,
@@ -141,26 +149,32 @@ export class IdentityEthersOnchain {
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
     } catch (error) {
-      throw new Error(`Error registering patient on chain: ${error}`)
+      throw new Error(`Error registering patient on chain: ${error}`);
     }
   }
 
   async verifyOnchainPatient(wallet: ethers.Wallet, patientAddress: string) {
     try {
       const iFace = new ethers.Interface(arca_identity_facet_abi);
-      const data = iFace.encodeFunctionData('verifyPatientIdentity', [patientAddress])
+      const data = iFace.encodeFunctionData("verifyPatientIdentity", [
+        patientAddress,
+      ]);
       const txOption = {
         to: arcaDiamondAddress,
-        data: data
-      }
-      const response = await wallet.sendTransaction(txOption)
-      await response.wait()
+        data: data,
+      };
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
     } catch (error) {
-      throw new Error(`Error verifying patient on chain:${error}`)
+      throw new Error(`Error verifying patient on chain:${error}`);
     }
   }
 
-  async getPatientDataOnChain(wallet: ethers.Wallet, contractConnect: ethers.Contract, patientAddress: string) {
+  async getPatientDataOnChain(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    patientAddress: string,
+  ) {
     try {
       contractConnect.once(
         "PatientIdentityFetchedEvent",
@@ -169,14 +183,16 @@ export class IdentityEthersOnchain {
         },
       );
       const iFace = new ethers.Interface(arca_identity_facet_abi);
-      const data = iFace.encodeFunctionData("getPatientIdentity", [patientAddress]);
+      const data = iFace.encodeFunctionData("getPatientIdentity", [
+        patientAddress,
+      ]);
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
       };
       await wallet.sendTransaction(txOption);
     } catch (error) {
-      throw new Error(`Error getting patient data on chain: ${error}`)
+      throw new Error(`Error getting patient data on chain: ${error}`);
     }
   }
 }

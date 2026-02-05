@@ -49,6 +49,13 @@ library LibArcaDiamondStorage{
     RESEARCHER
   }
 
+  // this is used to hold RSA-encrypted master DEK for main and linked accounts
+  // so that all parties can have a unified access to authorized records and operations 
+  struct IdentityRSAMasterDEK{
+    address identity;
+    bytes rsaMasterDEK;
+  }
+
 
   //* FACETS STRUCTS
   struct PatientIdentity{
@@ -59,6 +66,8 @@ library LibArcaDiamondStorage{
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
     bytes cid;
+    bytes adminInitializationSignature;
+    IdentityRSAMasterDEK[] rsaMasterDEKs;
   }
 
 
@@ -94,6 +103,7 @@ library LibArcaDiamondStorage{
     mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
     mapping(address => bool) isAdmin;
     mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
+    mapping(bytes => bytes32) messageHashOfAdminInitializationSignature;
     uint256 patientCount;
     uint256 providerCount;
     ProviderType providerType;

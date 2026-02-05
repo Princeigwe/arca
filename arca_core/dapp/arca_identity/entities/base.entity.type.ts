@@ -10,6 +10,8 @@ export type EncryptionMetadata = {
 
 export type IPFS = {
   storageType: string;
+  primaryWalletAddress: string;
+  uploadedAt: Date,
   encryptedData: string;
   encryptedKeys?: EncryptionMetadata;
 };
