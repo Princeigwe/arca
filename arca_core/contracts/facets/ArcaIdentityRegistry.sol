@@ -3,11 +3,13 @@
 pragma solidity 0.8.30;
 
 import {LibArcaDiamondStorage as LibADS} from  "../libraries/LibArcaDiamondStorage.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 
 contract ArcaIdentityRegistry{
 
-
+  using ECDSA for bytes32;
 
 
   /////////////////////////////////////////////////////////////////
@@ -98,6 +100,101 @@ contract ArcaIdentityRegistry{
     ds.patientAccount[msg.sender] = newPatient;
     ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered", newPatient);
+  }
+
+  // this sends a request for a primary address to link the sender for a unified data access
+  function linkAddressRequest(address _primaryAddress) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(_primaryAddress != address(0), "Recipient must be a valid address");
+    require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
+    ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
+    emit LibADS.LinkAccountRequestEvent(
+      "Incoming request to link to primary address",
+      msg.sender,
+      _primaryAddress
+    );
+  }
+
+
+  function getCurrentNonce()public view returns(uint256){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    return ds.internalNonce;
+  }
+
+  function isSignatureValid(bytes32 _hash, bytes memory _signature) public view returns (bool) {
+    address signer = _hash.recover(_signature);
+    return (signer == msg.sender);
+  }
+
+
+  function approveLinkAddressRequest(
+    address _secondaryAddress,
+    uint256 _timestamp,
+    uint256 _nonce,
+    bytes32 _hash, 
+    bytes memory _signature
+    ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(
+      ds.accountExists[msg.sender],
+      LibADS.AccountDoesNotExistError(msg.sender)
+    );
+    require(
+      ds.primaryAccountOf[_secondaryAddress] == address(0), 
+      LibADS.LinkRequestApprovalError("Account already linked to a primary account")
+    );
+    require(
+      ds.sentLinkRequest[_secondaryAddress][msg.sender], 
+      LibADS.LinkRequestApprovalError("No previous link request from secondary account")
+    );
+    require(
+      _nonce == ds.internalNonce,
+      LibADS.LinkRequestApprovalError("Invalid nonce")
+    );
+
+    bool isSigValid = isSignatureValid(_hash, _signature);
+    require(isSigValid, LibADS.LinkRequestApprovalError("Invalid signature"));
+
+    uint256 currentTimestamp = block.timestamp;
+    uint256 timeDeadline = currentTimestamp + 10 minutes;
+
+    if(_timestamp >= timeDeadline){
+      revert LibADS.LinkRequestApprovalError("Expired approval request");
+    }
+    ds.internalNonce++;
+    ds.primaryAccountOf[_secondaryAddress] = msg.sender;
+    ds.patientAccount[msg.sender].linkedAddresses.push(_secondaryAddress);
+
+    // making this false for validation check when storing rsaMasterDEK for linked account. To avoid double request
+    ds.sentLinkRequest[_secondaryAddress][msg.sender] = false;
+
+    emit LibADS.LinkAccountRequestApprovalEvent(
+      "Account link request approved",
+      msg.sender,
+      _secondaryAddress
+    );
+  }
+
+
+  function storeRsaMasterDekForLinkedAccount(
+    address _secondaryAddress,
+    bytes memory _rsaMasterDEK
+    )public returns(LibADS.PatientIdentity memory){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(
+      ds.primaryAccountOf[_secondaryAddress] == msg.sender, 
+      LibADS.AuthorizationError('Secondary address is not linked to main account')
+    );
+    require(
+      !ds.sentLinkRequest[_secondaryAddress][msg.sender],
+      LibADS.AuthorizationError('Duplicate request to settle RSA master DEK for linked account')
+    );
+    ds.patientAccount[msg.sender].rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: _secondaryAddress,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+    ds.sentLinkRequest[_secondaryAddress][msg.sender] = true;
+    return getPatientIdentity(msg.sender);
   }
 
   // // register patient if they want to operate with multiple addresses

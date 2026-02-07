@@ -18,6 +18,23 @@ const hardhatPrivateKey2 =
 const dummyEOAddressPrivateKey1 =
   process.env.WALLET_PRIVATE_KEY || hardhatPrivateKey2;
 const wallet1 = new ethers.Wallet(dummyEOAddressPrivateKey1, provider);
+// const wallet1ContractConnect = new ethers.Contract(
+//   arcaDiamondAddress,
+//   combinedABIs,
+//   wallet1
+// )
+
+const linkRequesterPrivateKey =
+  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
+const linkRequesterWallet = new ethers.Wallet(
+  linkRequesterPrivateKey,
+  provider,
+);
+const linkRequesterContractConnect = new ethers.Contract(
+  arcaDiamondAddress,
+  combinedABIs,
+  linkRequesterWallet,
+);
 
 const arcaDiamondContractConnect1 = new ethers.Contract(
   arcaDiamondAddress,
@@ -65,20 +82,25 @@ async function registerPatient() {
     );
 
     // converting unix date to bytes32
-    const unixTimestampInSeconds = Math.floor(Date.now() / 1000).toString(); //unix timestamp in seconds
+    const unixTimestampInSeconds = Math.floor(Date.now() / 1000) //unix timestamp in seconds
     console.log("Unix Timestamp in second:", unixTimestampInSeconds);
 
-    const unixTimestampSecondsBytes32 = ethers.encodeBytes32String(
-      unixTimestampInSeconds,
-    );
 
     const cid = "123456";
-    const cidBytes32 = ethers.encodeBytes32String(cid);
+    const cidBytes = ethers.toUtf8Bytes(cid);
+
+    const adminInitMsgSignature =
+      "0x15a3fe3974ebe469b00e67ad67bb3860ad3fc3d739287cdbc4ba558ce7130bee205e5e38d6ef156f1ff6a4df17bfa72a1e61c429f92613f3efbc58394d00c9891b";
+
+    const rsaMasterDEK = "123hgjhg";
+    const rsaMasterDEKBytes = ethers.toUtf8Bytes(rsaMasterDEK);
 
     const iFace = new ethers.Interface(arca_identity_facet_abi);
     const data = iFace.encodeFunctionData("registerPatient", [
-      unixTimestampSecondsBytes32,
-      cidBytes32,
+      unixTimestampInSeconds,
+      cidBytes,
+      adminInitMsgSignature,
+      rsaMasterDEKBytes,
     ]);
     const txOption = {
       to: arcaDiamondAddress,
@@ -242,6 +264,92 @@ async function getPatientIdentity(address: string) {
   }
 }
 
+async function getCurrentNonce() {
+  try {
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("getCurrentNonce");
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data,
+    };
+    const response = await linkRequesterWallet.call(txOption); // fallback call for a view function with call()
+    const result = ethers.AbiCoder.defaultAbiCoder().decode(
+      ["uint256"],
+      response,
+    );
+    console.log(result);
+    return result
+    // const nonce = result[0];
+    // console.log("Nonce:", result[0].toString());
+    
+  } catch (error) {
+    console.error("Error getting internal nonce:", error);
+  }
+}
+
+async function linkAddressRequest(primaryAddress: string) {
+  try {
+    arcaDiamondContractConnect1.once(
+      "LinkAccountRequestEvent",
+      (message, sender, primaryAddress) => {
+        console.log(
+          `Event received: ${message}: Sender: ${sender}: Primary Address:  ${primaryAddress}`,
+        );
+      },
+    );
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("linkAddressRequest", [
+      primaryAddress,
+    ]);
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data,
+    };
+    await linkRequesterWallet.sendTransaction(txOption);
+  } catch (error) {
+    console.error("Error linking request address:", error);
+  }
+}
+
+async function approveLinkAddressRequest(
+  secondaryAddress: string,
+  randomMessage: string,
+) {
+  try {
+    arcaDiamondContractConnect1.once(
+      "LinkAccountRequestApprovalEvent",
+      (message, sender, secondaryAddress) => {
+        console.log(
+          `Event received: ${message}: Sender: ${sender}: Secondary Address:  ${secondaryAddress}`,
+        );
+      },
+    );
+    let currentNonce = await getCurrentNonce()
+    let currentNonceNumber = Number(currentNonce![0])
+    const signature = await wallet1.signMessage(randomMessage);
+    const messageHash = ethers.hashMessage(randomMessage);
+    const unixTimestampInSeconds = Math.floor(Date.now() / 1000)
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData(
+      "approveLinkAddressRequest",
+      [
+        secondaryAddress,
+        unixTimestampInSeconds,
+        currentNonceNumber,
+        messageHash,
+        signature
+      ]
+    )
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    await wallet1.sendTransaction(txOption);
+  } catch (error) {
+    console.error("Error approving link address request:", error);
+  }
+}
+
 async function removeFacet(facetAddress: string, functionSelectors: string[]) {
   try {
     const facetCut = [
@@ -283,7 +391,7 @@ const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
 // transferOwnership(newOwner)
 
-getDiamondFacets()
+// getDiamondFacets()
 
 // addAdmin(newAdmin)
 // checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
@@ -303,33 +411,40 @@ const signature =
 // facet address to remove must be the zero address
 const facetToRemove = ethers.ZeroAddress;
 const functionSelectorsToRemove = [
-  '0x70480275',
-  '0xd953689d',
-  '0x7c6dcd2e',
-  '0x652cec06',
-  '0xcfd549f7',
-  '0x68761954',
-  '0x059611c4',
-  '0x36135b30',
-  '0x1785f53c',
-  '0x5adc56ec',
-  '0x63fa311a'
+  "0x70480275",
+  "0xd953689d",
+  "0x7c6dcd2e",
+  "0x652cec06",
+  "0xcfd549f7",
+  "0x68761954",
+  "0x059611c4",
+  "0x36135b30",
+  "0x1785f53c",
+  "0x5adc56ec",
+  "0x63fa311a",
 ];
 // removeFacet(facetToRemove, functionSelectorsToRemove)
 
 // facet address to add
 const facetToAdd = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
-const functionSelectorsToAdd =  [
-  '0x70480275',
-  '0xd953689d',
-  '0x7c6dcd2e',
-  '0x652cec06',
-  '0xcfd549f7',
-  '0x841673ec',
-  '0xeee394b8',
-  '0x3ea93bf9',
-  '0x1785f53c',
-  '0x5adc56ec',
-  '0x63fa311a'
+const functionSelectorsToAdd = [
+  "0x70480275",
+  "0xd953689d",
+  "0x7c6dcd2e",
+  "0x652cec06",
+  "0xcfd549f7",
+  "0x841673ec",
+  "0xeee394b8",
+  "0x3ea93bf9",
+  "0x1785f53c",
+  "0x5adc56ec",
+  "0x63fa311a",
 ];
 // addFacet(facetToAdd, functionSelectorsToAdd)
+
+// getCurrentNonce();
+// linkAddressRequest("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+approveLinkAddressRequest(
+  "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", 
+  randomMessage
+)

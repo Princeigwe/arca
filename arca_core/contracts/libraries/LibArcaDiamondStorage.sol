@@ -29,14 +29,18 @@ library LibArcaDiamondStorage{
   event AdminAddedEvent(string message, address admin);
   event AdminRemovedEvent(string message, address admin);
   event AdminInitializationMessageHashWrittenEvent(string message, address writer, AdminInitializationMessageHashAndSignature);
+  event LinkAccountRequestEvent(string message, address requester, address recipient);
+  event LinkAccountRequestApprovalEvent(string message, address primary, address secondary);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
 
   //** FACETS ERRORS
   error AccountExistsError(address caller);
+  error AccountDoesNotExistError(address identity);
   error IncorrectGuardianCountMatchError(string);
   error AuthorizationError(string);
+  error LinkRequestApprovalError(string);
 
   //** FACETS ENUMS
   enum ProviderType{
@@ -102,10 +106,13 @@ library LibArcaDiamondStorage{
     AdminInitializationMessageHashAndSignature[] adminInitializationMessageHashesAndSignatures;
     mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
     mapping(address => bool) isAdmin;
+    mapping(address => mapping (address => bool)) sentLinkRequest;
+    mapping(address => address) primaryAccountOf;
     mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
     mapping(bytes => bytes32) messageHashOfAdminInitializationSignature;
     uint256 patientCount;
     uint256 providerCount;
+    uint256 internalNonce;
     ProviderType providerType;
     mapping (address => PatientIdentity) patientAccount;
     mapping (address => bool) accountExists;

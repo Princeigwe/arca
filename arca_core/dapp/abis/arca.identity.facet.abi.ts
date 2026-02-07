@@ -3,6 +3,17 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "identity",
+          "type": "address"
+        }
+      ],
+      "name": "AccountDoesNotExistError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "caller",
           "type": "address"
         }
@@ -19,6 +30,44 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "AuthorizationError",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ECDSAInvalidSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "length",
+          "type": "uint256"
+        }
+      ],
+      "name": "ECDSAInvalidSignatureLength",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "s",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ECDSAInvalidSignatureS",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "LinkRequestApprovalError",
       "type": "error"
     },
     {
@@ -94,6 +143,56 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "AdminRemovedEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "primary",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "secondary",
+          "type": "address"
+        }
+      ],
+      "name": "LinkAccountRequestApprovalEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "requester",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        }
+      ],
+      "name": "LinkAccountRequestEvent",
       "type": "event"
     },
     {
@@ -347,6 +446,39 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "_secondaryAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_timestamp",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_nonce",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "_hash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "approveLinkAddressRequest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_addr",
           "type": "address"
         }
@@ -382,6 +514,19 @@ export const arca_identity_facet_abi = [
           "internalType": "struct LibArcaDiamondStorage.AdminInitializationMessageHashAndSignature[]",
           "name": "",
           "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCurrentNonce",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -505,6 +650,43 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
+          "internalType": "bytes32",
+          "name": "_hash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "isSignatureValid",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_primaryAddress",
+          "type": "address"
+        }
+      ],
+      "name": "linkAddressRequest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "_registeredAt",
           "type": "uint256"
@@ -558,6 +740,89 @@ export const arca_identity_facet_abi = [
       ],
       "name": "saveAdminInitializationMessageHash",
       "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_secondaryAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDEK",
+          "type": "bytes"
+        }
+      ],
+      "name": "storeRsaMasterDekForLinkedAccount",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "primaryAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "linkedAddresses",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "registeredAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "isVerified",
+              "type": "bool"
+            },
+            {
+              "internalType": "address[]",
+              "name": "guardians",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "guardiansRequired",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "adminInitializationSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKs",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
