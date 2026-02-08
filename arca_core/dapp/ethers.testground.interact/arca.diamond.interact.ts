@@ -81,7 +81,6 @@ async function registerPatient() {
       },
     );
 
-    // converting unix date to bytes32
     const unixTimestampInSeconds = Math.floor(Date.now() / 1000) //unix timestamp in seconds
     console.log("Unix Timestamp in second:", unixTimestampInSeconds);
 
@@ -258,7 +257,26 @@ async function getPatientIdentity(address: string) {
       to: arcaDiamondAddress,
       data: data,
     };
-    await wallet1.sendTransaction(txOption);
+    const response = await wallet1.call(txOption)
+    const decoded = iFace.decodeFunctionResult("getPatientIdentity", response);
+    const patient = decoded[0];
+
+    const formattedPatient = {
+      primaryAddress: patient[0],
+      linkedAddresses: Array.from(patient[1]),
+      registeredAt: patient[2].toString(),
+      isVerified: patient[3],
+      guardians: Array.from(patient[4]),
+      guardiansRequired: Number(patient[5]),
+      cid: ethers.toUtf8String(patient[6]),
+      adminInitializationSignature: patient[7],
+      rsaMasterDEKs: Array.from(patient[8]).map((item: any) => ({
+        identity: item[0],
+        rsaMasterDEK: ethers.toUtf8String(item[1]),
+      })),
+    };
+    console.log("Formatted Patient Identity:", formattedPatient);
+    return formattedPatient;
   } catch (error) {
     console.log("Error fetching patient identity: ", error);
   }
@@ -278,12 +296,19 @@ async function getCurrentNonce() {
       response,
     );
     console.log(result);
-    return result
-    // const nonce = result[0];
-    // console.log("Nonce:", result[0].toString());
-    
+    return result    
   } catch (error) {
     console.error("Error getting internal nonce:", error);
+  }
+}
+
+
+async function convertRsaKeyBytesToString(rsaMasterKeyBytes: string) {
+  try {
+    const stringKey = ethers.toUtf8String(rsaMasterKeyBytes)
+    return stringKey
+  } catch (error) {
+    console.error("Error converting RSA master key to string", error)
   }
 }
 
@@ -350,6 +375,15 @@ async function approveLinkAddressRequest(
   }
 }
 
+async function storeRsaMasterDekForLinkedAccount() {
+  try {
+    const wallet1Address = await wallet1.getAddress();
+    const patient = await getPatientIdentity(wallet1Address)
+  } catch (error) {
+    console.error("Error storing RSA master dek for linked account:", error);
+  }
+}
+
 async function removeFacet(facetAddress: string, functionSelectors: string[]) {
   try {
     const facetCut = [
@@ -406,7 +440,7 @@ const signature =
 // testRetrievePublicKey(messageHash, signature);
 
 // verifyPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
-// getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 
 // facet address to remove must be the zero address
 const facetToRemove = ethers.ZeroAddress;
@@ -444,7 +478,7 @@ const functionSelectorsToAdd = [
 
 // getCurrentNonce();
 // linkAddressRequest("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
-approveLinkAddressRequest(
-  "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", 
-  randomMessage
-)
+// approveLinkAddressRequest(
+//   "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", 
+//   randomMessage
+// )

@@ -65,4 +65,20 @@ export class RsaEncryptDecrypt {
       throw error;
     }
   }
+
+
+  encryptDek(publicKey: string, dek: string) {
+    try {
+      const bufferDek = Buffer.from(dek, "utf-8");
+      const pkBuffer = Buffer.from(
+        publicKey.startsWith("0x") ? publicKey.substring(2) : publicKey,
+        "hex",
+      );
+      const rsaEncryptedDek = encrypt(pkBuffer, bufferDek);
+      return rsaEncryptedDek.toString("base64")
+    } catch (error) {
+      console.error("Error encrypting DEK:", error);
+      throw error;
+    }
+  }
 }

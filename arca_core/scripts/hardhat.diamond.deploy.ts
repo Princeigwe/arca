@@ -21,7 +21,7 @@ async function hardhatDeployDiamond() {
       '0x8ddc4e68',
       '0xcfd549f7',
       '0x0892beb7',
-      '0x33c795fb',
+      '0x1b3780d1',
       '0x6d8dbf9a',
       '0x1785f53c',
       '0x5adc56ec',

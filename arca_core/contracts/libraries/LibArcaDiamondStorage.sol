@@ -29,8 +29,9 @@ library LibArcaDiamondStorage{
   event AdminAddedEvent(string message, address admin);
   event AdminRemovedEvent(string message, address admin);
   event AdminInitializationMessageHashWrittenEvent(string message, address writer, AdminInitializationMessageHashAndSignature);
-  event LinkAccountRequestEvent(string message, address requester, address recipient);
+  event LinkAccountRequestEvent(string message, address requester, bytes32 requestHash, bytes requestSignature, address recipient);
   event LinkAccountRequestApprovalEvent(string message, address primary, address secondary);
+  event PatientIdentityUpdateEvent(string message);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 

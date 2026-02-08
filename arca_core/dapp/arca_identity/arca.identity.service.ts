@@ -109,11 +109,15 @@ export class ArcaIdentityService {
       console.log("IV: ", iv);
 
       const senderPk = wallet.signingKey.publicKey;
-      const {recoveredPublicKey, messageSignature} =
+      const { recoveredPublicKey, messageSignature } =
         await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
           wallet,
         );
-      const rsaEncryptedKeys = RED.dualKeyEncryption(dek, senderPk, recoveredPublicKey!)!;
+      const rsaEncryptedKeys = RED.dualKeyEncryption(
+        dek,
+        senderPk,
+        recoveredPublicKey!,
+      )!;
       const encryptionMetadata: EncryptionMetadata = {
         dekIv: iv,
         rsaKeys: rsaEncryptedKeys,
@@ -140,7 +144,7 @@ export class ArcaIdentityService {
         contractConnect,
         cid!,
         messageSignature,
-        dek,
+        rsaEncryptedKeys.rsaEncryptedDEKForSender,
       );
       console.log("Patient registration successful");
     } catch (error) {
@@ -186,13 +190,119 @@ export class ArcaIdentityService {
     patientAddress: string,
   ) {
     try {
-      await this.identityEthersOnchain.getPatientDataOnChain(
+      return await this.identityEthersOnchain.getPatientDataOnChain(
         wallet,
         contractConnect,
         patientAddress,
       );
     } catch (error) {
       throw new Error(`Error reading patient on chain data: ${error}`);
+    }
+  }
+
+  // async convertBytesToString(rsaMasterKeyBytes: string) {
+  //   try {
+  //     const stringKey = ethers.toUtf8String(rsaMasterKeyBytes);
+  //     return stringKey;
+  //   } catch (error) {
+  //     throw new Error(`Error converting RSA master key to string: ${error}`);
+  //   }
+  // }
+
+  async linkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    patientAddress: string,
+    randomMessage: string,
+  ) {
+    try {
+      return await this.identityEthersOnchain.linkAddressRequest(
+        wallet,
+        contractConnect,
+        patientAddress,
+        randomMessage,
+      );
+    } catch (error) {
+      throw new Error(`Error sending request for linking address: ${error}`);
+    }
+  }
+
+  async approveLinkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    secondaryAddress: string,
+    linkRequestHash: string,
+    linkRequestSignature: string,
+    randomApprovalMessage: string,
+  ) {
+    try {
+      await this.identityEthersOnchain.approveLinkAddressRequest(
+        wallet,
+        contractConnect,
+        secondaryAddress,
+        randomApprovalMessage,
+      );
+
+      await this.storeRsaMasterDekForLinkedAccount(
+        wallet,
+        contractConnect,
+        linkRequestHash,
+        linkRequestSignature,
+      );
+    } catch (error) {
+      throw new Error(`Error approving link address request: ${error}`);
+    }
+  }
+
+  async storeRsaMasterDekForLinkedAccount(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    requestHash: string,
+    requestSignature: string,
+  ) {
+    try {
+      const walletAddress = await wallet.getAddress();
+      const patient = await this.readPatientOnchainData(
+        wallet,
+        contractConnect,
+        walletAddress,
+      );
+      const patientRsaMasterDEKs = patient.rsaMasterDEKs;
+      const mainItemRsaData = patientRsaMasterDEKs.find(
+        (item) => item.identity === patient.primaryAddress,
+      );
+      const mainRsaKey = mainItemRsaData!.rsaMasterDEK // already converted from bytes to string
+
+      let decryptedMainRsaKey = mainRsaKey;
+      if (mainRsaKey.length > 100) {
+        decryptedMainRsaKey = RED.decryptDek(wallet.privateKey, mainRsaKey);
+      }
+
+      const recoveredPublicKey = ethers.SigningKey.recoverPublicKey(
+        requestHash,
+        requestSignature,
+      );
+      const recoveredAddress = ethers.recoverAddress(
+        requestHash,
+        requestSignature,
+      );
+      console.log("Linked Account Recovered public key: ", recoveredPublicKey);
+      console.log("Linked Account Recovered address: ", recoveredAddress);
+
+      const linkedAccountRsaMasterDek = RED.encryptDek(
+        recoveredPublicKey,
+        decryptedMainRsaKey,
+      );
+      return await this.identityEthersOnchain.storeRsaMasterDekForLinkedAccountOnChain(
+        wallet,
+        contractConnect,
+        recoveredAddress,
+        linkedAccountRsaMasterDek,
+      );
+    } catch (error) {
+      throw new Error(
+        `Error storing RSA master dek for linked account: ${error}`,
+      );
     }
   }
 
@@ -211,26 +321,17 @@ const arcaIdentityService = new ArcaIdentityService(identityEthersOnchain);
 let patient1Wallet = testWallets[1];
 let patient1ContractConnect = testConnects[1];
 
-const patient = new PatientIdentity(
-  "John",
-  "Doe",
-  new Date(),
-  Gender.MALE,
-  "123456789",
-  "123 Main St",
-  EmploymentStatus.STUDENT,
-);
-arcaIdentityService.registerPatient(
-  patient1Wallet,
-  patient1ContractConnect,
-  "John",
-  "Doe",
-  new Date(),
-  Gender.MALE,
-  "123456789",
-  "123 Main St",
-  EmploymentStatus.STUDENT,
-);
+// arcaIdentityService.registerPatient(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "John",
+//   "Doe",
+//   new Date(),
+//   Gender.MALE,
+//   "123456789",
+//   "123 Main St",
+//   EmploymentStatus.STUDENT,
+// );
 
 const iv = "89c16532618816bd38342b9170d5f9b4";
 const dek = "d49d0fd9328b899ae38204c8c23fd492e6d742529acecc99e62ae4b2d06f7766";
@@ -264,8 +365,29 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-// arcaIdentityService.readPatientOnchainData(
-//   ownerWallet,
-//   ownerContractConnect,
+arcaIdentityService.readPatientOnchainData(
+  ownerWallet,
+  ownerContractConnect,
+  patient1Wallet.address,
+);
+
+const patient1SecondaryWallet = testWallets[2];
+const patient1SecondaryContractConnect = testConnects[2];
+const randomLinkRequestMessage = "Request for unified access";
+
+// arcaIdentityService.linkAddressRequest(
+//   patient1SecondaryWallet,
+//   patient1SecondaryContractConnect,
 //   patient1Wallet.address,
+//   randomLinkRequestMessage
+// )
+
+const randomApprovalMessage = "I approve the request for unified access";
+// arcaIdentityService.approveLinkAddressRequest(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   patient1SecondaryWallet.address,
+//   "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
+//   "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b",
+//   randomApprovalMessage,
 // );

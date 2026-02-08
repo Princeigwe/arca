@@ -103,7 +103,11 @@ contract ArcaIdentityRegistry{
   }
 
   // this sends a request for a primary address to link the sender for a unified data access
-  function linkAddressRequest(address _primaryAddress) public {
+  function linkAddressRequest(
+    address _primaryAddress, 
+    bytes32 _requestHash, 
+    bytes memory _requestSignature
+    ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(_primaryAddress != address(0), "Recipient must be a valid address");
     require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
@@ -111,6 +115,8 @@ contract ArcaIdentityRegistry{
     emit LibADS.LinkAccountRequestEvent(
       "Incoming request to link to primary address",
       msg.sender,
+      _requestHash,
+      _requestSignature,
       _primaryAddress
     );
   }
@@ -131,8 +137,8 @@ contract ArcaIdentityRegistry{
     address _secondaryAddress,
     uint256 _timestamp,
     uint256 _nonce,
-    bytes32 _hash, 
-    bytes memory _signature
+    bytes32 _requestHash, 
+    bytes memory _requestSignature
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(
@@ -152,7 +158,7 @@ contract ArcaIdentityRegistry{
       LibADS.LinkRequestApprovalError("Invalid nonce")
     );
 
-    bool isSigValid = isSignatureValid(_hash, _signature);
+    bool isSigValid = isSignatureValid(_requestHash, _requestSignature);
     require(isSigValid, LibADS.LinkRequestApprovalError("Invalid signature"));
 
     uint256 currentTimestamp = block.timestamp;
@@ -179,7 +185,7 @@ contract ArcaIdentityRegistry{
   function storeRsaMasterDekForLinkedAccount(
     address _secondaryAddress,
     bytes memory _rsaMasterDEK
-    )public returns(LibADS.PatientIdentity memory){
+    )public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(
       ds.primaryAccountOf[_secondaryAddress] == msg.sender, 
@@ -194,7 +200,7 @@ contract ArcaIdentityRegistry{
       rsaMasterDEK: _rsaMasterDEK
     }));
     ds.sentLinkRequest[_secondaryAddress][msg.sender] = true;
-    return getPatientIdentity(msg.sender);
+    emit LibADS.PatientIdentityUpdateEvent("RSA master DEK stored for linked account");
   }
 
   // // register patient if they want to operate with multiple addresses
