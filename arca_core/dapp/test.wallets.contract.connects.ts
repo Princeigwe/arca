@@ -10,29 +10,32 @@ const provider = new ethers.JsonRpcProvider(providerUrl);
 const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
-export class TestWallet{
-  privateKey: string
+export class TestWallet {
+  privateKey: string;
 
   constructor(privateKey: string) {
-    this.privateKey = privateKey
+    this.privateKey = privateKey;
   }
 
   getWallet() {
-    const wallet = new ethers.Wallet(this.privateKey, provider)
-    return wallet
+    const wallet = new ethers.Wallet(this.privateKey, provider);
+    return wallet;
   }
 }
 
+export class ContractConnect {
+  contractAddress: string;
+  combinedABIs: any;
+  wallet: ethers.Wallet;
 
-export class ContractConnect{
-  contractAddress: string
-  combinedABIs: any
-  wallet: ethers.Wallet
-
-  constructor(contractAddress: string, combinedABIs: any, wallet: ethers.Wallet) {
-    this.contractAddress = contractAddress
-    this.combinedABIs = combinedABIs
-    this.wallet = wallet
+  constructor(
+    contractAddress: string,
+    combinedABIs: any,
+    wallet: ethers.Wallet,
+  ) {
+    this.contractAddress = contractAddress;
+    this.combinedABIs = combinedABIs;
+    this.wallet = wallet;
   }
 
   connect() {
@@ -41,10 +44,9 @@ export class ContractConnect{
       this.combinedABIs,
       this.wallet,
     );
-    return connection
+    return connection;
   }
 }
-
 
 // const ownerPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 // const ownerWallet = new TestWallet(ownerPrivateKey)
@@ -53,16 +55,39 @@ const ownerPrivateKey =
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 let ownerWalletInit = new TestWallet(ownerPrivateKey);
 let ownerWallet = ownerWalletInit.getWallet();
-let ownerContractConnectInit = new ContractConnect(arcaDiamondAddress, combinedABIs, ownerWallet);
-let ownerContractConnect = ownerContractConnectInit.connect()
+let ownerContractConnectInit = new ContractConnect(
+  arcaDiamondAddress,
+  combinedABIs,
+  ownerWallet,
+);
+let ownerContractConnect = ownerContractConnectInit.connect();
 
-const patient1PrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+const patient1PrivateKey =
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 let patient1WalletInit = new TestWallet(patient1PrivateKey);
 let patient1Wallet = patient1WalletInit.getWallet();
-let patient1ContractConnectInit = new ContractConnect(arcaDiamondAddress, combinedABIs, patient1Wallet)
-let patient1ContractConnect = patient1ContractConnectInit.connect()
+let patient1ContractConnectInit = new ContractConnect(
+  arcaDiamondAddress,
+  combinedABIs,
+  patient1Wallet,
+);
+let patient1ContractConnect = patient1ContractConnectInit.connect();
 
-export const testWallets = [ownerWallet, patient1Wallet]
+const patient1SecondaryPrivateKey =
+  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
+let patient1SecondaryWalletInit = new TestWallet(patient1SecondaryPrivateKey);
+let patient1SecondaryWallet = patient1SecondaryWalletInit.getWallet();
+let patient1SecondaryContractConnectInit = new ContractConnect(
+  arcaDiamondAddress,
+  combinedABIs,
+  patient1SecondaryWallet,
+);
+let patient1SecondaryContractConnect = patient1SecondaryContractConnectInit.connect();
 
-export const testConnects = [ownerContractConnect, patient1ContractConnect]
+export const testWallets = [ownerWallet, patient1Wallet, patient1SecondaryWallet];
 
+export const testConnects = [
+  ownerContractConnect,
+  patient1ContractConnect,
+  patient1SecondaryContractConnect,
+];

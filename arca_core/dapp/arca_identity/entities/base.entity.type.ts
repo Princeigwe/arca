@@ -1,6 +1,6 @@
 export type RsaEncryptedKeys = {
   rsaEncryptedDEKForAdmin: string;
-  rsaEncryptedDEKForSender: string;
+  rsaEncryptedMasterDEKsForSender: string[];
 }
 
 export type EncryptionMetadata = {
@@ -10,6 +10,8 @@ export type EncryptionMetadata = {
 
 export type IPFS = {
   storageType: string;
+  primaryWalletAddress: string;
+  uploadedAt: Date,
   encryptedData: string;
   encryptedKeys?: EncryptionMetadata;
 };

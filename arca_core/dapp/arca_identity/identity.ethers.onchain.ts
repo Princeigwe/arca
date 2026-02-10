@@ -42,7 +42,7 @@ export class IdentityEthersOnchain {
       await wallet.sendTransaction(txOption);
       console.log("Transaction successful");
     } catch (error) {
-      throw new Error(`Error saving admin initialization hash: ${error}`)
+      throw new Error(`Error saving admin initialization hash: ${error}`);
     }
   }
 
@@ -70,11 +70,11 @@ export class IdentityEthersOnchain {
       console.log("Hash and Signature Formatted Response: ", formattedResponse);
       return formattedResponse;
     } catch (error) {
-      throw new Error(`Error getting message hashes and signature: error`)
+      throw new Error(`Error getting message hashes and signature: error`);
     }
   }
 
-  async selectRandomAdminPublicKey(senderWallet: ethers.Wallet) {
+  async selectRandomAdminPublicKeyAndSignature(senderWallet: ethers.Wallet) {
     try {
       const hashesAndSigs =
         await this.getAdminInitializationMessageHashesAndSignatures(
@@ -89,9 +89,12 @@ export class IdentityEthersOnchain {
         randomAdminData.messageHash,
         randomAdminData.messageSignature,
       );
-      return recoveredPublicKey;
+      return {
+        messageSignature: randomAdminData.messageSignature,
+        recoveredPublicKey,
+      };
     } catch (error) {
-      throw new Error(`Error selecting random PK: ${error}`)
+      throw new Error(`Error selecting random PK: ${error}`);
     }
   }
 
@@ -108,7 +111,7 @@ export class IdentityEthersOnchain {
       );
       console.log(result);
     } catch (error) {
-      throw new Error(`Error getting identity from diamond contract: ${error}`)
+      throw new Error(`Error getting identity from diamond contract: ${error}`);
     }
   }
 
@@ -116,6 +119,8 @@ export class IdentityEthersOnchain {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     cid: string,
+    adminInitializationSignatureUsed: string,
+    rsaMasterDEK: string,
   ) {
     try {
       contractConnect.once("PatientRegisteredEvent", (message, patient) => {
@@ -126,13 +131,16 @@ export class IdentityEthersOnchain {
       const unixTimestampInSeconds = Math.floor(Date.now() / 1000); //unix timestamp in seconds
       console.log("Unix Timestamp in second:", unixTimestampInSeconds);
 
-      const cidBytes32 = ethers.toUtf8Bytes(cid);
+      const cidBytes = ethers.toUtf8Bytes(cid);
 
+      const rsaMasterDEKbytes = ethers.toUtf8Bytes(rsaMasterDEK);
 
       const iFace = new ethers.Interface(arca_identity_facet_abi);
       const data = iFace.encodeFunctionData("registerPatient", [
         unixTimestampInSeconds,
-        cidBytes32,
+        cidBytes,
+        adminInitializationSignatureUsed, //* already in bytes
+        rsaMasterDEKbytes,
       ]);
       const txOption = {
         to: arcaDiamondAddress,
@@ -141,26 +149,32 @@ export class IdentityEthersOnchain {
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
     } catch (error) {
-      throw new Error(`Error registering patient on chain: ${error}`)
+      throw new Error(`Error registering patient on chain: ${error}`);
     }
   }
 
   async verifyOnchainPatient(wallet: ethers.Wallet, patientAddress: string) {
     try {
       const iFace = new ethers.Interface(arca_identity_facet_abi);
-      const data = iFace.encodeFunctionData('verifyPatientIdentity', [patientAddress])
+      const data = iFace.encodeFunctionData("verifyPatientIdentity", [
+        patientAddress,
+      ]);
       const txOption = {
         to: arcaDiamondAddress,
-        data: data
-      }
-      const response = await wallet.sendTransaction(txOption)
-      await response.wait()
+        data: data,
+      };
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
     } catch (error) {
-      throw new Error(`Error verifying patient on chain:${error}`)
+      throw new Error(`Error verifying patient on chain:${error}`);
     }
   }
 
-  async getPatientDataOnChain(wallet: ethers.Wallet, contractConnect: ethers.Contract, patientAddress: string) {
+  async getPatientDataOnChain(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    patientAddress: string,
+  ) {
     try {
       contractConnect.once(
         "PatientIdentityFetchedEvent",
@@ -169,14 +183,175 @@ export class IdentityEthersOnchain {
         },
       );
       const iFace = new ethers.Interface(arca_identity_facet_abi);
-      const data = iFace.encodeFunctionData("getPatientIdentity", [patientAddress]);
+      const data = iFace.encodeFunctionData("getPatientIdentity", [
+        patientAddress,
+      ]);
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
       };
-      await wallet.sendTransaction(txOption);
+      const response = await wallet.call(txOption);
+      const decoded = iFace.decodeFunctionResult(
+        "getPatientIdentity",
+        response,
+      );
+      const patient = decoded[0];
+
+      const formattedPatient = {
+        primaryAddress: patient[0],
+        linkedAddresses: Array.from(patient[1]),
+        registeredAt: Number(patient[2]),
+        isVerified: patient[3],
+        guardians: Array.from(patient[4]),
+        guardiansRequired: Number(patient[5]),
+        cid: ethers.toUtf8String(patient[6]),
+        adminInitializationSignature: patient[7],
+        rsaMasterDEKs: Array.from(patient[8]).map((item: any) => ({
+          identity: item[0],
+          rsaMasterDEK: ethers.toUtf8String(item[1]),
+        })),
+      };
+      console.log("Formatted Patient Identity:", formattedPatient);
+      return formattedPatient;
     } catch (error) {
-      throw new Error(`Error getting patient data on chain: ${error}`)
+      throw new Error(`Error getting patient data on chain: ${error}`);
+    }
+  }
+
+  // async convertRsaKeyBytesToString(rsaMasterKeyBytes: string) {
+  //   try {
+  //     const stringKey = ethers.toUtf8String(rsaMasterKeyBytes)
+  //     return stringKey
+  //   } catch (error) {
+  //     throw new Error(`Error converting RSA master key to string: ${error}`)
+  //   }
+  // }
+
+  async linkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    primaryAddress: string,
+    randomRequestMessage: string,
+  ) {
+    try {
+      contractConnect.once(
+        "LinkAccountRequestEvent",
+        (message, sender, requestHash, requestSignature, primaryAddress) => {
+          console.log(
+            `Event received: ${message}
+            Sender: ${sender}
+            Request Hash: ${requestHash}
+            Request Signature: ${requestSignature}
+            Primary Address:  ${primaryAddress}`,
+          );
+        },
+      );
+      const requestHash = ethers.hashMessage(randomRequestMessage);
+      const requestSignature = await wallet.signMessage(randomRequestMessage);
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("linkAddressRequest", [
+        primaryAddress,
+        requestHash,
+        requestSignature,
+      ]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
+    } catch (error) {
+      throw new Error(`Error linking address request: ${error}`);
+    }
+  }
+
+  async getCurrentNonce(wallet: ethers.Wallet) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("getCurrentNonce");
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption); // fallback call for a view function with call()
+      const result = ethers.AbiCoder.defaultAbiCoder().decode(
+        ["uint256"],
+        response,
+      );
+      console.log(result);
+      return result;
+    } catch (error) {
+      throw new Error(`Error getting internal nonce: ${error}`);
+    }
+  }
+
+  async approveLinkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    secondaryAddress: string,
+    randomMessage: string,
+  ) {
+    try {
+      contractConnect.once(
+        "LinkAccountRequestApprovalEvent",
+        (message, sender, secondaryAddress) => {
+          console.log(
+            `Event received: ${message}: Sender: ${sender}: Secondary Address:  ${secondaryAddress}`,
+          );
+        },
+      );
+      let currentNonce = await this.getCurrentNonce(wallet);
+      let currentNonceNumber = Number(currentNonce![0]);
+      const signature = await wallet.signMessage(randomMessage);
+      const messageHash = ethers.hashMessage(randomMessage);
+      const unixTimestampInSeconds = Math.floor(Date.now() / 1000);
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("approveLinkAddressRequest", [
+        secondaryAddress,
+        unixTimestampInSeconds,
+        currentNonceNumber,
+        messageHash,
+        signature,
+      ]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
+    } catch (error) {
+      throw new Error(`Error approving link address request: ${error}`);
+    }
+  }
+
+  async storeRsaMasterDekForLinkedAccountOnChain(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    secondaryAddress: string,
+    secondaryRsaMasterKey: string,
+  ) {
+    try {
+      contractConnect.once("PatientIdentityUpdateEvent", (message) => {
+        console.log(`Event received: ${message}`);
+      });
+      const secondaryRsaMasterKeyBytes = ethers.toUtf8Bytes(
+        secondaryRsaMasterKey,
+      );
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData(
+        "storeRsaMasterDekForLinkedAccount",
+        [secondaryAddress, secondaryRsaMasterKeyBytes],
+      );
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
+    } catch (error) {
+      throw new Error(
+        `Error storing RSA master dek for linked account: ${error}`,
+      );
     }
   }
 }
