@@ -101,6 +101,7 @@ export class ArcaIdentityService {
       );
 
       const plainIdentityJsonData = JSON.stringify(identityData);
+      // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
       ))!;
@@ -144,7 +145,7 @@ export class ArcaIdentityService {
         contractConnect,
         cid!,
         messageSignature,
-        rsaEncryptedKeys.rsaEncryptedDEKForSender,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0],
       );
       console.log("Patient registration successful");
     } catch (error) {
@@ -365,11 +366,11 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-arcaIdentityService.readPatientOnchainData(
-  ownerWallet,
-  ownerContractConnect,
-  patient1Wallet.address,
-);
+// arcaIdentityService.readPatientOnchainData(
+//   ownerWallet,
+//   ownerContractConnect,
+//   patient1Wallet.address,
+// );
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];

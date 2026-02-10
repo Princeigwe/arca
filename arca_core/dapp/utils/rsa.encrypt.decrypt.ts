@@ -30,7 +30,7 @@ export class RsaEncryptDecrypt {
 
       let keys: RsaEncryptedKeys = {
         rsaEncryptedDEKForAdmin: adminEncryptedDek.toString("base64"),
-        rsaEncryptedDEKForSender: sendEncryptedDek.toString("base64"),
+        rsaEncryptedMasterDEKsForSender: [sendEncryptedDek.toString("base64")],
       };
       return keys;
     } catch (error) {
@@ -66,7 +66,6 @@ export class RsaEncryptDecrypt {
     }
   }
 
-
   encryptDek(publicKey: string, dek: string) {
     try {
       const bufferDek = Buffer.from(dek, "utf-8");
@@ -75,7 +74,7 @@ export class RsaEncryptDecrypt {
         "hex",
       );
       const rsaEncryptedDek = encrypt(pkBuffer, bufferDek);
-      return rsaEncryptedDek.toString("base64")
+      return rsaEncryptedDek.toString("base64");
     } catch (error) {
       console.error("Error encrypting DEK:", error);
       throw error;
