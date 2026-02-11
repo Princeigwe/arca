@@ -13,5 +13,5 @@ export type IPFS = {
   primaryWalletAddress: string;
   uploadedAt: Date,
   encryptedData: string;
-  encryptedKeys?: EncryptionMetadata;
+  encryptionMetaData?: EncryptionMetadata;
 };

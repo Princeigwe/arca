@@ -70,7 +70,6 @@ library LibArcaDiamondStorage{
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
-    bytes cid;
     bytes adminInitializationSignature;
     IdentityRSAMasterDEK[] rsaMasterDEKs;
   }
@@ -86,7 +85,6 @@ library LibArcaDiamondStorage{
     bytes licenseHash;
     uint32 licenseExpiresAt;
     bool licenseIsExpired;
-    bytes cid;
   }
 
   struct AdminInitializationMessageHashAndSignature{
@@ -119,6 +117,7 @@ library LibArcaDiamondStorage{
     mapping (address => bool) accountExists;
     mapping(uint256 => PatientIdentity) patientIdentity;
     mapping(uint256 => ProviderIdentity) providerIdentity;
+    mapping (address => bytes) addressCid;
   }
 
   event OwnershipTransferredEvent(address indexed previousOwner, address indexed newOwner);

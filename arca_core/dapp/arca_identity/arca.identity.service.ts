@@ -128,11 +128,11 @@ export class ArcaIdentityService {
         primaryWalletAddress: wallet.address,
         uploadedAt: new Date(),
         encryptedData,
-        encryptedKeys: encryptionMetadata,
+        encryptionMetaData: encryptionMetadata,
       };
       const jsonData = JSON.stringify(data);
 
-      const fileName: string = `Patent-Identity-${firstName}-${lastName}.json`;
+      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
@@ -250,6 +250,7 @@ export class ArcaIdentityService {
         linkRequestHash,
         linkRequestSignature,
       );
+
     } catch (error) {
       throw new Error(`Error approving link address request: ${error}`);
     }
@@ -306,6 +307,25 @@ export class ArcaIdentityService {
       );
     }
   }
+
+  async updateRsaMasterKeysIpfsProfileData(oldCid: string,  wallet: ethers.Wallet, linkedRsaMasterDEK: string){
+    try {
+      const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
+      let newData = oldData
+      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
+      const jsonData = JSON.stringify(oldData);
+
+      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+      console.log("Filebase upload response: ", uploadRequest);
+    } catch (error) {
+      throw new Error(`Error replacing profile data on File pinning service: ${error}`)
+    }
+  }
+
 
   async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
     const decryptedData = await SED.decryptData(encryptedData, dek, iv);

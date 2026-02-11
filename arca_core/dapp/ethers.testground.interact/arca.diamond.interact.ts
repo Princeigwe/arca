@@ -282,6 +282,41 @@ async function getPatientIdentity(address: string) {
   }
 }
 
+
+async function getAddressCid(address: string){
+  try {
+    const iFace = new ethers.Interface(arca_identity_facet_abi);
+    const data = iFace.encodeFunctionData("getAddressCid", [address]);
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data,
+    };
+    const response = await wallet1.call(txOption)
+    const decoded = iFace.decodeFunctionResult("getAddressCid", response)
+    const addressCid = ethers.toUtf8String(decoded[0])
+    console.log("Address cid: ", addressCid)
+  } catch (error) {
+    console.error("Error fetching address cid: ", error)
+  }
+}
+
+
+async function updateAddressCid(address: string, cid: string){
+  try {
+    const cidBytes = ethers.toUtf8Bytes(cid)
+    const iFace = new ethers.Interface(arca_identity_facet_abi)
+    const data = iFace.encodeFunctionData('updateAddressCid', [address, cidBytes])
+    const txOption = {
+      to: arcaDiamondAddress,
+      data: data
+    }
+    const response = await wallet1.sendTransaction(txOption)
+    await response.wait()
+  } catch (error) {
+    console.error("Error updating address cid: ", error)
+  }
+}
+
 async function getCurrentNonce() {
   try {
     const iFace = new ethers.Interface(arca_identity_facet_abi);
@@ -440,7 +475,7 @@ const signature =
 // testRetrievePublicKey(messageHash, signature);
 
 // verifyPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
-getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+// getPatientIdentity("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 
 // facet address to remove must be the zero address
 const facetToRemove = ethers.ZeroAddress;
@@ -482,3 +517,8 @@ const functionSelectorsToAdd = [
 //   "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", 
 //   randomMessage
 // )
+
+
+getAddressCid(wallet1.address)
+
+// updateAddressCid(wallet1.address, "123456789")

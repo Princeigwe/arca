@@ -250,11 +250,6 @@ export const arca_identity_facet_abi = [
             },
             {
               "internalType": "bytes",
-              "name": "cid",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes",
               "name": "adminInitializationSignature",
               "type": "bytes"
             },
@@ -341,11 +336,6 @@ export const arca_identity_facet_abi = [
             },
             {
               "internalType": "bytes",
-              "name": "cid",
-              "type": "bytes"
-            },
-            {
-              "internalType": "bytes",
               "name": "adminInitializationSignature",
               "type": "bytes"
             },
@@ -416,11 +406,6 @@ export const arca_identity_facet_abi = [
               "internalType": "uint8",
               "name": "guardiansRequired",
               "type": "uint8"
-            },
-            {
-              "internalType": "bytes",
-              "name": "cid",
-              "type": "bytes"
             },
             {
               "internalType": "bytes",
@@ -514,6 +499,25 @@ export const arca_identity_facet_abi = [
           "internalType": "bool",
           "name": "_isAdmin",
           "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_address",
+          "type": "address"
+        }
+      ],
+      "name": "getAddressCid",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
         }
       ],
       "stateMutability": "view",
@@ -635,11 +639,6 @@ export const arca_identity_facet_abi = [
               "internalType": "uint8",
               "name": "guardiansRequired",
               "type": "uint8"
-            },
-            {
-              "internalType": "bytes",
-              "name": "cid",
-              "type": "bytes"
             },
             {
               "internalType": "bytes",
@@ -792,6 +791,24 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "storeRsaMasterDekForLinkedAccount",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_address",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "updateAddressCid",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

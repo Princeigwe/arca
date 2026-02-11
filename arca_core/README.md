@@ -11,3 +11,10 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.ts
 ```
+
+Hardhat deployment commands:
+npx hardhat compile
+npx hardhat run --network localhost <script>.ts
+
+Ethers script execution command:
+npx ts-node <script>.ts

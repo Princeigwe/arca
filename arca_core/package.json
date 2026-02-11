@@ -37,6 +37,7 @@
     "@openzeppelin/contracts": "^5.4.0",
     "axios": "^1.13.5",
     "dotenv": "^17.2.3",
-    "eciesjs": "^0.4.17"
+    "eciesjs": "^0.4.17",
+    "typescript": "^5.9.3"
   }
 }

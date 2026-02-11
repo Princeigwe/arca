@@ -90,16 +90,32 @@ contract ArcaIdentityRegistry{
     newPatient.registeredAt = _registeredAt;
     newPatient.isVerified = false;
     newPatient.guardiansRequired = 0;
-    newPatient.cid = _cid;
     newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
     newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: msg.sender,
       rsaMasterDEK: _rsaMasterDEK
     }));
 
+    ds.addressCid[msg.sender] = _cid;
+
     ds.patientAccount[msg.sender] = newPatient;
     ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered", newPatient);
+  }
+
+
+  function getAddressCid(address _address)public view returns(bytes memory){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
+    return ds.addressCid[_address];
+  }
+
+
+  function updateAddressCid(address _address, bytes memory _cid) public{
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
+    require(_address == msg.sender, LibADS.AuthorizationError("CID does not belong to sender"));
+    ds.addressCid[_address] = _cid;
   }
 
   // this sends a request for a primary address to link the sender for a unified data access
