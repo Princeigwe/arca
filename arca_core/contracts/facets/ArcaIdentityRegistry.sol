@@ -3,11 +3,13 @@
 pragma solidity 0.8.30;
 
 import {LibArcaDiamondStorage as LibADS} from  "../libraries/LibArcaDiamondStorage.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 
 contract ArcaIdentityRegistry{
 
-
+  using ECDSA for bytes32;
 
 
   /////////////////////////////////////////////////////////////////
@@ -53,10 +55,17 @@ contract ArcaIdentityRegistry{
     });
     ds.adminInitializationMessageHashAndSignature[msg.sender] = messageHashAndSignature;
     ds.hasAdminInitializationMessageHashAndSignature[msg.sender] = true;
+    ds.messageHashOfAdminInitializationSignature[_signature] = _messageHash;
 
-    LibADS.diamondStorage().adminInitializationMessageHashesAndSignatures.push(messageHashAndSignature);
+    ds.adminInitializationMessageHashesAndSignatures.push(messageHashAndSignature);
 
     emit LibADS.AdminInitializationMessageHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, messageHashAndSignature);
+  }
+
+
+  function getMessageHashOfAdminInitializationSignature(bytes memory _signature) public view returns (bytes32) {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    return ds.messageHashOfAdminInitializationSignature[_signature];
   }
 
   function getAdminInitializationMessageHashesAndSignatures() public view returns (LibADS.AdminInitializationMessageHashAndSignature[] memory) {
@@ -64,85 +73,211 @@ contract ArcaIdentityRegistry{
   }
 
 
-  function registerPatient(uint256 _registeredAt, bytes memory _cid) public {
-    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
-    uint256 patientCount = ds.patientCount;
-    patientCount++;
-    ds.patientCount = patientCount;
-    ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
-      primaryAddress: msg.sender,
-      linkedAddresses: new address[](0), // an empty address array
-      registeredAt: _registeredAt,
-      isVerified: false,
-      guardians: new address[](0), // an empty address array
-      guardiansRequired: 0,
-      cid: _cid
-    });
-    ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
-    ds.accountExists[msg.sender] = true;
-    emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
-  }
-
-  // register patient if they want to operate with multiple addresses
-  function registerPatientWithLinkedAddresses(
-    address[] memory _linkedAddresses, 
-    uint256 _registeredAt,
-    bytes memory _cid
+  function registerPatient(
+    uint256 _registeredAt, 
+    bytes memory _cid, 
+    bytes memory _adminInitializationSignatureUsed,
+    bytes memory _rsaMasterDEK
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
     uint256 patientCount = ds.patientCount;
     patientCount++;
     ds.patientCount = patientCount;
-    ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
-      primaryAddress: msg.sender,
-      linkedAddresses: _linkedAddresses,
-      registeredAt: _registeredAt,
-      isVerified: false,
-      guardians: new address[](0), // an empty address array
-      guardiansRequired: 0,
-      cid: _cid
-    });
-    ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
+
+    LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
+    newPatient.primaryAddress = msg.sender;
+    newPatient.registeredAt = _registeredAt;
+    newPatient.isVerified = false;
+    newPatient.guardiansRequired = 0;
+    newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: msg.sender,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+
+    ds.addressCid[msg.sender] = _cid;
+
+    ds.patientAccount[msg.sender] = newPatient;
     ds.accountExists[msg.sender] = true;
-    emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
+    emit LibADS.PatientRegisteredEvent("Patient registered", newPatient);
   }
 
-  // register patients with social recovery guardians
-  function registerPatientWithLinkedAddressAndGuardians(
-    address [] memory _linkedAddresses, 
-    uint8 _guardiansRequired,
-    address[] memory _guardians,
-    uint256 _registeredAt,
-    bytes memory cid
-  ) public {
+
+  function getAddressCid(address _address)public view returns(bytes memory){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
-    require(_guardians.length == _guardiansRequired, LibADS.IncorrectGuardianCountMatchError("Number of guardian address must equal guardians required"));
-    address[] memory linkedAddresses;
-    if(_linkedAddresses.length == 0){
-      linkedAddresses = new address[](0);
-    }
-    else{
-      linkedAddresses = _linkedAddresses;
-    }
-    uint256 patientCount = ds.patientCount;
-    patientCount++;
-    ds.patientCount = patientCount;
-    ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
-      primaryAddress: msg.sender,
-      linkedAddresses: linkedAddresses,
-      registeredAt: _registeredAt,
-      isVerified: false,
-      guardians: _guardians,
-      guardiansRequired: _guardiansRequired,
-      cid: cid
-    });
-    ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
-    ds.accountExists[msg.sender] = true;
-    emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
+    require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
+    return ds.addressCid[_address];
   }
+
+
+  function updateAddressCid(address _address, bytes memory _cid) public{
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
+    require(_address == msg.sender, LibADS.AuthorizationError("CID does not belong to sender"));
+    ds.addressCid[_address] = _cid;
+  }
+
+  // this sends a request for a primary address to link the sender for a unified data access
+  function linkAddressRequest(
+    address _primaryAddress, 
+    bytes32 _requestHash, 
+    bytes memory _requestSignature
+    ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(_primaryAddress != address(0), "Recipient must be a valid address");
+    require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
+    ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
+    emit LibADS.LinkAccountRequestEvent(
+      "Incoming request to link to primary address",
+      msg.sender,
+      _requestHash,
+      _requestSignature,
+      _primaryAddress
+    );
+  }
+
+
+  function getCurrentNonce()public view returns(uint256){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    return ds.internalNonce;
+  }
+
+  function isSignatureValid(bytes32 _hash, bytes memory _signature) public view returns (bool) {
+    address signer = _hash.recover(_signature);
+    return (signer == msg.sender);
+  }
+
+
+  function approveLinkAddressRequest(
+    address _secondaryAddress,
+    uint256 _timestamp,
+    uint256 _nonce,
+    bytes32 _requestHash, 
+    bytes memory _requestSignature
+    ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(
+      ds.accountExists[msg.sender],
+      LibADS.AccountDoesNotExistError(msg.sender)
+    );
+    require(
+      ds.primaryAccountOf[_secondaryAddress] == address(0), 
+      LibADS.LinkRequestApprovalError("Account already linked to a primary account")
+    );
+    require(
+      ds.sentLinkRequest[_secondaryAddress][msg.sender], 
+      LibADS.LinkRequestApprovalError("No previous link request from secondary account")
+    );
+    require(
+      _nonce == ds.internalNonce,
+      LibADS.LinkRequestApprovalError("Invalid nonce")
+    );
+
+    bool isSigValid = isSignatureValid(_requestHash, _requestSignature);
+    require(isSigValid, LibADS.LinkRequestApprovalError("Invalid signature"));
+
+    uint256 currentTimestamp = block.timestamp;
+    uint256 timeDeadline = currentTimestamp + 10 minutes;
+
+    if(_timestamp >= timeDeadline){
+      revert LibADS.LinkRequestApprovalError("Expired approval request");
+    }
+    ds.internalNonce++;
+    ds.primaryAccountOf[_secondaryAddress] = msg.sender;
+    ds.patientAccount[msg.sender].linkedAddresses.push(_secondaryAddress);
+
+    // making this false for validation check when storing rsaMasterDEK for linked account. To avoid double request
+    ds.sentLinkRequest[_secondaryAddress][msg.sender] = false;
+
+    emit LibADS.LinkAccountRequestApprovalEvent(
+      "Account link request approved",
+      msg.sender,
+      _secondaryAddress
+    );
+  }
+
+
+  function storeRsaMasterDekForLinkedAccount(
+    address _secondaryAddress,
+    bytes memory _rsaMasterDEK
+    )public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(
+      ds.primaryAccountOf[_secondaryAddress] == msg.sender, 
+      LibADS.AuthorizationError('Secondary address is not linked to main account')
+    );
+    require(
+      !ds.sentLinkRequest[_secondaryAddress][msg.sender],
+      LibADS.AuthorizationError('Duplicate request to settle RSA master DEK for linked account')
+    );
+    ds.patientAccount[msg.sender].rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: _secondaryAddress,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+    ds.sentLinkRequest[_secondaryAddress][msg.sender] = true;
+    emit LibADS.PatientIdentityUpdateEvent("RSA master DEK stored for linked account");
+  }
+
+  // // register patient if they want to operate with multiple addresses
+  // function registerPatientWithLinkedAddresses(
+  //   address[] memory _linkedAddresses, 
+  //   uint256 _registeredAt,
+  //   bytes memory _cid
+  //   ) public {
+  //   LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+  //   require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
+  //   uint256 patientCount = ds.patientCount;
+  //   patientCount++;
+  //   ds.patientCount = patientCount;
+  //   ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
+  //     primaryAddress: msg.sender,
+  //     linkedAddresses: _linkedAddresses,
+  //     registeredAt: _registeredAt,
+  //     isVerified: false,
+  //     guardians: new address[](0), // an empty address array
+  //     guardiansRequired: 0,
+  //     cid: _cid
+  //   });
+  //   ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
+  //   ds.accountExists[msg.sender] = true;
+  //   emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
+  // }
+
+  // // register patients with social recovery guardians
+  // function registerPatientWithLinkedAddressAndGuardians(
+  //   address [] memory _linkedAddresses, 
+  //   uint8 _guardiansRequired,
+  //   address[] memory _guardians,
+  //   uint256 _registeredAt,
+  //   bytes memory cid
+  // ) public {
+  //   LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+  //   require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
+  //   require(_guardians.length == _guardiansRequired, LibADS.IncorrectGuardianCountMatchError("Number of guardian address must equal guardians required"));
+  //   address[] memory linkedAddresses;
+  //   if(_linkedAddresses.length == 0){
+  //     linkedAddresses = new address[](0);
+  //   }
+  //   else{
+  //     linkedAddresses = _linkedAddresses;
+  //   }
+  //   uint256 patientCount = ds.patientCount;
+  //   patientCount++;
+  //   ds.patientCount = patientCount;
+  //   ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
+  //     primaryAddress: msg.sender,
+  //     linkedAddresses: linkedAddresses,
+  //     registeredAt: _registeredAt,
+  //     isVerified: false,
+  //     guardians: _guardians,
+  //     guardiansRequired: _guardiansRequired,
+  //     cid: cid
+  //   });
+  //   ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
+  //   ds.accountExists[msg.sender] = true;
+  //   emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
+  // }
 
 
   function getPatientIdentity(address _patientAddress)public returns(LibADS.PatientIdentity memory){

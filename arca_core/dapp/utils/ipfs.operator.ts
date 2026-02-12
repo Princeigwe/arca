@@ -1,11 +1,10 @@
-import {
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import axios from "axios";
 const dotenv = require("dotenv");
 const path = require("path");
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
+const IPFS_RPC_API_BASEURL = "https://rpc.filebase.io/";
 
 const s3Client = new S3Client({
   apiVersion: "2006-03-01",
@@ -20,18 +19,16 @@ const s3Client = new S3Client({
 
 const bucket = "arca";
 
-
 export class IpfsOperator {
-
   async uploadJsonData(fileName: string, jsonData: any) {
     const params = {
       Bucket: bucket,
       Key: fileName,
       Body: jsonData,
       ContentType: "application/json",
-    }
+    };
 
-    let fileCid
+    let fileCid;
 
     const command = new PutObjectCommand(params);
     command.middlewareStack.add((next) => async (args) => {
@@ -44,10 +41,50 @@ export class IpfsOperator {
 
     return {
       cid: fileCid,
-      uploadRequest
+      uploadRequest,
+    };
+  }
+
+  // async getIpfsDaemon() {
+  //   const url = `${IPFS_RPC_API_BASEURL}api/v0/version`;
+  //   const response = await axios.post(
+  //     url,
+  //     {},
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${process.env.FILEBASE_RPC_ARCA_BUCKET_API_ACCESS_KEY}`,
+  //       },
+  //     },
+  //   );
+  //   console.log("Daemon version:", response.data);
+  // }
+
+  async getFileByCid(cid: string) {
+    try {
+      const url = `${IPFS_RPC_API_BASEURL}api/v0/cat?arg=${cid}`;
+      const response = await axios.post(
+        url,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.FILEBASE_RPC_ARCA_BUCKET_API_ACCESS_KEY}`,
+          },
+        },
+      );
+      // console.log("File data:", JSON.stringify(response.data));
+      console.log("File name:", JSON.parse)
+      return JSON.stringify(response.data)
+    } catch (error) {
+      throw new Error(`Error fetching Filebase IPFS data by CID: ${error}`)
     }
   }
 
 
-
 }
+
+const ipfsOperator = new IpfsOperator();
+
+// ipfsOperator.getIpfsDaemon()
+
+// const cid = "Qma3b81nGeNyJELFtS2FYy6tUN1qo7f74Xj4MBFQeSRTot";
+// ipfsOperator.getFileByCid(cid);

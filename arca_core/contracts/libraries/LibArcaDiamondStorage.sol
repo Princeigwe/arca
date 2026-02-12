@@ -29,14 +29,19 @@ library LibArcaDiamondStorage{
   event AdminAddedEvent(string message, address admin);
   event AdminRemovedEvent(string message, address admin);
   event AdminInitializationMessageHashWrittenEvent(string message, address writer, AdminInitializationMessageHashAndSignature);
+  event LinkAccountRequestEvent(string message, address requester, bytes32 requestHash, bytes requestSignature, address recipient);
+  event LinkAccountRequestApprovalEvent(string message, address primary, address secondary);
+  event PatientIdentityUpdateEvent(string message);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
 
   //** FACETS ERRORS
   error AccountExistsError(address caller);
+  error AccountDoesNotExistError(address identity);
   error IncorrectGuardianCountMatchError(string);
   error AuthorizationError(string);
+  error LinkRequestApprovalError(string);
 
   //** FACETS ENUMS
   enum ProviderType{
@@ -49,6 +54,13 @@ library LibArcaDiamondStorage{
     RESEARCHER
   }
 
+  // this is used to hold RSA-encrypted master DEK for main and linked accounts
+  // so that all parties can have a unified access to authorized records and operations 
+  struct IdentityRSAMasterDEK{
+    address identity;
+    bytes rsaMasterDEK;
+  }
+
 
   //* FACETS STRUCTS
   struct PatientIdentity{
@@ -58,7 +70,8 @@ library LibArcaDiamondStorage{
     bool isVerified;
     address[] guardians; //optional input on identity registration
     uint8 guardiansRequired; //optional input on identity registration
-    bytes cid;
+    bytes adminInitializationSignature;
+    IdentityRSAMasterDEK[] rsaMasterDEKs;
   }
 
 
@@ -72,7 +85,6 @@ library LibArcaDiamondStorage{
     bytes licenseHash;
     uint32 licenseExpiresAt;
     bool licenseIsExpired;
-    bytes cid;
   }
 
   struct AdminInitializationMessageHashAndSignature{
@@ -93,14 +105,19 @@ library LibArcaDiamondStorage{
     AdminInitializationMessageHashAndSignature[] adminInitializationMessageHashesAndSignatures;
     mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
     mapping(address => bool) isAdmin;
+    mapping(address => mapping (address => bool)) sentLinkRequest;
+    mapping(address => address) primaryAccountOf;
     mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
+    mapping(bytes => bytes32) messageHashOfAdminInitializationSignature;
     uint256 patientCount;
     uint256 providerCount;
+    uint256 internalNonce;
     ProviderType providerType;
     mapping (address => PatientIdentity) patientAccount;
     mapping (address => bool) accountExists;
     mapping(uint256 => PatientIdentity) patientIdentity;
     mapping(uint256 => ProviderIdentity) providerIdentity;
+    mapping (address => bytes) addressCid;
   }
 
   event OwnershipTransferredEvent(address indexed previousOwner, address indexed newOwner);

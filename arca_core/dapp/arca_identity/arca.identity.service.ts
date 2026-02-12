@@ -4,7 +4,11 @@ import { Gender } from "./enums/gender.enum";
 import { EmploymentStatus } from "./enums/employment.status.enum";
 import { IpfsOperator } from "../utils/ipfs.operator";
 import { SymmetricEncryptDecrypt } from "../utils/symmetric.encrypt.decrypt";
-import { TestWallet, testWallets, testConnects } from "../test.wallets.contract.connects";
+import {
+  TestWallet,
+  testWallets,
+  testConnects,
+} from "../test.wallets.contract.connects";
 import { ContractConnect } from "../test.wallets.contract.connects";
 import { ethers } from "ethers";
 import { arca_diamond_abi } from "../abis/arca.diamond.abi";
@@ -27,35 +31,42 @@ const storageType = PatientIdentity.name;
 const SED = new SymmetricEncryptDecrypt();
 const RED = new RsaEncryptDecrypt();
 
-
 export class ArcaIdentityService {
-  constructor(
-    private identityEthersOnchain: IdentityEthersOnchain
-  ){}
+  constructor(private identityEthersOnchain: IdentityEthersOnchain) {}
 
   async getIdentityCount(wallet: ethers.Wallet) {
     try {
-      return await this.identityEthersOnchain.getIdentityCount(wallet)
+      return await this.identityEthersOnchain.getIdentityCount(wallet);
     } catch (error) {
-      throw new Error(`Error getting identity count from onchain identity facet: ${error}`)
+      throw new Error(
+        `Error getting identity count from onchain identity facet: ${error}`,
+      );
     }
   }
 
-
-  async createAdminMsgAndSig(message: string, wallet: ethers.Wallet, contractConnect: ethers.Contract) {
+  async createAdminMsgAndSig(
+    message: string,
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+  ) {
     try {
-      return await this.identityEthersOnchain.saveAdminInitializationMessageHash(message, wallet, contractConnect)
+      return await this.identityEthersOnchain.saveAdminInitializationMessageHash(
+        message,
+        wallet,
+        contractConnect,
+      );
     } catch (error) {
-      throw new Error(`Error creating admin message and signature: ${error}`)
+      throw new Error(`Error creating admin message and signature: ${error}`);
     }
   }
-
 
   async getAdminMsgAndSigs(wallet: ethers.Wallet) {
     try {
-      return await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(wallet)
+      return await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(
+        wallet,
+      );
     } catch (error) {
-      throw new Error(`Error getting admin message and signature: ${error}`)
+      throw new Error(`Error getting admin message and signature: ${error}`);
     }
   }
 
@@ -72,8 +83,11 @@ export class ArcaIdentityService {
   ) {
     try {
       // check if there are admin init msg and sigs
-      const adminMsgAndSigs = await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(wallet)
-      if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) { 
+      const adminMsgAndSigs =
+        await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(
+          wallet,
+        );
+      if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) {
         throw new Error("No admin initialization hashes found.");
       }
       const identityData = new PatientIdentity(
@@ -87,75 +101,241 @@ export class ArcaIdentityService {
       );
 
       const plainIdentityJsonData = JSON.stringify(identityData);
+      // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
       ))!;
 
       console.log("Encrypted data: ", encryptedData);
       console.log("IV: ", iv);
-      
-      const senderPk = wallet.signingKey.publicKey
-      const adminPk = await this.identityEthersOnchain.selectRandomAdminPublicKey(wallet);
-      const rsaEncryptedKeys = RED.dualKeyEncryption(dek, senderPk, adminPk!)!
+
+      const senderPk = wallet.signingKey.publicKey;
+      const { recoveredPublicKey, messageSignature } =
+        await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
+          wallet,
+        );
+      const rsaEncryptedKeys = RED.dualKeyEncryption(
+        dek,
+        senderPk,
+        recoveredPublicKey!,
+      )!;
       const encryptionMetadata: EncryptionMetadata = {
         dekIv: iv,
-        rsaKeys: rsaEncryptedKeys
+        rsaKeys: rsaEncryptedKeys,
       };
       const data: IPFS = {
         storageType,
+        primaryWalletAddress: wallet.address,
+        uploadedAt: new Date(),
         encryptedData,
-        encryptedKeys: encryptionMetadata,
+        encryptionMetaData: encryptionMetadata,
       };
       const jsonData = JSON.stringify(data);
 
-      const fileName: string = `Patent-Identity-${firstName}-${lastName}.json`;
-      const {cid, uploadRequest} = await ipfsOperator.uploadJsonData(
+      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
       );
-      console.log("Filebase upload response: ", uploadRequest)
+      console.log("Filebase upload response: ", uploadRequest);
 
       // registering patient onchain
-      await this.identityEthersOnchain.registerPatientOnChain(wallet, contractConnect, cid!)
-      console.log("Patient registration successful")
+      await this.identityEthersOnchain.registerPatientOnChain(
+        wallet,
+        contractConnect,
+        cid!,
+        messageSignature,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0],
+      );
+      console.log("Patient registration successful");
     } catch (error) {
-      throw new Error(`Error registering patient: ${error}`)
+      throw new Error(`Error registering patient: ${error}`);
     }
   }
-
 
   async decryptAndReadIPFSPatientData(
     privateKey: string,
     encryptedDekForAdmin: string,
     encryptedPatientData: string,
-    iv: string
+    iv: string,
   ) {
     try {
-      const decryptedRsaDEK = RED.decryptDek(privateKey, encryptedDekForAdmin)
-      const decryptedPatientData = SED.decryptData(encryptedPatientData, decryptedRsaDEK, iv)
-      console.log("Decrypted patient data:", decryptedPatientData)
+      const decryptedRsaDEK = RED.decryptDek(privateKey, encryptedDekForAdmin);
+      const decryptedPatientData = SED.decryptData(
+        encryptedPatientData,
+        decryptedRsaDEK,
+        iv,
+      );
+      console.log("Decrypted patient data:", decryptedPatientData);
     } catch (error) {
-      throw new Error(`Error decrypting and reading IPFS patient data: ${error}`)
+      throw new Error(
+        `Error decrypting and reading IPFS patient data: ${error}`,
+      );
     }
   }
-
 
   async verifyPatient(wallet: ethers.Wallet, patientAddress: string) {
     try {
-      await this.identityEthersOnchain.verifyOnchainPatient(wallet, patientAddress)
+      await this.identityEthersOnchain.verifyOnchainPatient(
+        wallet,
+        patientAddress,
+      );
     } catch (error) {
-      throw new Error(`Error verifying patient: ${error}`)
+      throw new Error(`Error verifying patient: ${error}`);
     }
   }
 
-
-  async readPatientOnchainData(wallet: ethers.Wallet, contractConnect: ethers.Contract, patientAddress: string) {
+  async readPatientOnchainData(
+    wallet: ethers.Wallet,
+    patientAddress: string,
+  ) {
     try {
-      await this.identityEthersOnchain.getPatientDataOnChain(wallet, contractConnect, patientAddress)
+      return await this.identityEthersOnchain.getPatientDataOnChain(
+        wallet,
+        patientAddress,
+      );
     } catch (error) {
-      throw new Error(`Error reading patient on chain data: ${error}`)
+      throw new Error(`Error reading patient on chain data: ${error}`);
     }
   }
+
+  // async convertBytesToString(rsaMasterKeyBytes: string) {
+  //   try {
+  //     const stringKey = ethers.toUtf8String(rsaMasterKeyBytes);
+  //     return stringKey;
+  //   } catch (error) {
+  //     throw new Error(`Error converting RSA master key to string: ${error}`);
+  //   }
+  // }
+
+  async linkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    patientAddress: string,
+    randomMessage: string,
+  ) {
+    try {
+      return await this.identityEthersOnchain.linkAddressRequest(
+        wallet,
+        contractConnect,
+        patientAddress,
+        randomMessage,
+      );
+    } catch (error) {
+      throw new Error(`Error sending request for linking address: ${error}`);
+    }
+  }
+
+  async approveLinkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    secondaryAddress: string,
+    // linkRequestHash: string,
+    // linkRequestSignature: string,
+    randomApprovalMessage: string,
+  ) {
+    try {
+
+      await this.identityEthersOnchain.approveLinkAddressRequest(
+        wallet,
+        contractConnect,
+        secondaryAddress,
+        randomApprovalMessage,
+      );
+
+    } catch (error) {
+      throw new Error(`Error approving link address request: ${error}`);
+    }
+  }
+
+  async storeRsaMasterDekForLinkedAccount(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    requestHash: string,
+    requestSignature: string,
+  ) {
+    try {
+      const walletAddress = await wallet.getAddress();
+      const patient = await this.readPatientOnchainData(
+        wallet,
+        walletAddress,
+      );
+      const patientRsaMasterDEKs = patient.rsaMasterDEKs;
+      const mainItemRsaData = patientRsaMasterDEKs.find(
+        (item) => item.identity === patient.primaryAddress,
+      );
+      const mainRsaKey = mainItemRsaData!.rsaMasterDEK // already converted from bytes to string
+
+      let decryptedMainRsaKey = mainRsaKey;
+      if (mainRsaKey.length > 100) {
+        decryptedMainRsaKey = RED.decryptDek(wallet.privateKey, mainRsaKey);
+      }
+
+      const recoveredPublicKey = ethers.SigningKey.recoverPublicKey(
+        requestHash,
+        requestSignature,
+      );
+      const recoveredAddress = ethers.recoverAddress(
+        requestHash,
+        requestSignature,
+      );
+      console.log("Linked Account Recovered public key: ", recoveredPublicKey);
+      console.log("Linked Account Recovered address: ", recoveredAddress);
+
+      const linkedAccountRsaMasterDek = RED.encryptDek(
+        recoveredPublicKey,
+        decryptedMainRsaKey,
+      );
+      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAccountOnChain(
+        wallet,
+        contractConnect,
+        recoveredAddress,
+        linkedAccountRsaMasterDek,
+      );
+
+      //* storing the linked master key in IPFS data
+      await this.updateRsaMasterKeysIpfsProfileData(wallet, linkedAccountRsaMasterDek)
+
+      console.log("RSA master dek for linked account stored successfully")
+    } catch (error) {
+      throw new Error(
+        `Error storing RSA master dek for linked account: ${error}`,
+      );
+    }
+  }
+
+  async getAddressCid(wallet: ethers.Wallet) {
+    try {
+      const cid = await this.identityEthersOnchain.getAddressCid(wallet)
+      console.log("Address CID:", cid)
+      return cid
+    } catch (error) {
+      throw new Error(`Error fetching address cid: ${error}`)
+    }
+  }
+
+  async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, linkedRsaMasterDEK: string){
+    try {
+      const oldCid = await this.getAddressCid(wallet)
+      const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
+      let newData = oldData
+      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
+      const jsonData = JSON.stringify(oldData);
+
+      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+
+      console.log("Filebase upload response: ", uploadRequest)
+      await this.identityEthersOnchain.updateAddressCid(wallet, cid!)
+
+    } catch (error) {
+      throw new Error(`Error replacing profile data on File pinning service: ${error}`)
+    }
+  }
+
 
   async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
     const decryptedData = await SED.decryptData(encryptedData, dek, iv);
@@ -166,21 +346,12 @@ export class ArcaIdentityService {
 
 //////* TESTINGS *////////
 
-const identityEthersOnchain = new IdentityEthersOnchain()
+const identityEthersOnchain = new IdentityEthersOnchain();
 const arcaIdentityService = new ArcaIdentityService(identityEthersOnchain);
 
 let patient1Wallet = testWallets[1];
-let patient1ContractConnect = testConnects[1]
+let patient1ContractConnect = testConnects[1];
 
-const patient = new PatientIdentity(
-  "John",
-  "Doe",
-  new Date(),
-  Gender.MALE,
-  "123456789",
-  "123 Main St",
-  EmploymentStatus.STUDENT,
-);
 // arcaIdentityService.registerPatient(
 //   patient1Wallet,
 //   patient1ContractConnect,
@@ -200,21 +371,21 @@ const encryptedData =
 
 // arcaIdentityService.dummyReadPatientData(encryptedData, dek, iv)
 
-
-let ownerWallet = testWallets[0]
-let ownerContractConnect = testConnects[0]
+let ownerWallet = testWallets[0];
+let ownerContractConnect = testConnects[0];
 
 // arcaIdentityService.getIdentityCount(ownerWallet);
 
-const randomMessage = "Hello world"
+const randomMessage = "Hello world";
 // arcaIdentityService.createAdminMsgAndSig(randomMessage, ownerWallet, ownerContractConnect)
 // arcaIdentityService.getAdminMsgAndSigs(ownerWallet);
 
-
-const ownerSecretKey = ownerWallet.signingKey.privateKey
-const encryptedDekForAdmin = "BPOSV3gSjd3U+E+cBu6BjimUEZur4OuqMv8CR9GGnj7yiHsWfdfQzyKfqFjAcJN3L8cfwR0X5ZEjw8ymjmmdh2Kv5WlHxia9LdFxuM4fMEC3oGEONCCXAKxbxZh3vY8jfusY9mw4idLvs/htpt1Egd9lyCfBFtV0L2MqMwK2rNU+xU8TWrHLZcPQAL9cQY7L1Npy4IyTMuTl/VBlWwVZQlQ="
-const encryptedPatientData = "920cdd0b2b041d44e1ba4f7385e688d9c603b94a9f2cb40fe806f18023928be026e375910f6a8f652e4371405a1cbace799784a1c3ff70d8949c3504d50fc6cb763cb4774200de259f089a06fcdfe96c9883becc43b08786da1ce6d3fbf59eeb9cb756f6db39eae767d1b7e274c00448fc02f35f427f464af006f5ba8a79b8de65af851434afb4b8f723a624271ef3456dc173f75ce347ef42be75ee91c3ad9dfe9f65e6bd2cf610fcfe7af4b1a9a12287f2b362384f851bd16981df9b3f485e"
-const dekIv = "790845267e816c1bae50ab7ce235b816"
+const ownerSecretKey = ownerWallet.signingKey.privateKey;
+const encryptedDekForAdmin =
+  "BPOSV3gSjd3U+E+cBu6BjimUEZur4OuqMv8CR9GGnj7yiHsWfdfQzyKfqFjAcJN3L8cfwR0X5ZEjw8ymjmmdh2Kv5WlHxia9LdFxuM4fMEC3oGEONCCXAKxbxZh3vY8jfusY9mw4idLvs/htpt1Egd9lyCfBFtV0L2MqMwK2rNU+xU8TWrHLZcPQAL9cQY7L1Npy4IyTMuTl/VBlWwVZQlQ=";
+const encryptedPatientData =
+  "920cdd0b2b041d44e1ba4f7385e688d9c603b94a9f2cb40fe806f18023928be026e375910f6a8f652e4371405a1cbace799784a1c3ff70d8949c3504d50fc6cb763cb4774200de259f089a06fcdfe96c9883becc43b08786da1ce6d3fbf59eeb9cb756f6db39eae767d1b7e274c00448fc02f35f427f464af006f5ba8a79b8de65af851434afb4b8f723a624271ef3456dc173f75ce347ef42be75ee91c3ad9dfe9f65e6bd2cf610fcfe7af4b1a9a12287f2b362384f851bd16981df9b3f485e";
+const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.decryptAndReadIPFSPatientData(
 //   ownerSecretKey,
@@ -225,4 +396,39 @@ const dekIv = "790845267e816c1bae50ab7ce235b816"
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-arcaIdentityService.readPatientOnchainData(ownerWallet, ownerContractConnect, patient1Wallet.address)
+arcaIdentityService.readPatientOnchainData(
+  ownerWallet,
+  patient1Wallet.address,
+);
+
+const patient1SecondaryWallet = testWallets[2];
+const patient1SecondaryContractConnect = testConnects[2];
+const randomLinkRequestMessage = "Request for unified access";
+
+// arcaIdentityService.linkAddressRequest(
+//   patient1SecondaryWallet,
+//   patient1SecondaryContractConnect,
+//   patient1Wallet.address,
+//   randomLinkRequestMessage
+// )
+
+const randomApprovalMessage = "I approve the request for unified access";
+// arcaIdentityService.approveLinkAddressRequest(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   patient1SecondaryWallet.address,
+//   // "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
+//   // "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b",
+//   randomApprovalMessage,
+// );
+
+
+// arcaIdentityService.storeRsaMasterDekForLinkedAccount(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
+//   "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b"
+// )
+
+
+// arcaIdentityService.getAddressCid(patient1Wallet)
