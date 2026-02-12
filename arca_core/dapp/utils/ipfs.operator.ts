@@ -80,24 +80,6 @@ export class IpfsOperator {
   }
 
 
-  async getFilesKeys(){
-    try {
-      const url =  `${IPFS_RPC_API_BASEURL}api/v0/key/list`
-      const response = await axios.post(
-        url,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.FILEBASE_RPC_ARCA_BUCKET_API_ACCESS_KEY}`,
-          },
-        },
-      );
-      console.log("File keys:", JSON.stringify(response.data));
-    } catch (error) {
-      throw new Error(`Error getting files keys from Filebase IPFS: ${error}`)
-    }
-  }
-
 }
 
 const ipfsOperator = new IpfsOperator();
@@ -106,5 +88,3 @@ const ipfsOperator = new IpfsOperator();
 
 // const cid = "Qma3b81nGeNyJELFtS2FYy6tUN1qo7f74Xj4MBFQeSRTot";
 // ipfsOperator.getFileByCid(cid);
-
-ipfsOperator.getFilesKeys()

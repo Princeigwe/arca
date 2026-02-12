@@ -187,13 +187,11 @@ export class ArcaIdentityService {
 
   async readPatientOnchainData(
     wallet: ethers.Wallet,
-    contractConnect: ethers.Contract,
     patientAddress: string,
   ) {
     try {
       return await this.identityEthersOnchain.getPatientDataOnChain(
         wallet,
-        contractConnect,
         patientAddress,
       );
     } catch (error) {
@@ -232,23 +230,17 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
-    linkRequestHash: string,
-    linkRequestSignature: string,
+    // linkRequestHash: string,
+    // linkRequestSignature: string,
     randomApprovalMessage: string,
   ) {
     try {
+
       await this.identityEthersOnchain.approveLinkAddressRequest(
         wallet,
         contractConnect,
         secondaryAddress,
         randomApprovalMessage,
-      );
-
-      await this.storeRsaMasterDekForLinkedAccount(
-        wallet,
-        contractConnect,
-        linkRequestHash,
-        linkRequestSignature,
       );
 
     } catch (error) {
@@ -266,7 +258,6 @@ export class ArcaIdentityService {
       const walletAddress = await wallet.getAddress();
       const patient = await this.readPatientOnchainData(
         wallet,
-        contractConnect,
         walletAddress,
       );
       const patientRsaMasterDEKs = patient.rsaMasterDEKs;
@@ -295,12 +286,17 @@ export class ArcaIdentityService {
         recoveredPublicKey,
         decryptedMainRsaKey,
       );
-      return await this.identityEthersOnchain.storeRsaMasterDekForLinkedAccountOnChain(
+      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAccountOnChain(
         wallet,
         contractConnect,
         recoveredAddress,
         linkedAccountRsaMasterDek,
       );
+
+      //* storing the linked master key in IPFS data
+      await this.updateRsaMasterKeysIpfsProfileData(wallet, linkedAccountRsaMasterDek)
+
+      console.log("RSA master dek for linked account stored successfully")
     } catch (error) {
       throw new Error(
         `Error storing RSA master dek for linked account: ${error}`,
@@ -308,8 +304,19 @@ export class ArcaIdentityService {
     }
   }
 
-  async updateRsaMasterKeysIpfsProfileData(oldCid: string,  wallet: ethers.Wallet, linkedRsaMasterDEK: string){
+  async getAddressCid(wallet: ethers.Wallet) {
     try {
+      const cid = await this.identityEthersOnchain.getAddressCid(wallet)
+      console.log("Address CID:", cid)
+      return cid
+    } catch (error) {
+      throw new Error(`Error fetching address cid: ${error}`)
+    }
+  }
+
+  async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, linkedRsaMasterDEK: string){
+    try {
+      const oldCid = await this.getAddressCid(wallet)
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
       newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
@@ -320,7 +327,10 @@ export class ArcaIdentityService {
         fileName,
         jsonData,
       );
-      console.log("Filebase upload response: ", uploadRequest);
+
+      console.log("Filebase upload response: ", uploadRequest)
+      await this.identityEthersOnchain.updateAddressCid(wallet, cid!)
+
     } catch (error) {
       throw new Error(`Error replacing profile data on File pinning service: ${error}`)
     }
@@ -386,11 +396,10 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-// arcaIdentityService.readPatientOnchainData(
-//   ownerWallet,
-//   ownerContractConnect,
-//   patient1Wallet.address,
-// );
+arcaIdentityService.readPatientOnchainData(
+  ownerWallet,
+  patient1Wallet.address,
+);
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];
@@ -408,7 +417,18 @@ const randomApprovalMessage = "I approve the request for unified access";
 //   patient1Wallet,
 //   patient1ContractConnect,
 //   patient1SecondaryWallet.address,
-//   "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
-//   "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b",
+//   // "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
+//   // "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b",
 //   randomApprovalMessage,
 // );
+
+
+// arcaIdentityService.storeRsaMasterDekForLinkedAccount(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
+//   "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b"
+// )
+
+
+// arcaIdentityService.getAddressCid(patient1Wallet)

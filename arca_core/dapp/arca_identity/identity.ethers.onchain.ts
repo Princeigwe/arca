@@ -6,6 +6,9 @@ import { arca_identity_facet_abi } from "../abis/arca.identity.facet.abi";
 const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
+const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
+const provider = new ethers.JsonRpcProvider(providerUrl);
+
 export class IdentityEthersOnchain {
   async saveAdminInitializationMessageHash(
     randomMessage: string,
@@ -39,7 +42,8 @@ export class IdentityEthersOnchain {
         to: arcaDiamondAddress,
         data: messageHashData,
       };
-      await wallet.sendTransaction(txOption);
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
       console.log("Transaction successful");
     } catch (error) {
       throw new Error(`Error saving admin initialization hash: ${error}`);
@@ -145,6 +149,7 @@ export class IdentityEthersOnchain {
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
+        nonce: await wallet.getNonce("pending"),
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
@@ -162,6 +167,7 @@ export class IdentityEthersOnchain {
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
+        nonce: await wallet.getNonce("pending"),
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
@@ -172,16 +178,9 @@ export class IdentityEthersOnchain {
 
   async getPatientDataOnChain(
     wallet: ethers.Wallet,
-    contractConnect: ethers.Contract,
     patientAddress: string,
   ) {
     try {
-      contractConnect.once(
-        "PatientIdentityFetchedEvent",
-        (message, patient) => {
-          console.log(`Event received: ${message}`, patient);
-        },
-      );
       const iFace = new ethers.Interface(arca_identity_facet_abi);
       const data = iFace.encodeFunctionData("getPatientIdentity", [
         patientAddress,
@@ -196,6 +195,7 @@ export class IdentityEthersOnchain {
         response,
       );
       const patient = decoded[0];
+      console.log("Patient: ", patient);
 
       const formattedPatient = {
         primaryAddress: patient[0],
@@ -204,9 +204,8 @@ export class IdentityEthersOnchain {
         isVerified: patient[3],
         guardians: Array.from(patient[4]),
         guardiansRequired: Number(patient[5]),
-        cid: ethers.toUtf8String(patient[6]),
-        adminInitializationSignature: patient[7],
-        rsaMasterDEKs: Array.from(patient[8]).map((item: any) => ({
+        adminInitializationSignature: patient[6],
+        rsaMasterDEKs: Array.from(patient[7]).map((item: any) => ({
           identity: item[0],
           rsaMasterDEK: ethers.toUtf8String(item[1]),
         })),
@@ -257,6 +256,7 @@ export class IdentityEthersOnchain {
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
+        nonce: await wallet.getNonce("pending"),
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
@@ -306,6 +306,10 @@ export class IdentityEthersOnchain {
       const messageHash = ethers.hashMessage(randomMessage);
       const unixTimestampInSeconds = Math.floor(Date.now() / 1000);
       const iFace = new ethers.Interface(arca_identity_facet_abi);
+
+      // fix for error on blockchain nonce too low on transaction
+      const nonce = await provider.getTransactionCount(wallet.address, 'pending') 
+
       const data = iFace.encodeFunctionData("approveLinkAddressRequest", [
         secondaryAddress,
         unixTimestampInSeconds,
@@ -316,6 +320,7 @@ export class IdentityEthersOnchain {
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
+        nonce,
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
@@ -334,6 +339,8 @@ export class IdentityEthersOnchain {
       contractConnect.once("PatientIdentityUpdateEvent", (message) => {
         console.log(`Event received: ${message}`);
       });
+      // fix for error on blockchain nonce too low on transaction
+      const nonce = await provider.getTransactionCount(wallet.address, 'pending')
       const secondaryRsaMasterKeyBytes = ethers.toUtf8Bytes(
         secondaryRsaMasterKey,
       );
@@ -345,6 +352,7 @@ export class IdentityEthersOnchain {
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
+        nonce
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
@@ -352,6 +360,39 @@ export class IdentityEthersOnchain {
       throw new Error(
         `Error storing RSA master dek for linked account: ${error}`,
       );
+    }
+  }
+
+  async getAddressCid(wallet: ethers.Wallet) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("getAddressCid", [wallet.address]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption)
+      const decoded = iFace.decodeFunctionResult("getAddressCid", response)
+      const addressCid = ethers.toUtf8String(decoded[0])
+      return addressCid
+    } catch (error) {
+      throw new Error(`Error fetching address cid: ${error}`)
+    }
+  }
+
+  async updateAddressCid(wallet: ethers.Wallet, newCid: string){
+    try {
+      const cidBytes = ethers.toUtf8Bytes(newCid)
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const data = iFace.encodeFunctionData('updateAddressCid', [wallet.address, cidBytes])
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+      const response = await wallet.sendTransaction(txOption)
+      await response.wait()
+    } catch (error) {
+      throw new Error(`Error updating address cid: ${error}`)
     }
   }
 }
