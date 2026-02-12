@@ -230,8 +230,6 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
-    // linkRequestHash: string,
-    // linkRequestSignature: string,
     randomApprovalMessage: string,
   ) {
     try {
