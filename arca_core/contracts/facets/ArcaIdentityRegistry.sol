@@ -45,6 +45,16 @@ contract ArcaIdentityRegistry{
     _isAdmin = dsStorage.isAdmin[_addr];
   }
 
+  function arcaAccessControlFacetVerifyAccessToPatientIdentityData(address _requester, address _mainPatientAddress)public returns(bool){
+    // address for ArcaAccessControl facet to verify grant access, but in the context of the diamond contract 
+    (bool success, bytes memory returnedData) = address(this).call(abi.encodeWithSignature("verifyAccessToPatientIdentityData(address,address)", _requester, _mainPatientAddress));
+    if(!success){
+      revert("Something went wrong when verifying access to patient identity data");
+    }
+    (bool hasAccess) = abi.decode(returnedData, (bool)); // decoding the returned data to get the boolean value of hasAccess
+    return hasAccess;
+  }
+
   // enables the admin to save a transaction hash; generated off-chain, that will be used in public key encryption for IPFS data
   function saveAdminInitializationMessageHash(bytes32 _messageHash, bytes memory _signature)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
@@ -143,6 +153,8 @@ contract ArcaIdentityRegistry{
     return ds.internalNonce;
   }
 
+  // verifies that the signature is valid and that the signer is the sender of the transaction. 
+  // this is used to validate the authenticity of the approval on the link address request
   function isSignatureValid(bytes32 _hash, bytes memory _signature) public view returns (bool) {
     address signer = _hash.recover(_signature);
     return (signer == msg.sender);
@@ -281,7 +293,9 @@ contract ArcaIdentityRegistry{
 
 
   function getPatientIdentity(address _patientAddress)public returns(LibADS.PatientIdentity memory){
+    bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _patientAddress);
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(hasAccess == true, LibADS.AuthorizationError("Access denied to patient identity data"));
     LibADS.PatientIdentity memory patient = ds.patientAccount[_patientAddress];
     emit LibADS.PatientIdentityFetchedEvent("Patient identity fetched", patient);
     return patient;

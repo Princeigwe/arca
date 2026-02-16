@@ -21,7 +21,7 @@ import { IdentityEthersOnchain } from "./identity.ethers.onchain";
 
 // dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+// const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
 const ipfsOperator = new IpfsOperator();
@@ -41,6 +41,15 @@ export class ArcaIdentityService {
       throw new Error(
         `Error getting identity count from onchain identity facet: ${error}`,
       );
+    }
+  }
+
+
+  async checkIsAdmin(wallet: ethers.Wallet){
+    try {
+      return await this.identityEthersOnchain.checkIsAdmin(wallet);
+    } catch (error) {
+      throw new Error(`Error checking if admin: ${error}`);
     }
   }
 
@@ -373,6 +382,7 @@ let ownerWallet = testWallets[0];
 let ownerContractConnect = testConnects[0];
 
 // arcaIdentityService.getIdentityCount(ownerWallet);
+// arcaIdentityService.checkIsAdmin(ownerWallet)
 
 const randomMessage = "Hello world";
 // arcaIdentityService.createAdminMsgAndSig(randomMessage, ownerWallet, ownerContractConnect)
@@ -396,6 +406,7 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 arcaIdentityService.readPatientOnchainData(
   ownerWallet,
+  // patient1Wallet,
   patient1Wallet.address,
 );
 

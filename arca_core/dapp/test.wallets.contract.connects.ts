@@ -7,7 +7,7 @@ dotenv.config();
 const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
 
-const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const arcaDiamondAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
 export class TestWallet {

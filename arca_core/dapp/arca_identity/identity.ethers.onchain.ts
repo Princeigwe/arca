@@ -3,13 +3,38 @@ import { testWallets, testConnects } from "../test.wallets.contract.connects";
 import { arca_diamond_abi } from "../abis/arca.diamond.abi";
 import { arca_identity_facet_abi } from "../abis/arca.identity.facet.abi";
 
-const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const dotenv = require("dotenv");
+const path = require("path");
+
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+
+const arcaDiamondAddress = process.env.DEPLOYED_DIAMOND_ADDRESS || process.env.LOCAL_DIAMOND_ADDRESS;
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
 const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
 
 export class IdentityEthersOnchain {
+
+  async checkIsAdmin(wallet: ethers.Wallet) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("checkIsAdmin", [wallet.address]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption);
+  
+      // decoding ABI encoded returned data
+      const [isAdmin] = iFace.decodeFunctionResult("checkIsAdmin", response);
+  
+      console.log("Is admin: ", isAdmin);
+    } catch (error) {
+      console.error("Error checking if admin: ", error);
+    }
+  }
+
   async saveAdminInitializationMessageHash(
     randomMessage: string,
     wallet: ethers.Wallet,
@@ -74,7 +99,7 @@ export class IdentityEthersOnchain {
       console.log("Hash and Signature Formatted Response: ", formattedResponse);
       return formattedResponse;
     } catch (error) {
-      throw new Error(`Error getting message hashes and signature: error`);
+      throw new Error(`Error getting message hashes and signature: ${error}`);
     }
   }
 
@@ -256,7 +281,7 @@ export class IdentityEthersOnchain {
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
-        nonce: await wallet.getNonce("pending"),
+        // nonce: await wallet.getNonce("pending"),
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();

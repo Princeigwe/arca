@@ -10,7 +10,7 @@ const provider = new ethers.JsonRpcProvider(providerUrl);
 
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
-const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const arcaDiamondAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 
 const hardhatPrivateKey2 =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
@@ -460,10 +460,10 @@ const newAdmin = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
 // transferOwnership(newOwner)
 
-// getDiamondFacets()
+getDiamondFacets()
 
 // addAdmin(newAdmin)
-// checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
+checkIsAdmin("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
 
 const randomMessage = "Hello world";
 // saveAdminInitializationMessageHash(randomMessage, ownerWallet, arcaDiamondContractOwnerConnect)
@@ -519,6 +519,6 @@ const functionSelectorsToAdd = [
 // )
 
 
-getAddressCid(wallet1.address)
+// getAddressCid(wallet1.address)
 
 // updateAddressCid(wallet1.address, "123456789")
