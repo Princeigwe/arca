@@ -404,11 +404,11 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-arcaIdentityService.readPatientOnchainData(
-  ownerWallet,
-  // patient1Wallet,
-  patient1Wallet.address,
-);
+// arcaIdentityService.readPatientOnchainData(
+//   // ownerWallet,
+//   patient1Wallet,
+//   patient1Wallet.address,
+// );
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];

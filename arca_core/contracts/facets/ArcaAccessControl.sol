@@ -14,9 +14,6 @@ contract ArcaAccessControl {
 
   function verifyAccessToPatientIdentityData(address _requester, address _mainPatientAddress) public view returns(bool){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    if(!ds.isAdmin[_requester]){
-      require(ds.accountExists[_requester], LibADS.AccountDoesNotExistError(_requester));
-    }
     require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
     bool hasAccess = false;
     if(
