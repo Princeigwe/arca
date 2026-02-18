@@ -6,7 +6,7 @@ import {LibArcaDiamondStorage as LibADS} from  "../libraries/LibArcaDiamondStora
 
 
 contract ArcaAccessControl {
-  // function requestAccessToPatientIdentityData(address _patientAddress, address _providerAddress) public {}
+  // function requestAccessToPatientIdentityData(address _providerAddress, address _patientAddress) public {}
 
   // function grantAccessToPatientIdentityData() public {}
 

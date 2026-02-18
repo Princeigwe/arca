@@ -208,6 +208,34 @@ export class ArcaIdentityService {
     }
   }
 
+
+  async readPatientIpfsData(wallet: ethers.Wallet, patientAddress: string){
+    try {
+      const senderIsAdmin = await this.checkIsAdmin(wallet)
+      if(senderIsAdmin){
+        const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const decryptedDekForAdmin = RED.decryptDek(
+          wallet.privateKey, 
+          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedDEKForAdmin
+        )
+
+        const decryptedPatientData = SED.decryptData(
+          JSON.parse(encryptedIpfsData).encryptedData,
+          decryptedDekForAdmin,
+          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+        )
+        console.log("Decrypted patient data:", decryptedPatientData);
+        return decryptedPatientData;
+      }
+      else{
+
+      }
+    } catch (error) {
+      throw new Error(`Error reading patient IPFS data: ${error}`);
+    }
+  }
+
   // async convertBytesToString(rsaMasterKeyBytes: string) {
   //   try {
   //     const stringKey = ethers.toUtf8String(rsaMasterKeyBytes);
@@ -311,19 +339,28 @@ export class ArcaIdentityService {
     }
   }
 
-  async getAddressCid(wallet: ethers.Wallet) {
+  async getAddressCidOfCurrentSender(wallet: ethers.Wallet) {
     try {
-      const cid = await this.identityEthersOnchain.getAddressCid(wallet)
+      const cid = await this.identityEthersOnchain.getAddressCidOfCurrentSender(wallet)
       console.log("Address CID:", cid)
       return cid
     } catch (error) {
-      throw new Error(`Error fetching address cid: ${error}`)
+      throw new Error(`Error fetching sender's cid: ${error}`)
+    }
+  }
+
+
+  async getCidOfAddress(wallet: ethers.Wallet, address: string){
+    try {
+      
+    } catch (error) {
+      throw new Error(`Error fetching cid of address: ${error}`)
     }
   }
 
   async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, linkedRsaMasterDEK: string){
     try {
-      const oldCid = await this.getAddressCid(wallet)
+      const oldCid = await this.getAddressCidOfCurrentSender(wallet)
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
       newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
@@ -441,3 +478,8 @@ const randomApprovalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService.getAddressCid(patient1Wallet)
+
+arcaIdentityService.readPatientIpfsData(
+  ownerWallet,
+  patient1Wallet.address
+)

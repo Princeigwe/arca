@@ -28,8 +28,9 @@ export class IdentityEthersOnchain {
   
       // decoding ABI encoded returned data
       const [isAdmin] = iFace.decodeFunctionResult("checkIsAdmin", response);
-  
       console.log("Is admin: ", isAdmin);
+
+      return isAdmin
     } catch (error) {
       console.error("Error checking if admin: ", error);
     }
@@ -388,10 +389,29 @@ export class IdentityEthersOnchain {
     }
   }
 
-  async getAddressCid(wallet: ethers.Wallet) {
+  // this get the content identifier of the current msg.sender
+  async getAddressCidOfCurrentSender(wallet: ethers.Wallet) {
     try {
       const iFace = new ethers.Interface(arca_identity_facet_abi);
       const data = iFace.encodeFunctionData("getAddressCid", [wallet.address]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption)
+      const decoded = iFace.decodeFunctionResult("getAddressCid", response)
+      const addressCid = ethers.toUtf8String(decoded[0])
+      return addressCid
+    } catch (error) {
+      throw new Error(`Error fetching address cid: ${error}`)
+    }
+  }
+
+
+  async getCidOfAddress(wallet: ethers.Wallet, address: string) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("getAddressCid", [address]);
       const txOption = {
         to: arcaDiamondAddress,
         data: data,

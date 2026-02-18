@@ -544,7 +544,7 @@ export const arca_identity_facet_abi = [
           "type": "bytes"
         }
       ],
-      "stateMutability": "view",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
