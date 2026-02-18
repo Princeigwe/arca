@@ -550,7 +550,8 @@ const randomApprovalMessage = "I approve the request for unified access";
 // arcaIdentityService.getAddressCid(patient1Wallet)
 
 arcaIdentityService.readPatientIpfsData(
-  patient1Wallet,
+  // patient1Wallet,
+  patient1SecondaryWallet,
   // ownerWallet,
   // admin2Wallet,
   patient1Wallet.address,
