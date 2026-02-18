@@ -45,6 +45,15 @@ export class ArcaIdentityService {
   }
 
 
+  async addAdmin(wallet: ethers.Wallet, contractConnect: ethers.Contract, newAdminAddress: string) {
+    try {
+      await this.identityEthersOnchain.addAdmin(wallet, contractConnect, newAdminAddress);
+    } catch (error) {
+      throw new Error(`Error adding admin: ${error}`);
+    }
+  }
+
+
   async checkIsAdmin(wallet: ethers.Wallet){
     try {
       return await this.identityEthersOnchain.checkIsAdmin(wallet);
@@ -209,10 +218,47 @@ export class ArcaIdentityService {
   }
 
 
-  async readPatientIpfsData(wallet: ethers.Wallet, patientAddress: string){
+  async verifyAdminSenderInitSigForPatientIpfsData(
+    wallet: ethers.Wallet, 
+    patientAddress: string, 
+    adminInitMessage: string
+  ){
     try {
       const senderIsAdmin = await this.checkIsAdmin(wallet)
       if(senderIsAdmin){
+        const patient = await this.readPatientOnchainData(wallet, patientAddress)
+        const adminInitSig = patient.adminInitializationSignature
+
+        const adminInitMsgHash = ethers.hashMessage(adminInitMessage)
+        const recoveredAdminAddress = ethers.recoverAddress(adminInitMsgHash, adminInitSig)
+
+        if(recoveredAdminAddress == wallet.address){
+          return true;
+        }
+        else{
+          return false;
+        }
+      }
+      throw new Error("Sender is not an admin, cannot verify initialization signature for patient IPFS data")
+    } catch (error) {
+      throw new Error(`Error verifying admin initialization signature for patient IPFS data: ${error}`)
+    }
+  }
+
+
+  async readPatientIpfsData(
+    wallet: ethers.Wallet, 
+    patientAddress: string,
+    adminInitMessage: string
+  ){
+    try {
+      const senderIsAdmin = await this.checkIsAdmin(wallet)
+      if(senderIsAdmin){
+         //* verifying patient IPFS data was encrypted with the appropriate admin signature before any further operation
+        const isAppropriateAdmin = await this.verifyAdminSenderInitSigForPatientIpfsData(wallet, patientAddress, adminInitMessage)
+        if(!isAppropriateAdmin){
+          throw new Error("The signature of the admin sender cannot be verified to have initialized the patient data, hence cannot be authorized to read the patient IPFS data")
+        }
         const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
         const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
         const decryptedDekForAdmin = RED.decryptDek(
@@ -350,6 +396,7 @@ export class ArcaIdentityService {
   }
 
 
+  //todo: come back to this function
   async getCidOfAddress(wallet: ethers.Wallet, address: string){
     try {
       
@@ -396,6 +443,9 @@ const arcaIdentityService = new ArcaIdentityService(identityEthersOnchain);
 let patient1Wallet = testWallets[1];
 let patient1ContractConnect = testConnects[1];
 
+let admin2Wallet = testWallets[3];
+let admin2ContractConnect = testConnects[3];
+
 // arcaIdentityService.registerPatient(
 //   patient1Wallet,
 //   patient1ContractConnect,
@@ -419,10 +469,11 @@ let ownerWallet = testWallets[0];
 let ownerContractConnect = testConnects[0];
 
 // arcaIdentityService.getIdentityCount(ownerWallet);
+// arcaIdentityService.addAdmin(ownerWallet, ownerContractConnect, admin2Wallet.address)
 // arcaIdentityService.checkIsAdmin(ownerWallet)
 
-const randomMessage = "Hello world";
-// arcaIdentityService.createAdminMsgAndSig(randomMessage, ownerWallet, ownerContractConnect)
+const adminInitMessage = "Hello world";
+// arcaIdentityService.createAdminMsgAndSig(adminInitMessage, ownerWallet, ownerContractConnect)
 // arcaIdentityService.getAdminMsgAndSigs(ownerWallet);
 
 const ownerSecretKey = ownerWallet.signingKey.privateKey;
@@ -481,5 +532,7 @@ const randomApprovalMessage = "I approve the request for unified access";
 
 arcaIdentityService.readPatientIpfsData(
   ownerWallet,
-  patient1Wallet.address
+  // admin2Wallet,
+  patient1Wallet.address,
+  adminInitMessage
 )

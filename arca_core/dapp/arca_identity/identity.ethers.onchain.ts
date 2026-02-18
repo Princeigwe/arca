@@ -16,6 +16,28 @@ const provider = new ethers.JsonRpcProvider(providerUrl);
 
 export class IdentityEthersOnchain {
 
+  async addAdmin(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract, 
+    newAdminAddress: string
+  ) {
+    try {
+      contractConnect.once("AdminAddedEvent", (message, admin) => {
+        console.log(`Event received: ${message}`, admin);
+      });
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("addAdmin", [newAdminAddress]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
+    } catch (error) {
+      console.log("Error adding admin: ", error);
+    }
+  }
+
   async checkIsAdmin(wallet: ethers.Wallet) {
     try {
       const iFace = new ethers.Interface(arca_identity_facet_abi);
