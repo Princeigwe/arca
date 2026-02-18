@@ -274,9 +274,28 @@ export class ArcaIdentityService {
         console.log("Decrypted patient data:", decryptedPatientData);
         return decryptedPatientData;
       }
-      else{
 
-      }
+      // sender is not an admin
+      const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+      const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+
+      let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(item => item.identity == wallet.address)
+  
+      const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+      const decryptedDekForSender = RED.decryptDek(
+        wallet.privateKey, 
+        JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition]
+      )
+
+      const decryptedPatientData = SED.decryptData(
+        JSON.parse(encryptedIpfsData).encryptedData,
+        decryptedDekForSender,
+        JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+      )
+
+      console.log("Decrypted patient data:", decryptedPatientData);
+      return decryptedPatientData;
+
     } catch (error) {
       throw new Error(`Error reading patient IPFS data: ${error}`);
     }
@@ -531,7 +550,8 @@ const randomApprovalMessage = "I approve the request for unified access";
 // arcaIdentityService.getAddressCid(patient1Wallet)
 
 arcaIdentityService.readPatientIpfsData(
-  ownerWallet,
+  patient1Wallet,
+  // ownerWallet,
   // admin2Wallet,
   patient1Wallet.address,
   adminInitMessage
