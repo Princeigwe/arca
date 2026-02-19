@@ -1,5 +1,5 @@
 
-# Arca - On-Chain Electronic Health Records with Patient Data Sovereignty
+# Arca: Self-Sovereign Health
 
 
 
