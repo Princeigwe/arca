@@ -9,9 +9,9 @@ async function hardhatDeployArcaIdentityFacet() {
   const contractOwner = accounts[0];
 
   const ArcaIdentityRegistry = await hre.ethers.getContractFactory('ArcaIdentityRegistry')
-  const diamondContract = await ArcaIdentityRegistry.deploy()
+  const arcaIdentityContract = await ArcaIdentityRegistry.deploy()
 
-  console.log("ArcaIdentityRegistry Facet address: ", await diamondContract.getAddress())
+  console.log("ArcaIdentityRegistry Facet address: ", await arcaIdentityContract.getAddress())
 
 }
 

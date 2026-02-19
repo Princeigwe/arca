@@ -21,7 +21,7 @@ import { IdentityEthersOnchain } from "./identity.ethers.onchain";
 
 // dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
-const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+// const arcaDiamondAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
 const ipfsOperator = new IpfsOperator();
@@ -41,6 +41,24 @@ export class ArcaIdentityService {
       throw new Error(
         `Error getting identity count from onchain identity facet: ${error}`,
       );
+    }
+  }
+
+
+  async addAdmin(wallet: ethers.Wallet, contractConnect: ethers.Contract, newAdminAddress: string) {
+    try {
+      await this.identityEthersOnchain.addAdmin(wallet, contractConnect, newAdminAddress);
+    } catch (error) {
+      throw new Error(`Error adding admin: ${error}`);
+    }
+  }
+
+
+  async checkIsAdmin(wallet: ethers.Wallet){
+    try {
+      return await this.identityEthersOnchain.checkIsAdmin(wallet);
+    } catch (error) {
+      throw new Error(`Error checking if admin: ${error}`);
     }
   }
 
@@ -199,6 +217,90 @@ export class ArcaIdentityService {
     }
   }
 
+
+  async verifyAdminSenderInitSigForPatientIpfsData(
+    wallet: ethers.Wallet, 
+    patientAddress: string, 
+    adminInitMessage: string
+  ){
+    try {
+      const senderIsAdmin = await this.checkIsAdmin(wallet)
+      if(senderIsAdmin){
+        const patient = await this.readPatientOnchainData(wallet, patientAddress)
+        const adminInitSig = patient.adminInitializationSignature
+
+        const adminInitMsgHash = ethers.hashMessage(adminInitMessage)
+        const recoveredAdminAddress = ethers.recoverAddress(adminInitMsgHash, adminInitSig)
+
+        if(recoveredAdminAddress == wallet.address){
+          return true;
+        }
+        else{
+          return false;
+        }
+      }
+      throw new Error("Sender is not an admin, cannot verify initialization signature for patient IPFS data")
+    } catch (error) {
+      throw new Error(`Error verifying admin initialization signature for patient IPFS data: ${error}`)
+    }
+  }
+
+
+  async readPatientIpfsData(
+    wallet: ethers.Wallet, 
+    patientAddress: string,
+    adminInitMessage: string
+  ){
+    try {
+      const senderIsAdmin = await this.checkIsAdmin(wallet)
+      if(senderIsAdmin){
+         //* verifying patient IPFS data was encrypted with the appropriate admin signature before any further operation
+        const isAppropriateAdmin = await this.verifyAdminSenderInitSigForPatientIpfsData(wallet, patientAddress, adminInitMessage)
+        if(!isAppropriateAdmin){
+          throw new Error("The signature of the admin sender cannot be verified to have initialized the patient data, hence cannot be authorized to read the patient IPFS data")
+        }
+        const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const decryptedDekForAdmin = RED.decryptDek(
+          wallet.privateKey, 
+          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedDEKForAdmin
+        )
+
+        const decryptedPatientData = SED.decryptData(
+          JSON.parse(encryptedIpfsData).encryptedData,
+          decryptedDekForAdmin,
+          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+        )
+        console.log("Decrypted patient data:", decryptedPatientData);
+        return decryptedPatientData;
+      }
+
+      // sender is not an admin
+      const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+      const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+
+      let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(item => item.identity == wallet.address)
+  
+      const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+      const decryptedDekForSender = RED.decryptDek(
+        wallet.privateKey, 
+        JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition]
+      )
+
+      const decryptedPatientData = SED.decryptData(
+        JSON.parse(encryptedIpfsData).encryptedData,
+        decryptedDekForSender,
+        JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+      )
+
+      console.log("Decrypted patient data:", decryptedPatientData);
+      return decryptedPatientData;
+
+    } catch (error) {
+      throw new Error(`Error reading patient IPFS data: ${error}`);
+    }
+  }
+
   // async convertBytesToString(rsaMasterKeyBytes: string) {
   //   try {
   //     const stringKey = ethers.toUtf8String(rsaMasterKeyBytes);
@@ -230,8 +332,6 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
-    // linkRequestHash: string,
-    // linkRequestSignature: string,
     randomApprovalMessage: string,
   ) {
     try {
@@ -304,19 +404,29 @@ export class ArcaIdentityService {
     }
   }
 
-  async getAddressCid(wallet: ethers.Wallet) {
+  async getAddressCidOfCurrentSender(wallet: ethers.Wallet) {
     try {
-      const cid = await this.identityEthersOnchain.getAddressCid(wallet)
+      const cid = await this.identityEthersOnchain.getAddressCidOfCurrentSender(wallet)
       console.log("Address CID:", cid)
       return cid
     } catch (error) {
-      throw new Error(`Error fetching address cid: ${error}`)
+      throw new Error(`Error fetching sender's cid: ${error}`)
+    }
+  }
+
+
+  //todo: come back to this function
+  async getCidOfAddress(wallet: ethers.Wallet, address: string){
+    try {
+      
+    } catch (error) {
+      throw new Error(`Error fetching cid of address: ${error}`)
     }
   }
 
   async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, linkedRsaMasterDEK: string){
     try {
-      const oldCid = await this.getAddressCid(wallet)
+      const oldCid = await this.getAddressCidOfCurrentSender(wallet)
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
       newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
@@ -352,6 +462,9 @@ const arcaIdentityService = new ArcaIdentityService(identityEthersOnchain);
 let patient1Wallet = testWallets[1];
 let patient1ContractConnect = testConnects[1];
 
+let admin2Wallet = testWallets[3];
+let admin2ContractConnect = testConnects[3];
+
 // arcaIdentityService.registerPatient(
 //   patient1Wallet,
 //   patient1ContractConnect,
@@ -375,9 +488,11 @@ let ownerWallet = testWallets[0];
 let ownerContractConnect = testConnects[0];
 
 // arcaIdentityService.getIdentityCount(ownerWallet);
+// arcaIdentityService.addAdmin(ownerWallet, ownerContractConnect, admin2Wallet.address)
+// arcaIdentityService.checkIsAdmin(ownerWallet)
 
-const randomMessage = "Hello world";
-// arcaIdentityService.createAdminMsgAndSig(randomMessage, ownerWallet, ownerContractConnect)
+const adminInitMessage = "Hello world";
+// arcaIdentityService.createAdminMsgAndSig(adminInitMessage, ownerWallet, ownerContractConnect)
 // arcaIdentityService.getAdminMsgAndSigs(ownerWallet);
 
 const ownerSecretKey = ownerWallet.signingKey.privateKey;
@@ -396,10 +511,11 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-arcaIdentityService.readPatientOnchainData(
-  ownerWallet,
-  patient1Wallet.address,
-);
+// arcaIdentityService.readPatientOnchainData(
+//   // ownerWallet,
+//   patient1Wallet,
+//   patient1Wallet.address,
+// );
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];
@@ -432,3 +548,12 @@ const randomApprovalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService.getAddressCid(patient1Wallet)
+
+arcaIdentityService.readPatientIpfsData(
+  // patient1Wallet,
+  patient1SecondaryWallet,
+  // ownerWallet,
+  // admin2Wallet,
+  patient1Wallet.address,
+  adminInitMessage
+)

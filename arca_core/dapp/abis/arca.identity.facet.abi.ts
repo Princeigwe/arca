@@ -489,6 +489,30 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "_requester",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_mainPatientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "arcaAccessControlFacetVerifyAccessToPatientIdentityData",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_addr",
           "type": "address"
         }
@@ -520,7 +544,7 @@ export const arca_identity_facet_abi = [
           "type": "bytes"
         }
       ],
-      "stateMutability": "view",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
