@@ -20,30 +20,49 @@ const s3Client = new S3Client({
 const bucket = "arca";
 
 export class IpfsOperator {
-  async uploadJsonData(fileName: string, jsonData: any) {
-    const params = {
-      Bucket: bucket,
-      Key: fileName,
-      Body: jsonData,
-      ContentType: "application/json",
-    };
 
-    let fileCid;
+  uploadJsonData = async (
+    fileName: string,
+    jsonData: any,
+    retries: number = 4,
+    delay: number = 1000
+  ): Promise<{ cid: any; uploadRequest: any }> => {
+    try {
+      const params = {
+        Bucket: bucket,
+        Key: fileName,
+        Body: jsonData,
+        ContentType: "application/json",
+      };
 
-    const command = new PutObjectCommand(params);
-    command.middlewareStack.add((next) => async (args) => {
-      const response = await next(args);
-      // console.log("Command Response...: ", response);
-      fileCid = (response.response as any).headers["x-amz-meta-cid"];
-      return response;
-    });
-    const uploadRequest = await s3Client.send(command);
+      let fileCid;
 
-    return {
-      cid: fileCid,
-      uploadRequest,
-    };
+      const command = new PutObjectCommand(params);
+      command.middlewareStack.add((next) => async (args) => {
+        const response = await next(args);
+        // console.log("Command Response...: ", response);
+        fileCid = (response.response as any).headers["x-amz-meta-cid"];
+        return response;
+      });
+      const uploadRequest = await s3Client.send(command);
+
+      return {
+        cid: fileCid,
+        uploadRequest,
+      };
+    } catch (error) {
+      if(retries > 0){
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        console.warn(`Upload failed, retrying... (${retries} attempts left)`);
+        return this.uploadJsonData(fileName, jsonData, retries - 1, delay * 2);
+      }
+      else{
+        throw new Error(`Failed to upload JSON data after multiple attempts: ${error}`);
+      }
+    }
   }
+
+
 
   // async getIpfsDaemon() {
   //   const url = `${IPFS_RPC_API_BASEURL}api/v0/version`;
