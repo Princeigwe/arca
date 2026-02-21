@@ -1,4 +1,4 @@
-import { EncryptionMetadata, IPFS } from "./entities/base.entity.type";
+import { EncryptionMetadata, IPFS, SenderToRsaMasterKey } from "./entities/base.entity.type";
 import { PatientIdentity } from "./entities/patient.identity";
 import { Gender } from "./enums/gender.enum";
 import { EmploymentStatus } from "./enums/employment.status.enum";
@@ -151,7 +151,7 @@ export class ArcaIdentityService {
       };
       const jsonData = JSON.stringify(data);
 
-      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
@@ -397,7 +397,7 @@ export class ArcaIdentityService {
       );
 
       //* storing the linked master key in IPFS data
-      await this.updateRsaMasterKeysIpfsProfileData(wallet, linkedAccountRsaMasterDek)
+      await this.updateRsaMasterKeysIpfsProfileData(wallet, recoveredAddress, linkedAccountRsaMasterDek)
 
       console.log("RSA master dek for linked account stored successfully")
     } catch (error) {
@@ -427,15 +427,20 @@ export class ArcaIdentityService {
     }
   }
 
-  async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, linkedRsaMasterDEK: string){
+  async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, secondaryAddress: string, linkedRsaMasterDEK: string){
     try {
       const oldCid = await this.getAddressCidOfCurrentSender(wallet)
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
-      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
-      const jsonData = JSON.stringify(oldData);
 
-      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const senderToRsaMasterDEK: SenderToRsaMasterKey = {
+        sender: secondaryAddress,
+        rsaEncryptedMasterDEK: linkedRsaMasterDEK
+      }
+      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(senderToRsaMasterDEK)
+      const jsonData = JSON.stringify(newData);
+
+      const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
@@ -536,8 +541,6 @@ const randomApprovalMessage = "I approve the request for unified access";
 //   patient1Wallet,
 //   patient1ContractConnect,
 //   patient1SecondaryWallet.address,
-//   // "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
-//   // "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b",
 //   randomApprovalMessage,
 // );
 
@@ -550,11 +553,11 @@ const randomApprovalMessage = "I approve the request for unified access";
 // )
 
 
-// arcaIdentityService.getAddressCid(patient1Wallet)
+// arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
 
 arcaIdentityService.readPatientIpfsData(
-  patient1Wallet,
-  // patient1SecondaryWallet,
+  // patient1Wallet,
+  patient1SecondaryWallet,
   // ownerWallet,
   // admin2Wallet,
   patient1Wallet.address,
