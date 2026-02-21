@@ -96,9 +96,11 @@ export class IpfsOperator {
         },
       );
       // console.log("File data:", JSON.stringify(response.data));
-      console.log("File data:", JSON.parse(response.data));
+      // console.log("File data:", response.data);
       return JSON.stringify(response.data)
+      // return response.data;
     } catch (error) {
+      
       if(retries > 0){
         await new Promise((resolve) => setTimeout(resolve, delay));
         console.warn(`IPFS Fetch failed, retrying... (${retries} attempts left)`)

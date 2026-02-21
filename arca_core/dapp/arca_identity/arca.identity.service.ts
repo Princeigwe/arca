@@ -134,6 +134,7 @@ export class ArcaIdentityService {
         );
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
+        wallet.address,
         senderPk,
         recoveredPublicKey!,
       )!;
@@ -163,7 +164,7 @@ export class ArcaIdentityService {
         contractConnect,
         cid!,
         messageSignature,
-        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0],
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
       );
       console.log("Patient registration successful");
     } catch (error) {
@@ -276,25 +277,27 @@ export class ArcaIdentityService {
       }
 
       // sender is not an admin
-      const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
-      const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+      else{
+        const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+        const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
 
-      let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(item => item.identity == wallet.address)
-  
-      const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
-      const decryptedDekForSender = RED.decryptDek(
-        wallet.privateKey, 
-        JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition]
-      )
+        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(item => item.identity == wallet.address)
+    
+        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const decryptedDekForSender = RED.decryptDek(
+          wallet.privateKey, 
+          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition].rsaEncryptedMasterDEK
+        )
 
-      const decryptedPatientData = SED.decryptData(
-        JSON.parse(encryptedIpfsData).encryptedData,
-        decryptedDekForSender,
-        JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
-      )
+        const decryptedPatientData = SED.decryptData(
+          JSON.parse(encryptedIpfsData).encryptedData,
+          decryptedDekForSender,
+          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+        )
 
-      console.log("Decrypted patient data:", decryptedPatientData);
-      return decryptedPatientData;
+        console.log("Decrypted patient data:", decryptedPatientData);
+        return decryptedPatientData;
+      }
 
     } catch (error) {
       throw new Error(`Error reading patient IPFS data: ${error}`);
@@ -386,7 +389,7 @@ export class ArcaIdentityService {
         recoveredPublicKey,
         decryptedMainRsaKey,
       );
-      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAccountOnChain(
+      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAddressOnChain(
         wallet,
         contractConnect,
         recoveredAddress,
@@ -550,8 +553,8 @@ const randomApprovalMessage = "I approve the request for unified access";
 // arcaIdentityService.getAddressCid(patient1Wallet)
 
 arcaIdentityService.readPatientIpfsData(
-  // patient1Wallet,
-  patient1SecondaryWallet,
+  patient1Wallet,
+  // patient1SecondaryWallet,
   // ownerWallet,
   // admin2Wallet,
   patient1Wallet.address,

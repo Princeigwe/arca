@@ -377,7 +377,7 @@ export class IdentityEthersOnchain {
     }
   }
 
-  async storeRsaMasterDekForLinkedAccountOnChain(
+  async storeRsaMasterDekForLinkedAddressOnChain(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
@@ -394,7 +394,7 @@ export class IdentityEthersOnchain {
       );
       const iFace = new ethers.Interface(arca_identity_facet_abi);
       const data = iFace.encodeFunctionData(
-        "storeRsaMasterDekForLinkedAccount",
+        "storeRsaMasterDekForLinkedAddress",
         [secondaryAddress, secondaryRsaMasterKeyBytes],
       );
       const txOption = {
@@ -460,6 +460,23 @@ export class IdentityEthersOnchain {
       await response.wait()
     } catch (error) {
       throw new Error(`Error updating address cid: ${error}`)
+    }
+  }
+
+
+  async unlinkSecondaryAddress(wallet:ethers.Wallet, secondaryAddress: string, newCid: string){
+    try {
+      const cidBytes = ethers.toUtf8Bytes(newCid)
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const data = iFace.encodeFunctionData('unlinkSecondaryAddress', [secondaryAddress, cidBytes])
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+      const response = await wallet.sendTransaction(txOption)
+      await response.wait()
+    } catch (error) {
+      throw new Error(`Error disconnecting secondary address: ${error}`)
     }
   }
 }

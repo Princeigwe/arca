@@ -1,4 +1,4 @@
-export const arca_identity_facet_abi = [
+export const arca_identity_facet_abi =   [
     {
       "inputs": [
         {
@@ -67,7 +67,40 @@ export const arca_identity_facet_abi = [
           "type": "string"
         }
       ],
+      "name": "InvalidRsaMasterDEKRemovalError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
       "name": "LinkRequestApprovalError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "MaximumSecondaryAddressConnectionReachError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "providedAddress",
+          "type": "address"
+        }
+      ],
+      "name": "NotLinkedSecondaryAddress",
       "type": "error"
     },
     {
@@ -440,6 +473,19 @@ export const arca_identity_facet_abi = [
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "secondaryAddress",
+          "type": "address"
+        }
+      ],
+      "name": "SuccessfulSecondaryAddressDisconnection",
+      "type": "event"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -696,6 +742,19 @@ export const arca_identity_facet_abi = [
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "getSecondaryAddressConnectionCount",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "bytes32",
@@ -786,6 +845,24 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_primaryAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_secondaryAddress",
+          "type": "address"
+        }
+      ],
+      "name": "removeStoredRsaMasterDekForLinkedAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
           "name": "_messageHash",
           "type": "bytes32"
@@ -814,7 +891,25 @@ export const arca_identity_facet_abi = [
           "type": "bytes"
         }
       ],
-      "name": "storeRsaMasterDekForLinkedAccount",
+      "name": "storeRsaMasterDekForLinkedAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_secondaryAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "unlinkSecondaryAddress",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

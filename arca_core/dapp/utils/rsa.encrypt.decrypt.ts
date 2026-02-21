@@ -6,11 +6,12 @@ export class RsaEncryptDecrypt {
    * this function asymmetrically encrypts the data encryption key used to encrypt plain data,
    *  in order for both parties for related authorized parties to have access to the same data.
    * @param dek The data encryption key used in symmetric encryption
+   * @param senderAddress The wallet address of the sender, used to identify the sender in the list of encrypted keys for senders
    * @param senderPk The sender's wallet public key
    * @param adminPk The selected public key of an arca admin
    * @returns a set of RSA encrypted keys
    */
-  dualKeyEncryption(dek: string, senderPk: string, adminPk: string) {
+  dualKeyEncryption(dek: string, senderAddress: string, senderPk: string, adminPk: string) {
     try {
       const bufferDek = Buffer.from(dek, "utf-8");
 
@@ -28,9 +29,14 @@ export class RsaEncryptDecrypt {
       const sendEncryptedDek = encrypt(senderPkBuffer, bufferDek);
       const adminEncryptedDek = encrypt(adminPkBuffer, bufferDek);
 
+      const senderToRsaMasterKey = {
+        sender: senderAddress,
+        rsaEncryptedMasterDEK: sendEncryptedDek.toString("base64"),
+      }
+      
       let keys: RsaEncryptedKeys = {
         rsaEncryptedDEKForAdmin: adminEncryptedDek.toString("base64"),
-        rsaEncryptedMasterDEKsForSender: [sendEncryptedDek.toString("base64")],
+        rsaEncryptedMasterDEKsForSender: [senderToRsaMasterKey],
       };
       return keys;
     } catch (error) {

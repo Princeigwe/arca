@@ -1,6 +1,10 @@
+export type SenderToRsaMasterKey = {
+  sender: string;
+  rsaEncryptedMasterDEK: string;
+}
 export type RsaEncryptedKeys = {
   rsaEncryptedDEKForAdmin: string;
-  rsaEncryptedMasterDEKsForSender: string[];
+  rsaEncryptedMasterDEKsForSender: SenderToRsaMasterKey[];
 }
 
 export type EncryptionMetadata = {

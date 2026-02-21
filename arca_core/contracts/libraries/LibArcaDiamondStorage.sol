@@ -32,6 +32,7 @@ library LibArcaDiamondStorage{
   event LinkAccountRequestEvent(string message, address requester, bytes32 requestHash, bytes requestSignature, address recipient);
   event LinkAccountRequestApprovalEvent(string message, address primary, address secondary);
   event PatientIdentityUpdateEvent(string message);
+  event SuccessfulSecondaryAddressDisconnection(address secondaryAddress);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
@@ -42,6 +43,9 @@ library LibArcaDiamondStorage{
   error IncorrectGuardianCountMatchError(string);
   error AuthorizationError(string);
   error LinkRequestApprovalError(string);
+  error NotLinkedSecondaryAddress(address providedAddress);
+  error InvalidRsaMasterDEKRemovalError(string);
+  error MaximumSecondaryAddressConnectionReachError(string);
 
   //** FACETS ENUMS
   enum ProviderType{
@@ -107,6 +111,7 @@ library LibArcaDiamondStorage{
     mapping(address => bool) isAdmin;
     mapping(address => mapping (address => bool)) sentLinkRequest;
     mapping(address => address) primaryAccountOf;
+    mapping(address => uint8) secondaryAddressConnectionCount;
     mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
     mapping(bytes => bytes32) messageHashOfAdminInitializationSignature;
     uint256 patientCount;

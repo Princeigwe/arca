@@ -130,7 +130,7 @@ contract ArcaIdentityRegistry{
     ds.addressCid[_address] = _cid;
   }
 
-  // this sends a request for a primary address to link the sender for a unified data access
+  // this sends a request for a patient primary address to link the sender for a unified data access
   function linkAddressRequest(
     address _primaryAddress, 
     bytes32 _requestHash, 
@@ -163,6 +163,8 @@ contract ArcaIdentityRegistry{
   }
 
 
+  // approves link request for secondary to patient's identity profile
+  // a maximum of 2 secondary addresses can be linked to the patient identity
   function approveLinkAddressRequest(
     address _secondaryAddress,
     uint256 _timestamp,
@@ -187,6 +189,10 @@ contract ArcaIdentityRegistry{
       _nonce == ds.internalNonce,
       LibADS.LinkRequestApprovalError("Invalid nonce")
     );
+    require(
+      ds.secondaryAddressConnectionCount[msg.sender] < 2,
+      LibADS.MaximumSecondaryAddressConnectionReachError('Patient has reached a connection limit of 2 secondary addresses')
+    );
 
     bool isSigValid = isSignatureValid(_requestHash, _requestSignature);
     require(isSigValid, LibADS.LinkRequestApprovalError("Invalid signature"));
@@ -200,6 +206,7 @@ contract ArcaIdentityRegistry{
     ds.internalNonce++;
     ds.primaryAccountOf[_secondaryAddress] = msg.sender;
     ds.patientAccount[msg.sender].linkedAddresses.push(_secondaryAddress);
+    ds.secondaryAddressConnectionCount[msg.sender] +=1;
 
     // making this false for validation check when storing rsaMasterDEK for linked account. To avoid double request
     ds.sentLinkRequest[_secondaryAddress][msg.sender] = false;
@@ -212,7 +219,7 @@ contract ArcaIdentityRegistry{
   }
 
 
-  function storeRsaMasterDekForLinkedAccount(
+  function storeRsaMasterDekForLinkedAddress(
     address _secondaryAddress,
     bytes memory _rsaMasterDEK
     )public {
@@ -233,6 +240,73 @@ contract ArcaIdentityRegistry{
     emit LibADS.PatientIdentityUpdateEvent("RSA master DEK stored for linked account");
   }
 
+
+  // unlinks secondary account to from patient's identity profile
+  function unlinkSecondaryAddress(address _secondaryAddress, bytes memory _cid) public  {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
+    bool isLinkedSecondaryAddress = false;
+    // LibADS.PatientIdentity storage patient = ds.patientAccount[msg.sender];
+
+    for(uint i = 0; i < ds.patientAccount[msg.sender].linkedAddresses.length; i++){
+      if(ds.patientAccount[msg.sender].linkedAddresses[i] == _secondaryAddress){
+        isLinkedSecondaryAddress = true;
+        // swapping address position with the last linked address
+        ds.patientAccount[msg.sender].linkedAddresses[i] = ds.patientAccount[msg.sender].linkedAddresses[ds.patientAccount[msg.sender].linkedAddresses.length - 1];
+        // removing the last address
+        ds.patientAccount[msg.sender].linkedAddresses.pop();
+        ds.primaryAccountOf[_secondaryAddress] = address(0);
+        // todo: remove rsa Master DEK for linked address
+        removeStoredRsaMasterDekForLinkedAddress(msg.sender, _secondaryAddress);
+        break;
+      }
+    }
+
+    if(!isLinkedSecondaryAddress){
+      revert LibADS.NotLinkedSecondaryAddress(_secondaryAddress);
+    }
+
+    ds.secondaryAddressConnectionCount[msg.sender] -=1;
+    ds.addressCid[msg.sender] = _cid;
+
+    emit LibADS.SuccessfulSecondaryAddressDisconnection(_secondaryAddress);
+  }
+
+
+  function removeStoredRsaMasterDekForLinkedAddress(address _primaryAddress, address _secondaryAddress) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(
+      ds.accountExists[_primaryAddress], 
+      LibADS.AccountDoesNotExistError(msg.sender)
+    );
+    require(
+      ds.primaryAccountOf[_secondaryAddress] == address(0), 
+      LibADS.InvalidRsaMasterDEKRemovalError("Provided secondary address is linked to patient identity")
+    );
+    bool isValidSecondaryAddress = false;
+    // LibADS.PatientIdentity storage patient = ds.patientAccount[msg.sender];
+
+    for(uint i = 0; i < ds.patientAccount[msg.sender].rsaMasterDEKs.length; i++){
+      if(ds.patientAccount[msg.sender].rsaMasterDEKs[i].identity == _secondaryAddress){
+        isValidSecondaryAddress = true;
+        // swapping RSA master key position of the secondary address with the last master key
+        ds.patientAccount[msg.sender].rsaMasterDEKs[i] = ds.patientAccount[msg.sender].rsaMasterDEKs[ds.patientAccount[msg.sender].rsaMasterDEKs.length - 1];
+        // deleting the last RSA master key
+        ds.patientAccount[msg.sender].rsaMasterDEKs.pop();
+        break;
+      }
+    }
+
+    if(!isValidSecondaryAddress){
+      revert LibADS.InvalidRsaMasterDEKRemovalError("Provided secondary address was never linked to patient identity");
+    }
+  }
+
+  function getSecondaryAddressConnectionCount()public view returns(uint8){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
+    return ds.secondaryAddressConnectionCount[msg.sender];
+  }
 
   function getPatientIdentity(address _patientAddress)public returns(LibADS.PatientIdentity memory){
     bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _patientAddress);
