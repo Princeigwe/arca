@@ -15,6 +15,7 @@ import { arca_diamond_abi } from "../abis/arca.diamond.abi";
 import { arca_identity_facet_abi } from "../abis/arca.identity.facet.abi";
 import { RsaEncryptDecrypt } from "../utils/rsa.encrypt.decrypt";
 import { IdentityEthersOnchain } from "./identity.ethers.onchain";
+import { isTemplateExpression } from "typescript";
 
 // const dotenv = require("dotenv");
 // const path = require("path");
@@ -397,7 +398,7 @@ export class ArcaIdentityService {
       );
 
       //* storing the linked master key in IPFS data
-      await this.updateRsaMasterKeysIpfsProfileData(wallet, recoveredAddress, linkedAccountRsaMasterDek)
+      await this.addLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, recoveredAddress, linkedAccountRsaMasterDek)
 
       console.log("RSA master dek for linked account stored successfully")
     } catch (error) {
@@ -427,7 +428,7 @@ export class ArcaIdentityService {
     }
   }
 
-  async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, secondaryAddress: string, linkedRsaMasterDEK: string){
+  async addLinkedSecondaryRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, secondaryAddress: string, linkedRsaMasterDEK: string){
     try {
       const oldCid = await this.getAddressCidOfCurrentSender(wallet)
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
@@ -450,7 +451,55 @@ export class ArcaIdentityService {
       await this.identityEthersOnchain.updateAddressCid(wallet, cid!)
 
     } catch (error) {
-      throw new Error(`Error replacing profile data on File pinning service: ${error}`)
+      throw new Error(`Error replacing profile data to add linked secondary address on Filebase pinning service: ${error}`)
+    }
+  }
+
+
+  async unlinkSecondaryAddress(wallet: ethers.Wallet, secondaryAddress: string){
+    try{
+      const updatedCid = await this.removeLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, secondaryAddress)
+
+      await this.identityEthersOnchain.unlinkSecondaryAddress(wallet, secondaryAddress, updatedCid)
+      console.log("Successful disconnection on linked address")
+    }
+    catch(error){
+      throw new Error(`Error disconnecting secondary address: ${error}`)
+    }
+  }
+
+  async removeLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet: ethers.Wallet, secondaryAddress: string){
+    try {
+      const oldCid = await this.getAddressCidOfCurrentSender(wallet)
+      const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
+      let newData = oldData
+
+      let senderKeys: SenderToRsaMasterKey[] = newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender
+
+      const secondaryAddressExists = senderKeys.some(item => item.sender === secondaryAddress)
+
+      if (!secondaryAddressExists) {
+        throw new Error(`Secondary address ${secondaryAddress} does not exist in the linked addresses list`)
+      }
+
+      let reservedMasterSenderDEKsForSender = senderKeys.filter(senderKeys => senderKeys.sender !== secondaryAddress)
+
+      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender = reservedMasterSenderDEKsForSender
+
+      const jsonData = JSON.stringify(newData);
+
+      const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+      
+      console.log("Filebase upload response: ", uploadRequest)
+      
+      return cid
+
+    } catch (error) {
+      throw new Error(`Error replacing profile data to remove linked secondary address on Filebase pinning service: ${error}`)
     }
   }
 
@@ -553,11 +602,17 @@ const randomApprovalMessage = "I approve the request for unified access";
 // )
 
 
+// arcaIdentityService.unlinkSecondaryAddress(
+//   patient1Wallet, 
+//   patient1SecondaryWallet.address
+// )
+
+
 // arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
 
 arcaIdentityService.readPatientIpfsData(
-  // patient1Wallet,
-  patient1SecondaryWallet,
+  patient1Wallet,
+  // patient1SecondaryWallet,
   // ownerWallet,
   // admin2Wallet,
   patient1Wallet.address,
