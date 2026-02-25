@@ -129,15 +129,16 @@ export class ArcaIdentityService {
       console.log("IV: ", iv);
 
       const senderPk = wallet.signingKey.publicKey;
-      const { recoveredPublicKey, messageSignature } =
-        await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
+
+      //** getting the recovered public key and signature of a random admin from the onchain facet to encrypt the dek with the admin's public key and for registering the patient onchain with the admin's signature as proof of authorization of the patient registration by an admin */
+      const { adminRecoveredPublicKey, adminMessageSignature } = await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
           wallet,
         );
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
         wallet.address,
         senderPk,
-        recoveredPublicKey!,
+        adminRecoveredPublicKey!,
       )!;
       const encryptionMetadata: EncryptionMetadata = {
         dekIv: iv,
@@ -164,7 +165,7 @@ export class ArcaIdentityService {
         wallet,
         contractConnect,
         cid!,
-        messageSignature,
+        adminMessageSignature,
         rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
       );
       console.log("Patient registration successful");
@@ -504,6 +505,169 @@ export class ArcaIdentityService {
   }
 
 
+  async generatePrimaryMedicalGuardianConnectionSignature(
+    guardianWallet: ethers.Wallet,
+    patientAddress: string
+  ){
+    try {
+      const connectionMessage = `I, ${guardianWallet.address}, request to be connected as a medical guardian to patient with address ${patientAddress}`;
+      const connectionSignature = await guardianWallet.signMessage(connectionMessage); // pass raw string
+      console.log("Medical guardian connection signature: ", connectionSignature);
+      return connectionSignature;
+    } catch (error) {
+      throw new Error(`Error generating medical guardian connection signature: ${error}`)
+    }
+  }
+
+
+  async verifyPrimaryMedicalGuardianConnectionSignature(
+    medicalGuardianAddress: string,
+    patientAddress: string,
+    expectedSignature: string
+  ){
+    try {
+      const connectionMessage = `I, ${medicalGuardianAddress}, request to be connected as a medical guardian to patient with address ${patientAddress}`
+      const connectionMessageHash = ethers.hashMessage(connectionMessage);
+
+      console.log("Medical Guardian Address (passed in):", medicalGuardianAddress);
+      console.log("Connection Message:", connectionMessage);
+      console.log("Connection Message Hash:", connectionMessageHash);
+      console.log("Expected Signature:", expectedSignature);
+
+      const recoveredMedicalGuardianPublicKey = ethers.SigningKey.recoverPublicKey(
+        connectionMessageHash,
+        expectedSignature,
+      );
+      const recoveredAddress = ethers.recoverAddress(
+        connectionMessageHash,
+        expectedSignature,
+      ); 
+      if(recoveredAddress == ethers.getAddress(medicalGuardianAddress)){
+        return{
+          isVerifiedSignature: true,
+          recoveredMedicalGuardianPublicKey
+        }
+      }
+      return{
+        isVerifiedSignature: false,
+        recoveredMedicalGuardianPublicKey: null
+      }
+    } catch (error) {
+      throw new Error(`Error verifying medical guardian connection signature: ${error}`)
+    }
+  }
+
+
+  async registerMinorPatientWithMedicalGuardian(
+    minorWallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    firstName: string,
+    lastName: string,
+    dateOfBirth: Date,
+    gender: Gender,
+    nationalID: string,
+    homeAddress: string,
+    employmentStatus: EmploymentStatus,
+    medicalGuardianAddress: string,
+    medicalGuardianConnectionSignature: string
+  ){
+    try {
+      const adminMsgAndSigs =
+        await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(
+          minorWallet,
+        );
+      if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) {
+        throw new Error("No admin initialization hashes found.");
+      }
+
+       //* verifying signature from supposed medical provider's address
+      const {isVerifiedSignature, recoveredMedicalGuardianPublicKey} = await this.verifyPrimaryMedicalGuardianConnectionSignature(
+        medicalGuardianAddress,
+        minorWallet.address,
+        medicalGuardianConnectionSignature
+      )
+      console.log('Recovered medical guardian public key: ', recoveredMedicalGuardianPublicKey)
+      if(!isVerifiedSignature){
+        throw new Error('Signature of provided address of medical guardian is not valid')
+      }
+      
+      const identityData = new PatientIdentity(
+        firstName,
+        lastName,
+        dateOfBirth,
+        gender,
+        nationalID,
+        homeAddress,
+        employmentStatus,
+      );
+
+      const plainIdentityJsonData = JSON.stringify(identityData);
+      // secret key encryption of plain data
+      const { encryptedData, iv, dek } = (await SED.encryptData(
+        plainIdentityJsonData,
+      ))!;
+
+      console.log("Encrypted data: ", encryptedData);
+      console.log("IV: ", iv);
+
+      const senderPk = minorWallet.signingKey.publicKey;
+
+      //** getting the recovered public key and signature of a random admin from the onchain facet to encrypt the dek with the admin's public key and for registering the patient onchain with the admin's signature as proof of authorization of the patient registration by an admin */
+      const { adminRecoveredPublicKey, adminMessageSignature } = await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
+        minorWallet,
+      );
+
+
+      const rsaEncryptedKeys = RED.dualKeyEncryption(
+        dek,
+        minorWallet.address,
+        senderPk,
+        adminRecoveredPublicKey!,
+        recoveredMedicalGuardianPublicKey!
+      )!;
+
+      const encryptionMetadata: EncryptionMetadata = {
+        dekIv: iv,
+        rsaKeys: rsaEncryptedKeys,
+      };
+
+      const data: IPFS = {
+        storageType,
+        primaryWalletAddress: minorWallet.address,
+        uploadedAt: new Date(),
+        encryptedData,
+        encryptionMetaData: encryptionMetadata,
+      };
+      const jsonData = JSON.stringify(data);
+
+      const fileName: string = `${minorWallet.address}-patient-identity.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+      console.log("Filebase upload response: ", uploadRequest);
+
+      //* calculating date of majority
+      const dateOfAgeOfMajority = new Date(dateOfBirth);
+      dateOfAgeOfMajority.setFullYear(dateOfAgeOfMajority.getFullYear() + 18);
+
+      //* registering patient onchain with guardian
+      await this.identityEthersOnchain.registerMinorPatientWithMedicalGuardian(
+        minorWallet,
+        contractConnect,
+        cid!,
+        adminMessageSignature,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForMedicalGuardians![0].rsaEncryptedMasterDEK,
+        medicalGuardianAddress,
+        dateOfAgeOfMajority
+      )
+    } catch (error) {
+      throw new Error(`Error registering minor patient with medical guardian on/off chain: ${error}`)
+    }
+  }
+
+
   async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
     const decryptedData = await SED.decryptData(encryptedData, dek, iv);
     const decryptedJsonData = JSON.parse(decryptedData!);
@@ -568,11 +732,11 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-// arcaIdentityService.readPatientOnchainData(
-//   // ownerWallet,
-//   patient1Wallet,
-//   patient1Wallet.address,
-// );
+arcaIdentityService.readPatientOnchainData(
+  // ownerWallet,
+  patient1Wallet,
+  patient1Wallet.address,
+);
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];
@@ -610,11 +774,32 @@ const randomApprovalMessage = "I approve the request for unified access";
 
 // arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
 
-arcaIdentityService.readPatientIpfsData(
-  patient1Wallet,
-  // patient1SecondaryWallet,
-  // ownerWallet,
-  // admin2Wallet,
-  patient1Wallet.address,
-  adminInitMessage
-)
+// arcaIdentityService.readPatientIpfsData(
+//   patient1Wallet,
+//   // patient1SecondaryWallet,
+//   // ownerWallet,
+//   // admin2Wallet,
+//   patient1Wallet.address,
+//   adminInitMessage
+// )
+
+const primaryGuardianWallet = testWallets[4];
+
+// arcaIdentityService.generatePrimaryMedicalGuardianConnectionSignature(
+//   primaryGuardianWallet,
+//   patient1Wallet.address
+// )
+
+// arcaIdentityService.registerMinorPatientWithMedicalGuardian(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "John",
+//   "Doe",
+//   new Date(),
+//   Gender.MALE,
+//   "123456789",
+//   "123 Main St",
+//   EmploymentStatus.STUDENT,
+//   primaryGuardianWallet.address,
+//   "0x17e4944e3190f5b4dbc1a6f32f3c675ca31b82aca6f4f51e9e18bbc61c2e49fa68b30f42ca585e69d0805d6bad030e513402ef0db3f182f16cfc81025706810d1c",
+// )

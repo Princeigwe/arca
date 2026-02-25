@@ -2,9 +2,15 @@ export type SenderToRsaMasterKey = {
   sender: string;
   rsaEncryptedMasterDEK: string;
 }
+
+export type MedicalGuardianToRsaMasterKey = {
+  medicalGuardian: string;
+  rsaEncryptedMasterDEK: string;
+}
 export type RsaEncryptedKeys = {
   rsaEncryptedDEKForAdmin: string;
   rsaEncryptedMasterDEKsForSender: SenderToRsaMasterKey[];
+  rsaEncryptedMasterDEKsForMedicalGuardians?: MedicalGuardianToRsaMasterKey[]; // Optional, only for minors with medical guardians
 }
 
 export type EncryptionMetadata = {

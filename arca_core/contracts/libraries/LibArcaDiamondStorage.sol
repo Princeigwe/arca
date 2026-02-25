@@ -32,7 +32,9 @@ library LibArcaDiamondStorage{
   event LinkAccountRequestEvent(string message, address requester, bytes32 requestHash, bytes requestSignature, address recipient);
   event LinkAccountRequestApprovalEvent(string message, address primary, address secondary);
   event PatientIdentityUpdateEvent(string message);
-  event SuccessfulSecondaryAddressDisconnection(address secondaryAddress);
+  event SuccessfulSecondaryAddressDisconnectionEvent(address secondaryAddress);
+  event MedicalGuardianCreationEvent(address guardianAddress, uint256 addedAt, address addedBy);
+  event MedicalGuardianAssignedToPatientEvent(string message, address medicalGuardian, address patient);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
@@ -58,6 +60,25 @@ library LibArcaDiamondStorage{
     RESEARCHER
   }
 
+
+  enum MedicalGuardianRole{
+    PRIMARY,
+    SECONDARY
+  }
+
+  struct MedicalGuardianPermission{
+    MedicalGuardianRole role;
+    address guardian;
+    address patient;
+    bool canGrantProviderAccess;
+    bool canGrantGuardianAccess;
+    bool canRevokeProviderAccess;
+    bool canRevokeGuardianAccess;
+    bool canUploadRecords;
+    bool canReadRecords;
+    bool canDeleteRecords;
+  }
+
   // this is used to hold RSA-encrypted master DEK for main and linked accounts
   // so that all parties can have a unified access to authorized records and operations 
   struct IdentityRSAMasterDEK{
@@ -72,10 +93,18 @@ library LibArcaDiamondStorage{
     address[] linkedAddresses; //optional input on identity registration
     uint256 registeredAt;
     bool isVerified;
-    address[] guardians; //optional input on identity registration
-    uint8 guardiansRequired; //optional input on identity registration
     bytes adminInitializationSignature;
-    IdentityRSAMasterDEK[] rsaMasterDEKs;
+    IdentityRSAMasterDEK[] rsaMasterDEKs; // RSA encrypted master DEKs for main and linked accounts
+    bool isMinor;
+    uint256 ageOfMajority; // Unix timestamp (seconds) representing the age of majority for the patient
+    IdentityRSAMasterDEK[] rsaMasterDEKsForMedicalGuardians; // RSA encrypted master DEKs for medical guardians (if patient is a minor)
+  }
+
+
+  struct MedicalGuardian{
+    address guardianAddress;
+    uint256 addedAt;
+    address addedBy;
   }
 
 
@@ -84,8 +113,6 @@ library LibArcaDiamondStorage{
     address[] linkedAddresses; //optional input on identity registration
     uint256 registeredAt;
     bool isVerified;
-    address[] guardians; //optional input on identity registration
-    uint8 guardiansRequired;  //optional input on identity registration
     bytes licenseHash;
     uint32 licenseExpiresAt;
     bool licenseIsExpired;
@@ -109,7 +136,7 @@ library LibArcaDiamondStorage{
     AdminInitializationMessageHashAndSignature[] adminInitializationMessageHashesAndSignatures;
     mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
     mapping(address => bool) isAdmin;
-    mapping(address => mapping (address => bool)) sentLinkRequest;
+    mapping(address => mapping (address => bool)) sentLinkRequest; // requester(secondary address) => recipient(primary address) => hasSentRequest
     mapping(address => address) primaryAccountOf;
     mapping(address => uint8) secondaryAddressConnectionCount;
     mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
@@ -123,6 +150,13 @@ library LibArcaDiamondStorage{
     mapping(uint256 => PatientIdentity) patientIdentity;
     mapping(uint256 => ProviderIdentity) providerIdentity;
     mapping (address => bytes) addressCid;
+    mapping (address => bool) medicalGuardianExists;
+    mapping (address => MedicalGuardian) medicalGuardianAccount;
+    mapping (address => mapping(address => bool)) isMedicalGuardianOfPatient; // medical guardian => patient => isGuardian
+    mapping(address => MedicalGuardian[]) patientGuardians; // patient => medical guardians
+    mapping(address => mapping(address => MedicalGuardianPermission)) medicalGuardianPermissionsOnPatient; // medical guardian => patient => permission
+    mapping(address => MedicalGuardianPermission[]) medicalGuardianPermissions; // medical guardian => permissions (self-request)
+    uint256 medicalGuardianCount;
   }
 
   event OwnershipTransferredEvent(address indexed previousOwner, address indexed newOwner);

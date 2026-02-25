@@ -95,11 +95,24 @@ let patient1SecondaryContractConnectInit = new ContractConnect(
 );
 let patient1SecondaryContractConnect = patient1SecondaryContractConnectInit.connect();
 
+
+const primaryMedicalGuardianPrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" // account 4
+let primaryMedicalGuardianWalletInit = new TestWallet(primaryMedicalGuardianPrivateKey);
+let primaryMedicalGuardianWallet = primaryMedicalGuardianWalletInit.getWallet();
+let primaryMedicalGuardianContractConnectInit = new ContractConnect(
+  arcaDiamondAddress,
+  combinedABIs,
+  primaryMedicalGuardianWallet,
+);
+let primaryMedicalGuardianContractConnect = primaryMedicalGuardianContractConnectInit.connect();
+
+
 export const testWallets = [
   ownerWallet, 
   patient1Wallet, 
   patient1SecondaryWallet, 
-  admin2Wallet
+  admin2Wallet,
+  primaryMedicalGuardianWallet
 ];
 
 
@@ -108,4 +121,5 @@ export const testConnects = [
   patient1ContractConnect,
   patient1SecondaryContractConnect,
   admin2ContractConnect,
+  primaryMedicalGuardianContractConnect
 ];

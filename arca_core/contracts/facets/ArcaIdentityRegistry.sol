@@ -99,7 +99,6 @@ contract ArcaIdentityRegistry{
     newPatient.primaryAddress = msg.sender;
     newPatient.registeredAt = _registeredAt;
     newPatient.isVerified = false;
-    newPatient.guardiansRequired = 0;
     newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
     newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: msg.sender,
@@ -269,7 +268,7 @@ contract ArcaIdentityRegistry{
     ds.secondaryAddressConnectionCount[msg.sender] -=1;
     ds.addressCid[msg.sender] = _cid;
 
-    emit LibADS.SuccessfulSecondaryAddressDisconnection(_secondaryAddress);
+    emit LibADS.SuccessfulSecondaryAddressDisconnectionEvent(_secondaryAddress);
   }
 
 
@@ -325,11 +324,96 @@ contract ArcaIdentityRegistry{
     emit LibADS.PatientIdentityVerifiedEvent("Patient identity verified", patient);
   }
 
-  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount){
+  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount, uint256 _medicalGuardianCount){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     _patientCount = ds.patientCount;
     _providerCount = ds.providerCount;
-    return (_patientCount, _providerCount);
+    _medicalGuardianCount = ds.medicalGuardianCount;
+    return (_patientCount, _providerCount, _medicalGuardianCount);
+  }
+
+
+  function registerMedicalGuardian(address _guardianAddress, uint256 _addedAt, address _addedBy) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    uint256 medicalGuardianCount = ds.medicalGuardianCount;
+    medicalGuardianCount++;
+    ds.medicalGuardianCount = medicalGuardianCount;
+
+    LibADS.MedicalGuardian storage newMedicalGuardian = ds.medicalGuardianAccount[_guardianAddress];
+    newMedicalGuardian.guardianAddress = _guardianAddress;
+    newMedicalGuardian.addedAt = _addedAt;
+    newMedicalGuardian.addedBy = _addedBy;
+
+    ds.medicalGuardianExists[_guardianAddress] = true;
+    ds.medicalGuardianAccount[_guardianAddress] = newMedicalGuardian;
+
+    emit LibADS.MedicalGuardianCreationEvent(_guardianAddress, _addedAt, _addedBy);
+  }
+
+
+  // this creates an account for the current minor(msg.sender) and assigns primary access to a medical guardian
+  function registerMinorPatientWithMedicalGuardian(
+    uint256 _registeredAt, 
+    bytes memory _cid, 
+    bytes memory _adminInitializationSignatureUsed,
+    bytes memory _rsaMasterDEK, // for minor patient
+    bytes memory _rsaMasterDEKforMedicalGuardian, // for medical guardian
+    address _medicalGuardianAddress,
+    uint256 _ageOfMajority
+  ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
+      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, _medicalGuardianAddress);
+    }
+
+    uint256 patientCount = ds.patientCount;
+    patientCount++;
+    ds.patientCount = patientCount;
+
+    // creating the minor patient's identity as the current msg.sender
+    LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
+    newPatient.primaryAddress = msg.sender;
+    newPatient.registeredAt = _registeredAt;
+    newPatient.isVerified = false;
+    newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: msg.sender,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+    newPatient.ageOfMajority = _ageOfMajority;
+    newPatient.rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+      identity: _medicalGuardianAddress,
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian
+    }));
+
+    ds.addressCid[msg.sender] = _cid;
+
+    ds.patientAccount[msg.sender] = newPatient;
+    ds.accountExists[msg.sender] = true;
+    emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
+
+    // assigning permission to primary guardian
+
+    ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][msg.sender] = true;
+    ds.patientGuardians[msg.sender].push(ds.medicalGuardianAccount[_medicalGuardianAddress]);
+
+
+    LibADS.MedicalGuardianPermission storage medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[_medicalGuardianAddress][msg.sender];
+    medicalGuardianPermission.role = LibADS.MedicalGuardianRole.PRIMARY;
+    medicalGuardianPermission.guardian = _medicalGuardianAddress;
+    medicalGuardianPermission.patient = msg.sender;
+    medicalGuardianPermission.canGrantProviderAccess = true;
+    medicalGuardianPermission.canGrantGuardianAccess = true;
+    medicalGuardianPermission.canRevokeProviderAccess = true;
+    medicalGuardianPermission.canRevokeGuardianAccess = true;
+    medicalGuardianPermission.canUploadRecords = true;
+    medicalGuardianPermission.canReadRecords = true;
+    medicalGuardianPermission.canDeleteRecords = true;
+
+    ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent("Primary medical guardian assigned to minor patient", _medicalGuardianAddress, msg.sender);
   }
 
 
