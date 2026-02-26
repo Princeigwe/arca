@@ -63,6 +63,14 @@ export class ArcaIdentityService {
     }
   }
 
+  async checkIsMedicalGuardianOfPatient(medicalGuardianWallet: ethers.Wallet, patientAddress: string){
+    try {
+      return await this.identityEthersOnchain.checkIsMedicalGuardianOfPatient(medicalGuardianWallet, patientAddress)
+    } catch (error) {
+      throw new Error(`Error checking if medical guardian of patient: ${error}`)
+    }
+  }
+
   async createAdminMsgAndSig(
     message: string,
     wallet: ethers.Wallet,
@@ -256,6 +264,7 @@ export class ArcaIdentityService {
   ){
     try {
       const senderIsAdmin = await this.checkIsAdmin(wallet)
+      const senderIsMedicalGuardianOfPatient = await this.checkIsMedicalGuardianOfPatient(wallet, patientAddress)
       if(senderIsAdmin){
          //* verifying patient IPFS data was encrypted with the appropriate admin signature before any further operation
         const isAppropriateAdmin = await this.verifyAdminSenderInitSigForPatientIpfsData(wallet, patientAddress, adminInitMessage)
@@ -278,12 +287,39 @@ export class ArcaIdentityService {
         return decryptedPatientData;
       }
 
-      // sender is not an admin
+
+      // else if sender is medical guardian
+      else if(senderIsMedicalGuardianOfPatient){
+        const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+        const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+
+        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKsForMedicalGuardians.findIndex(
+          item => item.identity == wallet.address
+        )
+        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const decryptedDekForSender = RED.decryptDek(
+          wallet.privateKey, 
+          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians[senderRsaMasterDekPosition].rsaEncryptedMasterDEK
+        )
+
+        const decryptedPatientData = SED.decryptData(
+          JSON.parse(encryptedIpfsData).encryptedData,
+          decryptedDekForSender,
+          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+        )
+
+        console.log("Decrypted patient data:", decryptedPatientData);
+        return decryptedPatientData;
+      }
+
+      // else sender is patient
       else{
         const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
         const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
 
-        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(item => item.identity == wallet.address)
+        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(
+          item => item.identity == wallet.address
+        )
     
         const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
         const decryptedDekForSender = RED.decryptDek(
@@ -732,11 +768,11 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 // arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
-arcaIdentityService.readPatientOnchainData(
-  // ownerWallet,
-  patient1Wallet,
-  patient1Wallet.address,
-);
+// arcaIdentityService.readPatientOnchainData(
+//   // ownerWallet,
+//   patient1Wallet,
+//   patient1Wallet.address,
+// );
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];
@@ -773,17 +809,19 @@ const randomApprovalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
+const primaryGuardianWallet = testWallets[4];
+
 
 // arcaIdentityService.readPatientIpfsData(
-//   patient1Wallet,
+//   // patient1Wallet,
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
 //   // admin2Wallet,
+//   primaryGuardianWallet,
 //   patient1Wallet.address,
 //   adminInitMessage
 // )
 
-const primaryGuardianWallet = testWallets[4];
 
 // arcaIdentityService.generatePrimaryMedicalGuardianConnectionSignature(
 //   primaryGuardianWallet,

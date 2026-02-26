@@ -58,6 +58,27 @@ export class IdentityEthersOnchain {
     }
   }
 
+  async checkIsMedicalGuardianOfPatient(medicalGuardianWallet: ethers.Wallet, patientAddress: string) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)    
+      const data = iFace.encodeFunctionData("checkIsMedicalGuardianOfPatient", [medicalGuardianWallet.address, patientAddress]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await medicalGuardianWallet.call(txOption);
+  
+      // decoding ABI encoded returned data
+      const [isMedicalGuardian] = iFace.decodeFunctionResult("checkIsMedicalGuardianOfPatient", response);
+      console.log(`Is medical guardian of patient ${patientAddress}: `, isMedicalGuardian);
+
+      return isMedicalGuardian
+    } 
+      catch (error) {
+      console.error("Error checking if medical guardian of patient: ", error);
+    }
+  }
+
   async saveAdminInitializationMessageHash(
     randomMessage: string,
     wallet: ethers.Wallet,
@@ -258,8 +279,8 @@ export class IdentityEthersOnchain {
         isMinor: patient[6],
         ageOfMajorityUnixTimestamp: Number(patient[7]),
         rsaMasterDEKsForMedicalGuardians: Array.from(patient[8]).map((item: any) => ({
-          medicalGuardian: item[0],
-          rsaMasterDEKForMedicalGuardian: ethers.toUtf8String(item[1]),
+          identity: item[0],
+          rsaMasterDEK: ethers.toUtf8String(item[1]),
         })),
       };
       console.log("Formatted Patient Identity:", formattedPatient);

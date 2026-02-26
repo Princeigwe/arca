@@ -1,4 +1,4 @@
-export const arca_identity_facet_abi =  [
+export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
@@ -669,6 +669,30 @@ export const arca_identity_facet_abi =  [
         {
           "internalType": "bool",
           "name": "_isAdmin",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_medicalGuardianAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_patientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "checkIsMedicalGuardianOfPatient",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isMedicalGuardian",
           "type": "bool"
         }
       ],

@@ -41,8 +41,17 @@ contract ArcaIdentityRegistry{
   }
 
   function checkIsAdmin(address _addr)public view returns(bool _isAdmin){
-    LibADS.DiamondStorage storage dsStorage = LibADS.diamondStorage();
-    _isAdmin = dsStorage.isAdmin[_addr];
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    _isAdmin = ds.isAdmin[_addr];
+  }
+
+
+  function checkIsMedicalGuardianOfPatient(
+    address _medicalGuardianAddress, 
+    address _patientAddress
+  )public view returns(bool _isMedicalGuardian){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    _isMedicalGuardian = ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][_patientAddress];
   }
 
   function arcaAccessControlFacetVerifyAccessToPatientIdentityData(address _requester, address _mainPatientAddress)public returns(bool){
@@ -363,6 +372,8 @@ contract ArcaIdentityRegistry{
   ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
+    require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
     if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
       registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, _medicalGuardianAddress);
     }
@@ -417,31 +428,14 @@ contract ArcaIdentityRegistry{
   }
 
 
+  //todo: add function to see patient medical guardians
 
-  // // register patient if they want to operate with multiple addresses
-  // function registerPatientWithLinkedAddresses(
-  //   address[] memory _linkedAddresses, 
-  //   uint256 _registeredAt,
-  //   bytes memory _cid
-  //   ) public {
-  //   LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-  //   require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
-  //   uint256 patientCount = ds.patientCount;
-  //   patientCount++;
-  //   ds.patientCount = patientCount;
-  //   ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
-  //     primaryAddress: msg.sender,
-  //     linkedAddresses: _linkedAddresses,
-  //     registeredAt: _registeredAt,
-  //     isVerified: false,
-  //     guardians: new address[](0), // an empty address array
-  //     guardiansRequired: 0,
-  //     cid: _cid
-  //   });
-  //   ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
-  //   ds.accountExists[msg.sender] = true;
-  //   emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
-  // }
+  //todo: add function to see medical guardian permissions on patient identity
+
+  //todo: add function for a medical guardian to see all permissions they have 
+
+  
+
 
   // // register patients with social recovery guardians
   // function registerPatientWithLinkedAddressAndGuardians(
