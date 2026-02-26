@@ -67,7 +67,40 @@ export const arca_identity_facet_abi = [
           "type": "string"
         }
       ],
+      "name": "InvalidRsaMasterDEKRemovalError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
       "name": "LinkRequestApprovalError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "name": "MaximumSecondaryAddressConnectionReachError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "providedAddress",
+          "type": "address"
+        }
+      ],
+      "name": "NotLinkedSecondaryAddress",
       "type": "error"
     },
     {
@@ -217,6 +250,56 @@ export const arca_identity_facet_abi = [
           "type": "string"
         },
         {
+          "indexed": false,
+          "internalType": "address",
+          "name": "medicalGuardian",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "patient",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianAssignedToPatientEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "guardianAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "addedAt",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "addedBy",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianCreationEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
           "components": [
             {
               "internalType": "address",
@@ -239,16 +322,6 @@ export const arca_identity_facet_abi = [
               "type": "bool"
             },
             {
-              "internalType": "address[]",
-              "name": "guardians",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint8",
-              "name": "guardiansRequired",
-              "type": "uint8"
-            },
-            {
               "internalType": "bytes",
               "name": "adminInitializationSignature",
               "type": "bytes"
@@ -268,6 +341,33 @@ export const arca_identity_facet_abi = [
               ],
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
               "name": "rsaMasterDEKs",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "bool",
+              "name": "isMinor",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ageOfMajority",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKsForMedicalGuardians",
               "type": "tuple[]"
             }
           ],
@@ -325,16 +425,6 @@ export const arca_identity_facet_abi = [
               "type": "bool"
             },
             {
-              "internalType": "address[]",
-              "name": "guardians",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint8",
-              "name": "guardiansRequired",
-              "type": "uint8"
-            },
-            {
               "internalType": "bytes",
               "name": "adminInitializationSignature",
               "type": "bytes"
@@ -354,6 +444,33 @@ export const arca_identity_facet_abi = [
               ],
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
               "name": "rsaMasterDEKs",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "bool",
+              "name": "isMinor",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ageOfMajority",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKsForMedicalGuardians",
               "type": "tuple[]"
             }
           ],
@@ -398,16 +515,6 @@ export const arca_identity_facet_abi = [
               "type": "bool"
             },
             {
-              "internalType": "address[]",
-              "name": "guardians",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint8",
-              "name": "guardiansRequired",
-              "type": "uint8"
-            },
-            {
               "internalType": "bytes",
               "name": "adminInitializationSignature",
               "type": "bytes"
@@ -428,6 +535,33 @@ export const arca_identity_facet_abi = [
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
               "name": "rsaMasterDEKs",
               "type": "tuple[]"
+            },
+            {
+              "internalType": "bool",
+              "name": "isMinor",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ageOfMajority",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKsForMedicalGuardians",
+              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -437,6 +571,19 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "PatientRegisteredEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "secondaryAddress",
+          "type": "address"
+        }
+      ],
+      "name": "SuccessfulSecondaryAddressDisconnectionEvent",
       "type": "event"
     },
     {
@@ -532,6 +679,30 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "_medicalGuardianAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_patientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "checkIsMedicalGuardianOfPatient",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isMedicalGuardian",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_address",
           "type": "address"
         }
@@ -598,6 +769,11 @@ export const arca_identity_facet_abi = [
           "internalType": "uint256",
           "name": "_providerCount",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_medicalGuardianCount",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -655,16 +831,6 @@ export const arca_identity_facet_abi = [
               "type": "bool"
             },
             {
-              "internalType": "address[]",
-              "name": "guardians",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint8",
-              "name": "guardiansRequired",
-              "type": "uint8"
-            },
-            {
               "internalType": "bytes",
               "name": "adminInitializationSignature",
               "type": "bytes"
@@ -685,6 +851,33 @@ export const arca_identity_facet_abi = [
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
               "name": "rsaMasterDEKs",
               "type": "tuple[]"
+            },
+            {
+              "internalType": "bool",
+              "name": "isMinor",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ageOfMajority",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "identity",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "rsaMasterDEK",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
+              "name": "rsaMasterDEKsForMedicalGuardians",
+              "type": "tuple[]"
             }
           ],
           "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
@@ -693,6 +886,19 @@ export const arca_identity_facet_abi = [
         }
       ],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getSecondaryAddressConnectionCount",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -745,6 +951,72 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_guardianAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_addedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_addedBy",
+          "type": "address"
+        }
+      ],
+      "name": "registerMedicalGuardian",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_registeredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_adminInitializationSignatureUsed",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDEK",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDEKforMedicalGuardian",
+          "type": "bytes"
+        },
+        {
+          "internalType": "address",
+          "name": "_medicalGuardianAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_ageOfMajority",
+          "type": "uint256"
+        }
+      ],
+      "name": "registerMinorPatientWithMedicalGuardian",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "_registeredAt",
           "type": "uint256"
@@ -786,6 +1058,24 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_primaryAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_secondaryAddress",
+          "type": "address"
+        }
+      ],
+      "name": "removeStoredRsaMasterDekForLinkedAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
           "name": "_messageHash",
           "type": "bytes32"
@@ -814,7 +1104,25 @@ export const arca_identity_facet_abi = [
           "type": "bytes"
         }
       ],
-      "name": "storeRsaMasterDekForLinkedAccount",
+      "name": "storeRsaMasterDekForLinkedAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_secondaryAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "unlinkSecondaryAddress",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

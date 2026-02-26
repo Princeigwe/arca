@@ -41,8 +41,17 @@ contract ArcaIdentityRegistry{
   }
 
   function checkIsAdmin(address _addr)public view returns(bool _isAdmin){
-    LibADS.DiamondStorage storage dsStorage = LibADS.diamondStorage();
-    _isAdmin = dsStorage.isAdmin[_addr];
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    _isAdmin = ds.isAdmin[_addr];
+  }
+
+
+  function checkIsMedicalGuardianOfPatient(
+    address _medicalGuardianAddress, 
+    address _patientAddress
+  )public view returns(bool _isMedicalGuardian){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    _isMedicalGuardian = ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][_patientAddress];
   }
 
   function arcaAccessControlFacetVerifyAccessToPatientIdentityData(address _requester, address _mainPatientAddress)public returns(bool){
@@ -99,7 +108,6 @@ contract ArcaIdentityRegistry{
     newPatient.primaryAddress = msg.sender;
     newPatient.registeredAt = _registeredAt;
     newPatient.isVerified = false;
-    newPatient.guardiansRequired = 0;
     newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
     newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: msg.sender,
@@ -130,7 +138,7 @@ contract ArcaIdentityRegistry{
     ds.addressCid[_address] = _cid;
   }
 
-  // this sends a request for a primary address to link the sender for a unified data access
+  // this sends a request for a patient primary address to link the sender for a unified data access
   function linkAddressRequest(
     address _primaryAddress, 
     bytes32 _requestHash, 
@@ -163,6 +171,8 @@ contract ArcaIdentityRegistry{
   }
 
 
+  // approves link request for secondary to patient's identity profile
+  // a maximum of 2 secondary addresses can be linked to the patient identity
   function approveLinkAddressRequest(
     address _secondaryAddress,
     uint256 _timestamp,
@@ -187,6 +197,10 @@ contract ArcaIdentityRegistry{
       _nonce == ds.internalNonce,
       LibADS.LinkRequestApprovalError("Invalid nonce")
     );
+    require(
+      ds.secondaryAddressConnectionCount[msg.sender] < 2,
+      LibADS.MaximumSecondaryAddressConnectionReachError('Patient has reached a connection limit of 2 secondary addresses')
+    );
 
     bool isSigValid = isSignatureValid(_requestHash, _requestSignature);
     require(isSigValid, LibADS.LinkRequestApprovalError("Invalid signature"));
@@ -200,6 +214,7 @@ contract ArcaIdentityRegistry{
     ds.internalNonce++;
     ds.primaryAccountOf[_secondaryAddress] = msg.sender;
     ds.patientAccount[msg.sender].linkedAddresses.push(_secondaryAddress);
+    ds.secondaryAddressConnectionCount[msg.sender] +=1;
 
     // making this false for validation check when storing rsaMasterDEK for linked account. To avoid double request
     ds.sentLinkRequest[_secondaryAddress][msg.sender] = false;
@@ -212,7 +227,7 @@ contract ArcaIdentityRegistry{
   }
 
 
-  function storeRsaMasterDekForLinkedAccount(
+  function storeRsaMasterDekForLinkedAddress(
     address _secondaryAddress,
     bytes memory _rsaMasterDEK
     )public {
@@ -234,6 +249,73 @@ contract ArcaIdentityRegistry{
   }
 
 
+  // unlinks secondary account to from patient's identity profile
+  function unlinkSecondaryAddress(address _secondaryAddress, bytes memory _cid) public  {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
+    bool isLinkedSecondaryAddress = false;
+    // LibADS.PatientIdentity storage patient = ds.patientAccount[msg.sender];
+
+    for(uint i = 0; i < ds.patientAccount[msg.sender].linkedAddresses.length; i++){
+      if(ds.patientAccount[msg.sender].linkedAddresses[i] == _secondaryAddress){
+        isLinkedSecondaryAddress = true;
+        // swapping address position with the last linked address
+        ds.patientAccount[msg.sender].linkedAddresses[i] = ds.patientAccount[msg.sender].linkedAddresses[ds.patientAccount[msg.sender].linkedAddresses.length - 1];
+        // removing the last address
+        ds.patientAccount[msg.sender].linkedAddresses.pop();
+        ds.primaryAccountOf[_secondaryAddress] = address(0);
+        // todo: remove rsa Master DEK for linked address
+        removeStoredRsaMasterDekForLinkedAddress(msg.sender, _secondaryAddress);
+        break;
+      }
+    }
+
+    if(!isLinkedSecondaryAddress){
+      revert LibADS.NotLinkedSecondaryAddress(_secondaryAddress);
+    }
+
+    ds.secondaryAddressConnectionCount[msg.sender] -=1;
+    ds.addressCid[msg.sender] = _cid;
+
+    emit LibADS.SuccessfulSecondaryAddressDisconnectionEvent(_secondaryAddress);
+  }
+
+
+  function removeStoredRsaMasterDekForLinkedAddress(address _primaryAddress, address _secondaryAddress) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(
+      ds.accountExists[_primaryAddress], 
+      LibADS.AccountDoesNotExistError(msg.sender)
+    );
+    require(
+      ds.primaryAccountOf[_secondaryAddress] == address(0), 
+      LibADS.InvalidRsaMasterDEKRemovalError("Provided secondary address is linked to patient identity")
+    );
+    bool isValidSecondaryAddress = false;
+    // LibADS.PatientIdentity storage patient = ds.patientAccount[msg.sender];
+
+    for(uint i = 0; i < ds.patientAccount[msg.sender].rsaMasterDEKs.length; i++){
+      if(ds.patientAccount[msg.sender].rsaMasterDEKs[i].identity == _secondaryAddress){
+        isValidSecondaryAddress = true;
+        // swapping RSA master key position of the secondary address with the last master key
+        ds.patientAccount[msg.sender].rsaMasterDEKs[i] = ds.patientAccount[msg.sender].rsaMasterDEKs[ds.patientAccount[msg.sender].rsaMasterDEKs.length - 1];
+        // deleting the last RSA master key
+        ds.patientAccount[msg.sender].rsaMasterDEKs.pop();
+        break;
+      }
+    }
+
+    if(!isValidSecondaryAddress){
+      revert LibADS.InvalidRsaMasterDEKRemovalError("Provided secondary address was never linked to patient identity");
+    }
+  }
+
+  function getSecondaryAddressConnectionCount()public view returns(uint8){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
+    return ds.secondaryAddressConnectionCount[msg.sender];
+  }
+
   function getPatientIdentity(address _patientAddress)public returns(LibADS.PatientIdentity memory){
     bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _patientAddress);
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
@@ -251,39 +333,109 @@ contract ArcaIdentityRegistry{
     emit LibADS.PatientIdentityVerifiedEvent("Patient identity verified", patient);
   }
 
-  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount){
+  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount, uint256 _medicalGuardianCount){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     _patientCount = ds.patientCount;
     _providerCount = ds.providerCount;
-    return (_patientCount, _providerCount);
+    _medicalGuardianCount = ds.medicalGuardianCount;
+    return (_patientCount, _providerCount, _medicalGuardianCount);
   }
 
 
+  function registerMedicalGuardian(address _guardianAddress, uint256 _addedAt, address _addedBy) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    uint256 medicalGuardianCount = ds.medicalGuardianCount;
+    medicalGuardianCount++;
+    ds.medicalGuardianCount = medicalGuardianCount;
 
-  // // register patient if they want to operate with multiple addresses
-  // function registerPatientWithLinkedAddresses(
-  //   address[] memory _linkedAddresses, 
-  //   uint256 _registeredAt,
-  //   bytes memory _cid
-  //   ) public {
-  //   LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-  //   require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
-  //   uint256 patientCount = ds.patientCount;
-  //   patientCount++;
-  //   ds.patientCount = patientCount;
-  //   ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
-  //     primaryAddress: msg.sender,
-  //     linkedAddresses: _linkedAddresses,
-  //     registeredAt: _registeredAt,
-  //     isVerified: false,
-  //     guardians: new address[](0), // an empty address array
-  //     guardiansRequired: 0,
-  //     cid: _cid
-  //   });
-  //   ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
-  //   ds.accountExists[msg.sender] = true;
-  //   emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
-  // }
+    LibADS.MedicalGuardian storage newMedicalGuardian = ds.medicalGuardianAccount[_guardianAddress];
+    newMedicalGuardian.guardianAddress = _guardianAddress;
+    newMedicalGuardian.addedAt = _addedAt;
+    newMedicalGuardian.addedBy = _addedBy;
+
+    ds.medicalGuardianExists[_guardianAddress] = true;
+    ds.medicalGuardianAccount[_guardianAddress] = newMedicalGuardian;
+
+    emit LibADS.MedicalGuardianCreationEvent(_guardianAddress, _addedAt, _addedBy);
+  }
+
+
+  // this creates an account for the current minor(msg.sender) and assigns primary access to a medical guardian
+  function registerMinorPatientWithMedicalGuardian(
+    uint256 _registeredAt, 
+    bytes memory _cid, 
+    bytes memory _adminInitializationSignatureUsed,
+    bytes memory _rsaMasterDEK, // for minor patient
+    bytes memory _rsaMasterDEKforMedicalGuardian, // for medical guardian
+    address _medicalGuardianAddress,
+    uint256 _ageOfMajority
+  ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
+    require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
+    if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
+      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, _medicalGuardianAddress);
+    }
+
+    uint256 patientCount = ds.patientCount;
+    patientCount++;
+    ds.patientCount = patientCount;
+
+    // creating the minor patient's identity as the current msg.sender
+    LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
+    newPatient.primaryAddress = msg.sender;
+    newPatient.registeredAt = _registeredAt;
+    newPatient.isVerified = false;
+    newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: msg.sender,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+    newPatient.ageOfMajority = _ageOfMajority;
+    newPatient.rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+      identity: _medicalGuardianAddress,
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian
+    }));
+
+    ds.addressCid[msg.sender] = _cid;
+
+    ds.patientAccount[msg.sender] = newPatient;
+    ds.accountExists[msg.sender] = true;
+    emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
+
+    // assigning permission to primary guardian
+
+    ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][msg.sender] = true;
+    ds.patientGuardians[msg.sender].push(ds.medicalGuardianAccount[_medicalGuardianAddress]);
+
+
+    LibADS.MedicalGuardianPermission storage medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[_medicalGuardianAddress][msg.sender];
+    medicalGuardianPermission.role = LibADS.MedicalGuardianRole.PRIMARY;
+    medicalGuardianPermission.guardian = _medicalGuardianAddress;
+    medicalGuardianPermission.patient = msg.sender;
+    medicalGuardianPermission.canGrantProviderAccess = true;
+    medicalGuardianPermission.canGrantGuardianAccess = true;
+    medicalGuardianPermission.canRevokeProviderAccess = true;
+    medicalGuardianPermission.canRevokeGuardianAccess = true;
+    medicalGuardianPermission.canUploadRecords = true;
+    medicalGuardianPermission.canReadRecords = true;
+    medicalGuardianPermission.canDeleteRecords = true;
+
+    ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent("Primary medical guardian assigned to minor patient", _medicalGuardianAddress, msg.sender);
+  }
+
+
+  //todo: add function to see patient medical guardians
+
+  //todo: add function to see medical guardian permissions on patient identity
+
+  //todo: add function for a medical guardian to see all permissions they have 
+
+  
+
 
   // // register patients with social recovery guardians
   // function registerPatientWithLinkedAddressAndGuardians(

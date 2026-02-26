@@ -58,6 +58,27 @@ export class IdentityEthersOnchain {
     }
   }
 
+  async checkIsMedicalGuardianOfPatient(medicalGuardianWallet: ethers.Wallet, patientAddress: string) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)    
+      const data = iFace.encodeFunctionData("checkIsMedicalGuardianOfPatient", [medicalGuardianWallet.address, patientAddress]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await medicalGuardianWallet.call(txOption);
+  
+      // decoding ABI encoded returned data
+      const [isMedicalGuardian] = iFace.decodeFunctionResult("checkIsMedicalGuardianOfPatient", response);
+      console.log(`Is medical guardian of patient ${patientAddress}: `, isMedicalGuardian);
+
+      return isMedicalGuardian
+    } 
+      catch (error) {
+      console.error("Error checking if medical guardian of patient: ", error);
+    }
+  }
+
   async saveAdminInitializationMessageHash(
     randomMessage: string,
     wallet: ethers.Wallet,
@@ -137,13 +158,13 @@ export class IdentityEthersOnchain {
       }
       const randomIndex = Math.floor(Math.random() * hashesAndSigs.length);
       const randomAdminData = hashesAndSigs[randomIndex];
-      const recoveredPublicKey = ethers.SigningKey.recoverPublicKey(
+      const adminRecoveredPublicKey = ethers.SigningKey.recoverPublicKey(
         randomAdminData.messageHash,
         randomAdminData.messageSignature,
       );
       return {
-        messageSignature: randomAdminData.messageSignature,
-        recoveredPublicKey,
+        adminMessageSignature: randomAdminData.messageSignature,
+        adminRecoveredPublicKey,
       };
     } catch (error) {
       throw new Error(`Error selecting random PK: ${error}`);
@@ -250,10 +271,14 @@ export class IdentityEthersOnchain {
         linkedAddresses: Array.from(patient[1]),
         registeredAt: Number(patient[2]),
         isVerified: patient[3],
-        guardians: Array.from(patient[4]),
-        guardiansRequired: Number(patient[5]),
-        adminInitializationSignature: patient[6],
-        rsaMasterDEKs: Array.from(patient[7]).map((item: any) => ({
+        adminInitializationSignature: patient[4],
+        rsaMasterDEKs: Array.from(patient[5]).map((item: any) => ({
+          identity: item[0],
+          rsaMasterDEK: ethers.toUtf8String(item[1]),
+        })),
+        isMinor: patient[6],
+        ageOfMajorityUnixTimestamp: Number(patient[7]),
+        rsaMasterDEKsForMedicalGuardians: Array.from(patient[8]).map((item: any) => ({
           identity: item[0],
           rsaMasterDEK: ethers.toUtf8String(item[1]),
         })),
@@ -377,7 +402,7 @@ export class IdentityEthersOnchain {
     }
   }
 
-  async storeRsaMasterDekForLinkedAccountOnChain(
+  async storeRsaMasterDekForLinkedAddressOnChain(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
@@ -394,7 +419,7 @@ export class IdentityEthersOnchain {
       );
       const iFace = new ethers.Interface(arca_identity_facet_abi);
       const data = iFace.encodeFunctionData(
-        "storeRsaMasterDekForLinkedAccount",
+        "storeRsaMasterDekForLinkedAddress",
         [secondaryAddress, secondaryRsaMasterKeyBytes],
       );
       const txOption = {
@@ -460,6 +485,75 @@ export class IdentityEthersOnchain {
       await response.wait()
     } catch (error) {
       throw new Error(`Error updating address cid: ${error}`)
+    }
+  }
+
+
+  async unlinkSecondaryAddress(wallet:ethers.Wallet, secondaryAddress: string, newCid: string){
+    try {
+      const cidBytes = ethers.toUtf8Bytes(newCid)
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const data = iFace.encodeFunctionData('unlinkSecondaryAddress', [secondaryAddress, cidBytes])
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+      const response = await wallet.sendTransaction(txOption)
+      await response.wait()
+    } catch (error) {
+      throw new Error(`Error disconnecting secondary address: ${error}`)
+    }
+  }
+
+
+  async registerMinorPatientWithMedicalGuardian(
+    minorWallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    cid: string,
+    adminInitializationSignatureUsed: string,
+    rsaMasterDEK: string,
+    rsaMasterDEKforMedicalGuardian: string,
+    medicalGuardianAddress: string,
+    dateOfAgeOfMajority: Date // this is will used in determining the age of majority
+  ){
+    try {
+      contractConnect.once("PatientRegisteredEvent", (message, patient) => {
+        console.log(`Event received: ${message}`, patient);
+      });
+
+      contractConnect.once("MedicalGuardianAssignedToPatientEvent", (message, medicalGuardian, patient) => {
+        console.log(`Event received: ${message}, Medical Guardian: ${medicalGuardian}, Patient: ${patient}`);
+      })
+      const cidBytes = ethers.toUtf8Bytes(cid)
+      const rsaMasterDEKbytes = ethers.toUtf8Bytes(rsaMasterDEK)
+      const rsaMasterDEKforMedicalGuardianBytes = ethers.toUtf8Bytes( rsaMasterDEKforMedicalGuardian)
+
+      //** converting the date of age of majority to unix timestamp in seconds for the contract
+      const ageOfMajorityUnixTimestampInSeconds = Math.floor(dateOfAgeOfMajority.getTime() / 1000); //unix timestamp in seconds
+      console.log("Age of Majority Unix Timestamp in second:", ageOfMajorityUnixTimestampInSeconds);
+
+      const currentUnixTimestampInSeconds = Math.floor(Date.now() / 1000); 
+
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("registerMinorPatientWithMedicalGuardian", [
+        currentUnixTimestampInSeconds,
+        cidBytes,
+        adminInitializationSignatureUsed,
+        rsaMasterDEKbytes,
+        rsaMasterDEKforMedicalGuardianBytes,
+        medicalGuardianAddress,
+        ageOfMajorityUnixTimestampInSeconds
+      ])
+
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+        nonce: await minorWallet.getNonce("pending"),
+      };
+      const response = await minorWallet.sendTransaction(txOption);
+      await response.wait();
+    } catch (error) {
+      throw new Error(`Error registering minor patient with medical guardian: ${error}`)
     }
   }
 }

@@ -1,4 +1,4 @@
-export const arca_diamond_abi = [
+export const arca_diamond_abi =  [
     {
       "inputs": [
         {

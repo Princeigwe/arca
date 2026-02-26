@@ -17,9 +17,10 @@ contract ArcaAccessControl {
     require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
     bool hasAccess = false;
     if(
-      ds.isAdmin[_requester] ||
-      _requester == _mainPatientAddress || 
-      ds.primaryAccountOf[_requester] == _mainPatientAddress
+      ds.isAdmin[_requester] || // admins have access to all patient identities
+      _requester == _mainPatientAddress ||  // patients have access to their own identity
+      ds.primaryAccountOf[_requester] == _mainPatientAddress || // secondary accounts have access to the primary patient's identity
+      ds.isMedicalGuardianOfPatient[_requester][_mainPatientAddress] // medical guardians have access to a patient's identity
       ){
       hasAccess = true;
     }
@@ -29,4 +30,9 @@ contract ArcaAccessControl {
   // function preAuthorizeAccessToPatientIdentityData() public {}
 
   // function usePreAuthorizedAccessToPatientIdentityData() public {}
+
+
+  //todo: add function to update medical guardian permissions on patient identity
+
+  //todo: add function to revoke medical guardian access to patient identity
 }

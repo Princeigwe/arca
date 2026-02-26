@@ -1,4 +1,4 @@
-import { EncryptionMetadata, IPFS } from "./entities/base.entity.type";
+import { EncryptionMetadata, IPFS, SenderToRsaMasterKey } from "./entities/base.entity.type";
 import { PatientIdentity } from "./entities/patient.identity";
 import { Gender } from "./enums/gender.enum";
 import { EmploymentStatus } from "./enums/employment.status.enum";
@@ -15,6 +15,7 @@ import { arca_diamond_abi } from "../abis/arca.diamond.abi";
 import { arca_identity_facet_abi } from "../abis/arca.identity.facet.abi";
 import { RsaEncryptDecrypt } from "../utils/rsa.encrypt.decrypt";
 import { IdentityEthersOnchain } from "./identity.ethers.onchain";
+import { isTemplateExpression } from "typescript";
 
 // const dotenv = require("dotenv");
 // const path = require("path");
@@ -59,6 +60,14 @@ export class ArcaIdentityService {
       return await this.identityEthersOnchain.checkIsAdmin(wallet);
     } catch (error) {
       throw new Error(`Error checking if admin: ${error}`);
+    }
+  }
+
+  async checkIsMedicalGuardianOfPatient(medicalGuardianWallet: ethers.Wallet, patientAddress: string){
+    try {
+      return await this.identityEthersOnchain.checkIsMedicalGuardianOfPatient(medicalGuardianWallet, patientAddress)
+    } catch (error) {
+      throw new Error(`Error checking if medical guardian of patient: ${error}`)
     }
   }
 
@@ -128,14 +137,16 @@ export class ArcaIdentityService {
       console.log("IV: ", iv);
 
       const senderPk = wallet.signingKey.publicKey;
-      const { recoveredPublicKey, messageSignature } =
-        await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
+
+      //** getting the recovered public key and signature of a random admin from the onchain facet to encrypt the dek with the admin's public key and for registering the patient onchain with the admin's signature as proof of authorization of the patient registration by an admin */
+      const { adminRecoveredPublicKey, adminMessageSignature } = await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
           wallet,
         );
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
+        wallet.address,
         senderPk,
-        recoveredPublicKey!,
+        adminRecoveredPublicKey!,
       )!;
       const encryptionMetadata: EncryptionMetadata = {
         dekIv: iv,
@@ -150,7 +161,7 @@ export class ArcaIdentityService {
       };
       const jsonData = JSON.stringify(data);
 
-      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
@@ -162,8 +173,8 @@ export class ArcaIdentityService {
         wallet,
         contractConnect,
         cid!,
-        messageSignature,
-        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0],
+        adminMessageSignature,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
       );
       console.log("Patient registration successful");
     } catch (error) {
@@ -253,6 +264,7 @@ export class ArcaIdentityService {
   ){
     try {
       const senderIsAdmin = await this.checkIsAdmin(wallet)
+      const senderIsMedicalGuardianOfPatient = await this.checkIsMedicalGuardianOfPatient(wallet, patientAddress)
       if(senderIsAdmin){
          //* verifying patient IPFS data was encrypted with the appropriate admin signature before any further operation
         const isAppropriateAdmin = await this.verifyAdminSenderInitSigForPatientIpfsData(wallet, patientAddress, adminInitMessage)
@@ -275,26 +287,55 @@ export class ArcaIdentityService {
         return decryptedPatientData;
       }
 
-      // sender is not an admin
-      const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
-      const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
 
-      let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(item => item.identity == wallet.address)
-  
-      const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
-      const decryptedDekForSender = RED.decryptDek(
-        wallet.privateKey, 
-        JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition]
-      )
+      // else if sender is medical guardian
+      else if(senderIsMedicalGuardianOfPatient){
+        const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+        const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
 
-      const decryptedPatientData = SED.decryptData(
-        JSON.parse(encryptedIpfsData).encryptedData,
-        decryptedDekForSender,
-        JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
-      )
+        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKsForMedicalGuardians.findIndex(
+          item => item.identity == wallet.address
+        )
+        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const decryptedDekForSender = RED.decryptDek(
+          wallet.privateKey, 
+          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians[senderRsaMasterDekPosition].rsaEncryptedMasterDEK
+        )
 
-      console.log("Decrypted patient data:", decryptedPatientData);
-      return decryptedPatientData;
+        const decryptedPatientData = SED.decryptData(
+          JSON.parse(encryptedIpfsData).encryptedData,
+          decryptedDekForSender,
+          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+        )
+
+        console.log("Decrypted patient data:", decryptedPatientData);
+        return decryptedPatientData;
+      }
+
+      // else sender is patient
+      else{
+        const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
+        const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+
+        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(
+          item => item.identity == wallet.address
+        )
+    
+        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const decryptedDekForSender = RED.decryptDek(
+          wallet.privateKey, 
+          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition].rsaEncryptedMasterDEK
+        )
+
+        const decryptedPatientData = SED.decryptData(
+          JSON.parse(encryptedIpfsData).encryptedData,
+          decryptedDekForSender,
+          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+        )
+
+        console.log("Decrypted patient data:", decryptedPatientData);
+        return decryptedPatientData;
+      }
 
     } catch (error) {
       throw new Error(`Error reading patient IPFS data: ${error}`);
@@ -386,7 +427,7 @@ export class ArcaIdentityService {
         recoveredPublicKey,
         decryptedMainRsaKey,
       );
-      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAccountOnChain(
+      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAddressOnChain(
         wallet,
         contractConnect,
         recoveredAddress,
@@ -394,7 +435,7 @@ export class ArcaIdentityService {
       );
 
       //* storing the linked master key in IPFS data
-      await this.updateRsaMasterKeysIpfsProfileData(wallet, linkedAccountRsaMasterDek)
+      await this.addLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, recoveredAddress, linkedAccountRsaMasterDek)
 
       console.log("RSA master dek for linked account stored successfully")
     } catch (error) {
@@ -424,15 +465,20 @@ export class ArcaIdentityService {
     }
   }
 
-  async updateRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, linkedRsaMasterDEK: string){
+  async addLinkedSecondaryRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, secondaryAddress: string, linkedRsaMasterDEK: string){
     try {
       const oldCid = await this.getAddressCidOfCurrentSender(wallet)
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
-      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(linkedRsaMasterDEK)
-      const jsonData = JSON.stringify(oldData);
 
-      const fileName: string = `${wallet.address}.json`; // using the wallet address as file key
+      const senderToRsaMasterDEK: SenderToRsaMasterKey = {
+        sender: secondaryAddress,
+        rsaEncryptedMasterDEK: linkedRsaMasterDEK
+      }
+      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(senderToRsaMasterDEK)
+      const jsonData = JSON.stringify(newData);
+
+      const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
@@ -442,7 +488,218 @@ export class ArcaIdentityService {
       await this.identityEthersOnchain.updateAddressCid(wallet, cid!)
 
     } catch (error) {
-      throw new Error(`Error replacing profile data on File pinning service: ${error}`)
+      throw new Error(`Error replacing profile data to add linked secondary address on Filebase pinning service: ${error}`)
+    }
+  }
+
+
+  async unlinkSecondaryAddress(wallet: ethers.Wallet, secondaryAddress: string){
+    try{
+      const updatedCid = await this.removeLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, secondaryAddress)
+
+      await this.identityEthersOnchain.unlinkSecondaryAddress(wallet, secondaryAddress, updatedCid)
+      console.log("Successful disconnection on linked address")
+    }
+    catch(error){
+      throw new Error(`Error disconnecting secondary address: ${error}`)
+    }
+  }
+
+  async removeLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet: ethers.Wallet, secondaryAddress: string){
+    try {
+      const oldCid = await this.getAddressCidOfCurrentSender(wallet)
+      const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
+      let newData = oldData
+
+      let senderKeys: SenderToRsaMasterKey[] = newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender
+
+      const secondaryAddressExists = senderKeys.some(item => item.sender === secondaryAddress)
+
+      if (!secondaryAddressExists) {
+        throw new Error(`Secondary address ${secondaryAddress} does not exist in the linked addresses list`)
+      }
+
+      let reservedMasterSenderDEKsForSender = senderKeys.filter(senderKeys => senderKeys.sender !== secondaryAddress)
+
+      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender = reservedMasterSenderDEKsForSender
+
+      const jsonData = JSON.stringify(newData);
+
+      const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+      
+      console.log("Filebase upload response: ", uploadRequest)
+      
+      return cid
+
+    } catch (error) {
+      throw new Error(`Error replacing profile data to remove linked secondary address on Filebase pinning service: ${error}`)
+    }
+  }
+
+
+  async generatePrimaryMedicalGuardianConnectionSignature(
+    guardianWallet: ethers.Wallet,
+    patientAddress: string
+  ){
+    try {
+      const connectionMessage = `I, ${guardianWallet.address}, request to be connected as a medical guardian to patient with address ${patientAddress}`;
+      const connectionSignature = await guardianWallet.signMessage(connectionMessage); // pass raw string
+      console.log("Medical guardian connection signature: ", connectionSignature);
+      return connectionSignature;
+    } catch (error) {
+      throw new Error(`Error generating medical guardian connection signature: ${error}`)
+    }
+  }
+
+
+  async verifyPrimaryMedicalGuardianConnectionSignature(
+    medicalGuardianAddress: string,
+    patientAddress: string,
+    expectedSignature: string
+  ){
+    try {
+      const connectionMessage = `I, ${medicalGuardianAddress}, request to be connected as a medical guardian to patient with address ${patientAddress}`
+      const connectionMessageHash = ethers.hashMessage(connectionMessage);
+
+      console.log("Medical Guardian Address (passed in):", medicalGuardianAddress);
+      console.log("Connection Message:", connectionMessage);
+      console.log("Connection Message Hash:", connectionMessageHash);
+      console.log("Expected Signature:", expectedSignature);
+
+      const recoveredMedicalGuardianPublicKey = ethers.SigningKey.recoverPublicKey(
+        connectionMessageHash,
+        expectedSignature,
+      );
+      const recoveredAddress = ethers.recoverAddress(
+        connectionMessageHash,
+        expectedSignature,
+      ); 
+      if(recoveredAddress == ethers.getAddress(medicalGuardianAddress)){
+        return{
+          isVerifiedSignature: true,
+          recoveredMedicalGuardianPublicKey
+        }
+      }
+      return{
+        isVerifiedSignature: false,
+        recoveredMedicalGuardianPublicKey: null
+      }
+    } catch (error) {
+      throw new Error(`Error verifying medical guardian connection signature: ${error}`)
+    }
+  }
+
+
+  async registerMinorPatientWithMedicalGuardian(
+    minorWallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    firstName: string,
+    lastName: string,
+    dateOfBirth: Date,
+    gender: Gender,
+    nationalID: string,
+    homeAddress: string,
+    employmentStatus: EmploymentStatus,
+    medicalGuardianAddress: string,
+    medicalGuardianConnectionSignature: string
+  ){
+    try {
+      const adminMsgAndSigs =
+        await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(
+          minorWallet,
+        );
+      if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) {
+        throw new Error("No admin initialization hashes found.");
+      }
+
+       //* verifying signature from supposed medical provider's address
+      const {isVerifiedSignature, recoveredMedicalGuardianPublicKey} = await this.verifyPrimaryMedicalGuardianConnectionSignature(
+        medicalGuardianAddress,
+        minorWallet.address,
+        medicalGuardianConnectionSignature
+      )
+      console.log('Recovered medical guardian public key: ', recoveredMedicalGuardianPublicKey)
+      if(!isVerifiedSignature){
+        throw new Error('Signature of provided address of medical guardian is not valid')
+      }
+      
+      const identityData = new PatientIdentity(
+        firstName,
+        lastName,
+        dateOfBirth,
+        gender,
+        nationalID,
+        homeAddress,
+        employmentStatus,
+      );
+
+      const plainIdentityJsonData = JSON.stringify(identityData);
+      // secret key encryption of plain data
+      const { encryptedData, iv, dek } = (await SED.encryptData(
+        plainIdentityJsonData,
+      ))!;
+
+      console.log("Encrypted data: ", encryptedData);
+      console.log("IV: ", iv);
+
+      const senderPk = minorWallet.signingKey.publicKey;
+
+      //** getting the recovered public key and signature of a random admin from the onchain facet to encrypt the dek with the admin's public key and for registering the patient onchain with the admin's signature as proof of authorization of the patient registration by an admin */
+      const { adminRecoveredPublicKey, adminMessageSignature } = await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
+        minorWallet,
+      );
+
+
+      const rsaEncryptedKeys = RED.dualKeyEncryption(
+        dek,
+        minorWallet.address,
+        senderPk,
+        adminRecoveredPublicKey!,
+        recoveredMedicalGuardianPublicKey!
+      )!;
+
+      const encryptionMetadata: EncryptionMetadata = {
+        dekIv: iv,
+        rsaKeys: rsaEncryptedKeys,
+      };
+
+      const data: IPFS = {
+        storageType,
+        primaryWalletAddress: minorWallet.address,
+        uploadedAt: new Date(),
+        encryptedData,
+        encryptionMetaData: encryptionMetadata,
+      };
+      const jsonData = JSON.stringify(data);
+
+      const fileName: string = `${minorWallet.address}-patient-identity.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+      console.log("Filebase upload response: ", uploadRequest);
+
+      //* calculating date of majority
+      const dateOfAgeOfMajority = new Date(dateOfBirth);
+      dateOfAgeOfMajority.setFullYear(dateOfAgeOfMajority.getFullYear() + 18);
+
+      //* registering patient onchain with guardian
+      await this.identityEthersOnchain.registerMinorPatientWithMedicalGuardian(
+        minorWallet,
+        contractConnect,
+        cid!,
+        adminMessageSignature,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
+        rsaEncryptedKeys.rsaEncryptedMasterDEKsForMedicalGuardians![0].rsaEncryptedMasterDEK,
+        medicalGuardianAddress,
+        dateOfAgeOfMajority
+      )
+    } catch (error) {
+      throw new Error(`Error registering minor patient with medical guardian on/off chain: ${error}`)
     }
   }
 
@@ -533,8 +790,6 @@ const randomApprovalMessage = "I approve the request for unified access";
 //   patient1Wallet,
 //   patient1ContractConnect,
 //   patient1SecondaryWallet.address,
-//   // "0xb786411fa0e5f61e565b234f19b74afe01e1026fbb48bbcd7f3949bdafaf37b8",
-//   // "0xc5a7d10b07d96f878e1fcb3750d1427d17fe50a80cf60bd095845f7ccbd39bc4202aecf23748c0df0f9a740a09f5a0e1a88a6f14a16e8fb1bd6590f6d16c8b4d1b",
 //   randomApprovalMessage,
 // );
 
@@ -547,13 +802,42 @@ const randomApprovalMessage = "I approve the request for unified access";
 // )
 
 
-// arcaIdentityService.getAddressCid(patient1Wallet)
+// arcaIdentityService.unlinkSecondaryAddress(
+//   patient1Wallet, 
+//   patient1SecondaryWallet.address
+// )
 
-arcaIdentityService.readPatientIpfsData(
-  // patient1Wallet,
-  patient1SecondaryWallet,
-  // ownerWallet,
-  // admin2Wallet,
-  patient1Wallet.address,
-  adminInitMessage
-)
+
+// arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
+const primaryGuardianWallet = testWallets[4];
+
+
+// arcaIdentityService.readPatientIpfsData(
+//   // patient1Wallet,
+//   // patient1SecondaryWallet,
+//   // ownerWallet,
+//   // admin2Wallet,
+//   primaryGuardianWallet,
+//   patient1Wallet.address,
+//   adminInitMessage
+// )
+
+
+// arcaIdentityService.generatePrimaryMedicalGuardianConnectionSignature(
+//   primaryGuardianWallet,
+//   patient1Wallet.address
+// )
+
+// arcaIdentityService.registerMinorPatientWithMedicalGuardian(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "John",
+//   "Doe",
+//   new Date(),
+//   Gender.MALE,
+//   "123456789",
+//   "123 Main St",
+//   EmploymentStatus.STUDENT,
+//   primaryGuardianWallet.address,
+//   "0x17e4944e3190f5b4dbc1a6f32f3c675ca31b82aca6f4f51e9e18bbc61c2e49fa68b30f42ca585e69d0805d6bad030e513402ef0db3f182f16cfc81025706810d1c",
+// )
