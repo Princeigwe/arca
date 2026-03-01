@@ -18,9 +18,17 @@ Patients own their records. Medical providers register on-chain and formally req
 
 Arca also handles real-world edge cases: patients can link multiple wallet addresses to their profile, and underage patients can be managed by a designated guardian.
 
-> ⚠️ This is a learning project. It has not been audited and is not intended for production use with real patient data.
+> ⚠️ This  project has not been audited and is not ready for production use with real patient data.
 
 ---
+
+## Core Features
+
+**For Patients**
+- Register onchain as a patient for a profile.
+- Link a maximum od two secondary wallet addresses to a single patient profile.
+- Designate a medical guardian address to manage records on behalf of underage patients.
+
 
 **Documentation will grow as project develops..**
 
