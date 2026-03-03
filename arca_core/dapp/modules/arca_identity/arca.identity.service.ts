@@ -732,17 +732,17 @@ let patient1ContractConnect = testConnects[1];
 let admin2Wallet = testWallets[3];
 let admin2ContractConnect = testConnects[3];
 
-arcaIdentityService.registerPatient(
-  patient1Wallet,
-  patient1ContractConnect,
-  "John",
-  "Doe",
-  new Date(),
-  Gender.MALE,
-  "123456789",
-  "123 Main St",
-  EmploymentStatus.STUDENT,
-);
+// arcaIdentityService.registerPatient(
+//   patient1Wallet,
+//   patient1ContractConnect,
+//   "John",
+//   "Doe",
+//   new Date(),
+//   Gender.MALE,
+//   "123456789",
+//   "123 Main St",
+//   EmploymentStatus.STUDENT,
+// );
 
 const iv = "89c16532618816bd38342b9170d5f9b4";
 const dek = "d49d0fd9328b899ae38204c8c23fd492e6d742529acecc99e62ae4b2d06f7766";
@@ -853,8 +853,8 @@ const primaryGuardianWallet = testWallets[4];
 // )
 
 
-// arcaIdentityService.getMedicalGuardians(
-//   patient1Wallet, 
-//   // patient1SecondaryWallet,
-//   patient1Wallet.address
-// )
+arcaIdentityService.getMedicalGuardians(
+  // patient1Wallet, 
+  patient1SecondaryWallet,
+  patient1Wallet.address
+)

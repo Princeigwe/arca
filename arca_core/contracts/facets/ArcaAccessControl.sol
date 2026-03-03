@@ -35,4 +35,9 @@ contract ArcaAccessControl {
   //todo: add function to update medical guardian permissions on patient identity
 
   //todo: add function to revoke medical guardian access to patient identity
+
+  //todo: add function to see medical guardian permissions on patient identity
+
+  //todo: add function for a medical guardian to see all permissions they have 
+
 }

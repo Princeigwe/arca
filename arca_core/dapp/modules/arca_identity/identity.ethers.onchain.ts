@@ -33,7 +33,10 @@ export class IdentityEthersOnchain {
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       console.log("Error adding admin: ", error);
     }
   }
@@ -53,7 +56,10 @@ export class IdentityEthersOnchain {
       console.log("Is admin: ", isAdmin);
 
       return isAdmin
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       console.error("Error checking if admin: ", error);
     }
   }
@@ -74,7 +80,10 @@ export class IdentityEthersOnchain {
 
       return isMedicalGuardian
     } 
-      catch (error) {
+      catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       console.error("Error checking if medical guardian of patient: ", error);
     }
   }
@@ -114,7 +123,10 @@ export class IdentityEthersOnchain {
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
       console.log("Transaction successful");
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error saving admin initialization hash: ${error}`);
     }
   }
@@ -142,7 +154,10 @@ export class IdentityEthersOnchain {
       }));
       console.log("Hash and Signature Formatted Response: ", formattedResponse);
       return formattedResponse;
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error getting message hashes and signature: ${error}`);
     }
   }
@@ -166,7 +181,10 @@ export class IdentityEthersOnchain {
         adminMessageSignature: randomAdminData.messageSignature,
         adminRecoveredPublicKey,
       };
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error selecting random PK: ${error}`);
     }
   }
@@ -183,7 +201,10 @@ export class IdentityEthersOnchain {
         response,
       );
       console.log(result);
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error getting identity from diamond contract: ${error}`);
     }
   }
@@ -243,7 +264,10 @@ export class IdentityEthersOnchain {
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error verifying patient on chain:${error}`);
     }
   }
@@ -288,7 +312,10 @@ export class IdentityEthersOnchain {
       };
       console.log("Formatted Patient Identity:", formattedPatient);
       return formattedPatient;
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error getting patient data on chain: ${error}`);
     }
   }
@@ -336,7 +363,10 @@ export class IdentityEthersOnchain {
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error linking address request: ${error}`);
     }
   }
@@ -356,7 +386,10 @@ export class IdentityEthersOnchain {
       );
       console.log(result);
       return result;
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error getting internal nonce: ${error}`);
     }
   }
@@ -400,7 +433,10 @@ export class IdentityEthersOnchain {
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error approving link address request: ${error}`);
     }
   }
@@ -432,7 +468,10 @@ export class IdentityEthersOnchain {
       };
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(
         `Error storing RSA master dek for linked account: ${error}`,
       );
@@ -452,7 +491,10 @@ export class IdentityEthersOnchain {
       const decoded = iFace.decodeFunctionResult("getAddressCid", response)
       const addressCid = ethers.toUtf8String(decoded[0])
       return addressCid
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error fetching address cid: ${error}`)
     }
   }
@@ -470,7 +512,10 @@ export class IdentityEthersOnchain {
       const decoded = iFace.decodeFunctionResult("getAddressCid", response)
       const addressCid = ethers.toUtf8String(decoded[0])
       return addressCid
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error fetching address cid: ${error}`)
     }
   }
@@ -486,7 +531,10 @@ export class IdentityEthersOnchain {
       }
       const response = await wallet.sendTransaction(txOption)
       await response.wait()
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error updating address cid: ${error}`)
     }
   }
@@ -503,7 +551,10 @@ export class IdentityEthersOnchain {
       }
       const response = await wallet.sendTransaction(txOption)
       await response.wait()
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error disconnecting secondary address: ${error}`)
     }
   }
@@ -555,7 +606,10 @@ export class IdentityEthersOnchain {
       };
       const response = await minorWallet.sendTransaction(txOption);
       await response.wait();
-    } catch (error) {
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error registering minor patient with medical guardian: ${error}`)
     }
   }
@@ -578,7 +632,10 @@ export class IdentityEthersOnchain {
       }))
       console.log("Formatted medical guardians: ", formattedMedicalGuardians);
       return formattedMedicalGuardians;
-    } catch (error) {
+    } catch (error: any) {       
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
       throw new Error(`Error getting medical guardians: ${error}`);
     }
   }

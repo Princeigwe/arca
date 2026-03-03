@@ -153,7 +153,7 @@ library LibArcaDiamondStorage{
     mapping (address => bool) medicalGuardianExists;
     mapping (address => MedicalGuardian) medicalGuardianAccount;
     mapping (address => mapping(address => bool)) isMedicalGuardianOfPatient; // medical guardian => patient => isGuardian
-    mapping(address => MedicalGuardian[]) patientGuardians; // patient => medical guardians
+    mapping(address => MedicalGuardian[]) patientMedicalGuardians; // patient => medical guardians
     mapping(address => mapping(address => MedicalGuardianPermission)) medicalGuardianPermissionsOnPatient; // medical guardian => patient => permission
     mapping(address => MedicalGuardianPermission[]) medicalGuardianPermissions; // medical guardian => permissions (self-request)
     uint256 medicalGuardianCount;

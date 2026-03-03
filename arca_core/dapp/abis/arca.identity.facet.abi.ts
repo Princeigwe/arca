@@ -782,6 +782,42 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_patientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getMedicalGuardians",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "guardianAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "addedAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "addedBy",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.MedicalGuardian[]",
+          "name": "_medicalGuardians",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes",
           "name": "_signature",
           "type": "bytes"

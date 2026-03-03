@@ -375,7 +375,7 @@ contract ArcaIdentityRegistry{
     require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
     require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
     if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
-      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, _medicalGuardianAddress);
+      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, msg.sender);
     }
 
     uint256 patientCount = ds.patientCount;
@@ -407,7 +407,7 @@ contract ArcaIdentityRegistry{
     // assigning permission to primary guardian
 
     ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][msg.sender] = true;
-    ds.patientGuardians[msg.sender].push(ds.medicalGuardianAccount[_medicalGuardianAddress]);
+    ds.patientMedicalGuardians[msg.sender].push(ds.medicalGuardianAccount[_medicalGuardianAddress]);
 
 
     LibADS.MedicalGuardianPermission storage medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[_medicalGuardianAddress][msg.sender];
@@ -424,16 +424,22 @@ contract ArcaIdentityRegistry{
 
     ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
 
-    emit LibADS.MedicalGuardianAssignedToPatientEvent("Primary medical guardian assigned to minor patient", _medicalGuardianAddress, msg.sender);
+    emit LibADS.MedicalGuardianAssignedToPatientEvent(
+      "Primary medical guardian assigned to minor patient", 
+      _medicalGuardianAddress, 
+      msg.sender
+    );
   }
 
 
-  //todo: add function to see patient medical guardians
-
-  //todo: add function to see medical guardian permissions on patient identity
-
-  //todo: add function for a medical guardian to see all permissions they have 
-
+  //** function to see patient medical guardians
+  function getMedicalGuardians(address _patientAddress) public returns(LibADS.MedicalGuardian[] memory _medicalGuardians) {
+    require(_patientAddress != address(0), LibADS.AuthorizationError("Patient address must be a valid address"));
+    bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _patientAddress);
+    require(hasAccess == true, LibADS.AuthorizationError("Access denied to patient identity data"));
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    _medicalGuardians = ds.patientMedicalGuardians[_patientAddress];
+  }
   
 
 

@@ -1,4 +1,4 @@
-import { MedicalGuardianToRsaMasterKey, RsaEncryptedKeys, SenderToRsaMasterKey } from "../arca_identity/entities/base.entity.type";
+import { MedicalGuardianToRsaMasterKey, RsaEncryptedKeys, SenderToRsaMasterKey } from "../modules/arca_identity/entities/base.entity.type";
 import { decrypt, encrypt } from "eciesjs";
 
 export class RsaEncryptDecrypt {
