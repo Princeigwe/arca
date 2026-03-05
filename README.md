@@ -26,7 +26,7 @@ Arca also handles real-world edge cases: patients can link multiple wallet addre
 
 **For Patients**
 - Register onchain as a patient for a profile.
-- Link a maximum od two secondary wallet addresses to a single patient profile.
+- Link a maximum of two secondary wallet addresses to a single patient profile.
 - Designate a medical guardian address to manage records on behalf of underage patients.
 
 
@@ -198,6 +198,146 @@ function registerMinorPatientWithMedicalGuardian(
   }
 ```
 
+### 2. Multi-link to Patient Profile with Secondary Address
+
+A patient can attach additional wallet addresses to their profile after registration. This is useful when a patient wants to interact with Arca from multiple wallets. This process begins with an external address. A link-request is sent from the external address to the patient. It is the duty of the patient to thoroughly confirm the external address before approval of request.
+
+```typescript
+async linkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    patientAddress: string,
+    randomMessage: string,
+  ) {
+    try {
+      return await this.identityEthersOnchain.linkAddressRequest(
+        wallet,
+        contractConnect,
+        patientAddress,
+        randomMessage,
+      );
+    } catch (error) {
+      throw new Error(`Error sending request for linking address: ${error}`);
+    }
+  }
+```
+
+```solidity
+function linkAddressRequest(
+    address _primaryAddress, 
+    bytes32 _requestHash, 
+    bytes memory _requestSignature
+    ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(_primaryAddress != address(0), "Recipient must be a valid address");
+    require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
+    ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
+    emit LibADS.LinkAccountRequestEvent(
+      "Incoming request to link to primary address",
+      msg.sender,
+      _requestHash,
+      _requestSignature,
+      _primaryAddress
+    );
+  }
+```
+
+The primary address goes ahead to approve this multi-link request. After approval another operation is set to generate store the RSA-encrypted key of the patient's identity data on/off-chain, for the linked address.
+
+```typescript
+async approveLinkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    secondaryAddress: string,
+    randomApprovalMessage: string,
+  ) {
+    try {
+
+      await this.identityEthersOnchain.approveLinkAddressRequest(
+        wallet,
+        contractConnect,
+        secondaryAddress,
+        randomApprovalMessage,
+      );
+
+    } catch (error) {
+      throw new Error(`Error approving link address request: ${error}`);
+    }
+  }
+```
+
+```typescript
+async storeRsaMasterDekForLinkedAccount(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    requestHash: string,
+    requestSignature: string,
+  ) {
+    try {
+      const walletAddress = await wallet.getAddress();
+      const patient = await this.readPatientOnchainData(
+        wallet,
+        walletAddress,
+      );
+      const patientRsaMasterDEKs = patient.rsaMasterDEKs;
+      const mainItemRsaData = patientRsaMasterDEKs.find(
+        (item) => item.identity === patient.primaryAddress,
+      );
+      const mainRsaKey = mainItemRsaData!.rsaMasterDEK // already converted from bytes to string
+
+      let decryptedMainRsaKey = mainRsaKey;
+      if (mainRsaKey.length > 100) {
+        decryptedMainRsaKey = RED.decryptDek(wallet.privateKey, mainRsaKey);
+      }
+
+      const recoveredPublicKey = ethers.SigningKey.recoverPublicKey(
+        requestHash,
+        requestSignature,
+      );
+      const recoveredAddress = ethers.recoverAddress(
+        requestHash,
+        requestSignature,
+      );
+      console.log("Linked Account Recovered public key: ", recoveredPublicKey);
+      console.log("Linked Account Recovered address: ", recoveredAddress);
+
+      const linkedAccountRsaMasterDek = RED.encryptDek(
+        recoveredPublicKey,
+        decryptedMainRsaKey,
+      );
+      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAddressOnChain(
+        wallet,
+        contractConnect,
+        recoveredAddress,
+        linkedAccountRsaMasterDek,
+      );
+
+      //* storing the linked master key in IPFS data
+      await this.addLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, recoveredAddress, linkedAccountRsaMasterDek)
+
+      console.log("RSA master dek for linked account stored successfully")
+    } catch (error) {
+      throw new Error(
+        `Error storing RSA master dek for linked account: ${error}`,
+      );
+    }
+  }
+```
+After successful multi-link connection, the primary address can unlink the secondary address whenever the need arises.
+
+```typescript
+async unlinkSecondaryAddress(wallet: ethers.Wallet, secondaryAddress: string){
+    try{
+      const updatedCid = await this.removeLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, secondaryAddress)
+
+      await this.identityEthersOnchain.unlinkSecondaryAddress(wallet, secondaryAddress, updatedCid)
+      console.log("Successful disconnection on linked address")
+    }
+    catch(error){
+      throw new Error(`Error disconnecting secondary address: ${error}`)
+    }
+  }
+```
 
 > Documentation will grow as project develops..
 

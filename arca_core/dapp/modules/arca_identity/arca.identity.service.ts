@@ -389,6 +389,7 @@ export class ArcaIdentityService {
     }
   }
 
+  // onchain operation
   async storeRsaMasterDekForLinkedAccount(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
@@ -465,6 +466,7 @@ export class ArcaIdentityService {
     }
   }
 
+  // offchain operation
   async addLinkedSecondaryRsaMasterKeysIpfsProfileData( wallet: ethers.Wallet, secondaryAddress: string, linkedRsaMasterDEK: string){
     try {
       const oldCid = await this.getAddressCidOfCurrentSender(wallet)
