@@ -82,9 +82,9 @@ And with public key encryption, the DEK is encrypted patient's public key to ena
 
 
 
-#### b. Minor Patient Registration with Medical Guardian Designation
+#### b. Minor Patient Registration with Primary Medical Guardian Designation
 
-This method enables and individual to register as a minor patient with designation to a medical guardian. THe same process as the standalone patient registration applies here. Only difference is that the age of majority be provided, together with the address and signature of the medical guardian for verification of designation.
+This method enables and individual to register as a minor patient with designation to a primary medical guardian. The same process as the standalone patient registration applies here. Only difference is that the age of majority be provided, together with the address and signature of the medical guardian for verification of designation.
 
 ```typescript
 async verifyPrimaryMedicalGuardianConnectionSignature(
@@ -122,6 +122,79 @@ async verifyPrimaryMedicalGuardianConnectionSignature(
     } catch (error) {
       throw new Error(`Error verifying medical guardian connection signature: ${error}`)
     }
+  }
+```
+
+After a successful registration, the medical guardian is granted full access to operations, data and resources related to the minor patient.
+```solidity
+function registerMinorPatientWithMedicalGuardian(
+    uint256 _registeredAt, 
+    bytes memory _cid, 
+    bytes memory _adminInitializationSignatureUsed,
+    bytes memory _rsaMasterDEK, // for minor patient
+    bytes memory _rsaMasterDEKforMedicalGuardian, // for medical guardian
+    address _medicalGuardianAddress,
+    uint256 _ageOfMajority
+  ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
+    require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
+    if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
+      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, msg.sender);
+    }
+
+    uint256 patientCount = ds.patientCount;
+    patientCount++;
+    ds.patientCount = patientCount;
+
+    // creating the minor patient's identity as the current msg.sender
+    LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
+    newPatient.primaryAddress = msg.sender;
+    newPatient.registeredAt = _registeredAt;
+    newPatient.isVerified = false;
+    newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: msg.sender,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+    newPatient.ageOfMajority = _ageOfMajority;
+    newPatient.rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+      identity: _medicalGuardianAddress,
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian
+    }));
+
+    ds.addressCid[msg.sender] = _cid;
+
+    ds.patientAccount[msg.sender] = newPatient;
+    ds.accountExists[msg.sender] = true;
+    emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
+
+    // assigning permission to primary guardian
+
+    ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][msg.sender] = true;
+    ds.patientMedicalGuardians[msg.sender].push(ds.medicalGuardianAccount[_medicalGuardianAddress]);
+
+
+    LibADS.MedicalGuardianPermission storage medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[_medicalGuardianAddress][msg.sender];
+    medicalGuardianPermission.role = LibADS.MedicalGuardianRole.PRIMARY;
+    medicalGuardianPermission.guardian = _medicalGuardianAddress;
+    medicalGuardianPermission.patient = msg.sender;
+    medicalGuardianPermission.canGrantProviderAccess = true;
+    medicalGuardianPermission.canGrantGuardianAccess = true;
+    medicalGuardianPermission.canRevokeProviderAccess = true;
+    medicalGuardianPermission.canRevokeGuardianAccess = true;
+    medicalGuardianPermission.canUploadRecords = true;
+    medicalGuardianPermission.canReadRecords = true;
+    medicalGuardianPermission.canDeleteRecords = true;
+
+    ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent(
+      "Primary medical guardian assigned to minor patient", 
+      _medicalGuardianAddress, 
+      msg.sender
+    );
   }
 ```
 
