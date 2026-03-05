@@ -2,18 +2,18 @@ import { EncryptionMetadata, IPFS, SenderToRsaMasterKey } from "./entities/base.
 import { PatientIdentity } from "./entities/patient.identity";
 import { Gender } from "./enums/gender.enum";
 import { EmploymentStatus } from "./enums/employment.status.enum";
-import { IpfsOperator } from "../utils/ipfs.operator";
-import { SymmetricEncryptDecrypt } from "../utils/symmetric.encrypt.decrypt";
+import { IpfsOperator } from "../../utils/ipfs.operator";
+import { SymmetricEncryptDecrypt } from "../../utils/symmetric.encrypt.decrypt";
 import {
   TestWallet,
   testWallets,
   testConnects,
-} from "../test.wallets.contract.connects";
-import { ContractConnect } from "../test.wallets.contract.connects";
+} from "../../test.wallets.contract.connects";
+import { ContractConnect } from "../../test.wallets.contract.connects";
 import { ethers } from "ethers";
-import { arca_diamond_abi } from "../abis/arca.diamond.abi";
-import { arca_identity_facet_abi } from "../abis/arca.identity.facet.abi";
-import { RsaEncryptDecrypt } from "../utils/rsa.encrypt.decrypt";
+import { arca_diamond_abi } from "../../abis/arca.diamond.abi";
+import { arca_identity_facet_abi } from "../../abis/arca.identity.facet.abi";
+import { RsaEncryptDecrypt } from "../../utils/rsa.encrypt.decrypt";
 import { IdentityEthersOnchain } from "./identity.ethers.onchain";
 import { isTemplateExpression } from "typescript";
 
@@ -704,11 +704,21 @@ export class ArcaIdentityService {
   }
 
 
-  async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
-    const decryptedData = await SED.decryptData(encryptedData, dek, iv);
-    const decryptedJsonData = JSON.parse(decryptedData!);
-    console.log("Decrypted Json data: ", decryptedJsonData);
+  async getMedicalGuardians(wallet: ethers.Wallet, patientAddress: string){
+    try {
+      const medicalGuardians = await this.identityEthersOnchain.getMedicalGuardians(wallet, patientAddress);
+      return medicalGuardians;
+    } catch (error) {
+      throw new Error(`Error getting medical guardians: ${error}`);
+    }
   }
+
+
+  // async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
+  //   const decryptedData = await SED.decryptData(encryptedData, dek, iv);
+  //   const decryptedJsonData = JSON.parse(decryptedData!);
+  //   console.log("Decrypted Json data: ", decryptedJsonData);
+  // }
 }
 
 //////* TESTINGS *////////
@@ -840,4 +850,11 @@ const primaryGuardianWallet = testWallets[4];
 //   EmploymentStatus.STUDENT,
 //   primaryGuardianWallet.address,
 //   "0x17e4944e3190f5b4dbc1a6f32f3c675ca31b82aca6f4f51e9e18bbc61c2e49fa68b30f42ca585e69d0805d6bad030e513402ef0db3f182f16cfc81025706810d1c",
+// )
+
+
+// arcaIdentityService.getMedicalGuardians(
+//   // patient1Wallet, 
+//   patient1SecondaryWallet,
+//   patient1Wallet.address
 // )

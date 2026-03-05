@@ -35,4 +35,13 @@ contract ArcaAccessControl {
   //todo: add function to update medical guardian permissions on patient identity
 
   //todo: add function to revoke medical guardian access to patient identity
+
+  //todo: add function to see medical guardian permissions on patient identity
+
+  //todo: add function for a medical guardian to see all permissions they have 
+  function getMyMedicalGuardianPermissions() public view returns(LibADS.MedicalGuardianPermission[] memory _medicalGuardianPermissions){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.medicalGuardianExists[msg.sender], LibADS.AuthorizationError('A medical guardian entity does not exist for this sender'));
+    _medicalGuardianPermissions = ds.medicalGuardianPermissions[msg.sender];
+  }
 }
