@@ -125,7 +125,28 @@ async verifyPrimaryMedicalGuardianConnectionSignature(
   }
 ```
 
-After a successful registration, the medical guardian is granted full access to operations, data and resources related to the minor patient.
+With granular permissions defined, after a successful registration, the medical guardian is granted full access to operations, data and resources related to the minor patient.
+
+```solidity
+  enum MedicalGuardianRole{
+    PRIMARY,
+    SECONDARY
+  }
+
+  struct MedicalGuardianPermission{
+    MedicalGuardianRole role;
+    address guardian;
+    address patient;
+    bool canGrantProviderAccess;
+    bool canGrantGuardianAccess;
+    bool canRevokeProviderAccess;
+    bool canRevokeGuardianAccess;
+    bool canUploadRecords;
+    bool canReadRecords;
+    bool canDeleteRecords;
+  }
+```
+
 ```solidity
 function registerMinorPatientWithMedicalGuardian(
     uint256 _registeredAt, 
