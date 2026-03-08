@@ -6,11 +6,11 @@ import {LibArcaDiamondStorage as LibADS} from  "../libraries/LibArcaDiamondStora
 
 
 contract ArcaAccessControl {
-  // function requestAccessToPatientIdentityData(address _providerAddress, address _patientAddress) public {}
+  //todo: function requestAccessToPatientIdentityData(address _providerAddress, address _patientAddress) public {}
 
-  // function grantAccessToPatientIdentityData() public {}
+  //todo: function grantAccessToPatientIdentityData() public {}
 
-  // function revokeAccessToPatientIdentityData() public {}
+  //todo: function revokeAccessToPatientIdentityData() public {}
 
   function verifyAccessToPatientIdentityData(address _requester, address _mainPatientAddress) public view returns(bool){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
@@ -27,18 +27,25 @@ contract ArcaAccessControl {
     return hasAccess;
   }
 
-  // function preAuthorizeAccessToPatientIdentityData() public {}
+  //tod:  function preAuthorizeAccessToPatientIdentityData() public {}
 
-  // function usePreAuthorizedAccessToPatientIdentityData() public {}
+  //todo: function usePreAuthorizedAccessToPatientIdentityData() public {}
 
+  //todo: add function to assign a medical guardian to a minor patient. (the sender is a primary medical guardian)
 
   //todo: add function to update medical guardian permissions on patient identity
 
   //todo: add function to revoke medical guardian access to patient identity
 
-  //todo: add function to see medical guardian permissions on patient identity
+  //function to see medical guardian permissions on patient identity
+  function getMedicalPermission(address _medicalGuardian, address _patient)  public view returns(LibADS.MedicalGuardianPermission memory _medicalGuardianPermission) {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_patient], LibADS.AccountDoesNotExistError(_patient));
+    require(ds.isMedicalGuardianOfPatient[_medicalGuardian][_patient], LibADS.AuthorizationError('Sender is not a medical guardian to patient'));
+    _medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_patient]; 
+  }
 
-  //todo: add function for a medical guardian to see all permissions they have 
+  //** function for a medical guardian to see all permissions they have 
   function getMyMedicalGuardianPermissions() public view returns(LibADS.MedicalGuardianPermission[] memory _medicalGuardianPermissions){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.medicalGuardianExists[msg.sender], LibADS.AuthorizationError('A medical guardian entity does not exist for this sender'));

@@ -856,7 +856,7 @@ const primaryGuardianWallet = testWallets[4];
 
 
 // arcaIdentityService.getMedicalGuardians(
-//   // patient1Wallet, 
-//   patient1SecondaryWallet,
+//   patient1Wallet, 
+//   // patient1SecondaryWallet,
 //   patient1Wallet.address
 // )

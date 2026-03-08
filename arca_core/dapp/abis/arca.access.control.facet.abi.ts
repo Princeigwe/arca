@@ -22,6 +22,82 @@ export const arca_access_control_facet_abi = [
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_medicalGuardian",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_patient",
+          "type": "address"
+        }
+      ],
+      "name": "getMedicalPermission",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "enum LibArcaDiamondStorage.MedicalGuardianRole",
+              "name": "role",
+              "type": "uint8"
+            },
+            {
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "patient",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "canGrantProviderAccess",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "canGrantGuardianAccess",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "canRevokeProviderAccess",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "canRevokeGuardianAccess",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "canUploadRecords",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "canReadRecords",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "canDeleteRecords",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.MedicalGuardianPermission",
+          "name": "_medicalGuardianPermission",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "getMyMedicalGuardianPermissions",
       "outputs": [

@@ -52,5 +52,44 @@ export class AccessControlEthersOnchain{
       }
     }
   }
+
+
+  async getMedicalPermission(wallet: ethers.Wallet, medicalGuardianAddress: string, patientAddress: string){
+    try {
+      const iFace = new ethers.Interface(combinedABIs)
+      const data = iFace.encodeFunctionData('getMedicalPermission', [medicalGuardianAddress, patientAddress])
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+      const response = await wallet.call(txOption)
+      const decodedMedicalPermission = iFace.decodeFunctionResult('getMedicalPermission', response)
+      const result = decodedMedicalPermission[0]
+      console.log('medical guardian permission:', result)
+      const formattedMedicalGuardianPermission = {
+        role: Number(result[0]), // primary guardian
+        guardian: result[1],
+        patient: result[2],
+        canGrantProviderAccess: result[3],
+        canGrantGuardianAccess: result[4],
+        canRevokeProviderAccess: result[5],
+        canRevokeGuardianAccess: result[6],
+        canUploadRecords: result[7],
+        canReadRecords: result[8],
+        canDeleteRecords: result[9]
+      }
+      console.log("formatted medical permission: ", formattedMedicalGuardianPermission)
+      return formattedMedicalGuardianPermission
+    } catch (error: any) {
+      const iFace = new ethers.Interface(combinedABIs)
+      const errorData = error?.data ?? error?.error?.data ?? error?.info?.error?.data
+
+      if (errorData) {
+        const decodedError = iFace.parseError(errorData)
+        throw new Error(`Onchain error -  ${decodedError?.name}(${decodedError?.args?.join(', ')})`)
+      }
+      throw error
+    }
+  }
 }
 
