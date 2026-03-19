@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 
+/// @title The Identity Registry Facet of Arca.
+/// @author Prince Igwenagha
+/// @notice Responsible for handling the identity registry of entities (Patient, Medical Provider, Medical Guardian).
 contract ArcaIdentityRegistry{
 
   using ECDSA for bytes32;
@@ -27,12 +30,16 @@ contract ArcaIdentityRegistry{
     _;
   }
 
+  /// @notice A function that adds an address a a contract admin. This can only be executed by an existing contract admin.
+  /// @param _newAdmin The address to be added as an admin.
   function addAdmin(address _newAdmin)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     ds.isAdmin[_newAdmin] = true;
     emit LibADS.AdminAddedEvent("Admin added", _newAdmin);
   }
 
+  /// @notice This function removes an exsiting contract admin. The contract owner cannont be removed, and this can only be accomplished as a contract admin.
+  /// @param _admin The address to be removed from the admin group.
   function removeAdmin(address _admin)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(_admin != ds.contractOwner, LibADS.AuthorizationError("Cannot remove contract owner"));
@@ -40,12 +47,17 @@ contract ArcaIdentityRegistry{
     emit LibADS.AdminRemovedEvent("Admin removed", _admin);
   }
 
+  /// @notice This function checks if the provided address is an admin.
+  /// @param _addr The address to check if it's and admin. 
   function checkIsAdmin(address _addr)public view returns(bool _isAdmin){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     _isAdmin = ds.isAdmin[_addr];
   }
 
 
+  /// @notice This function checks if an address is a medical guardian to a patient. To be used by ethers.js
+  /// @param _medicalGuardianAddress The address of the medical guardian.
+  /// @param _patientAddress The address of the patient.
   function checkIsMedicalGuardianOfPatient(
     address _medicalGuardianAddress, 
     address _patientAddress
@@ -53,7 +65,11 @@ contract ArcaIdentityRegistry{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     _isMedicalGuardian = ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][_patientAddress];
   }
+  
 
+  /// @notice This function calls the Access Control facet of Arca to verify access to patient's identity data.
+  /// @param _requester The address of the requester.
+  /// @param _mainPatientAddress The main address of the patient.
   function arcaAccessControlFacetVerifyAccessToPatientIdentityData(address _requester, address _mainPatientAddress)public returns(bool){
     // address for ArcaAccessControl facet to verify grant access, but in the context of the diamond contract 
     (bool success, bytes memory returnedData) = address(this).call(abi.encodeWithSignature("verifyAccessToPatientIdentityData(address,address)", _requester, _mainPatientAddress));
@@ -64,7 +80,9 @@ contract ArcaIdentityRegistry{
     return hasAccess;
   }
 
-  // enables the admin to save a transaction hash; generated off-chain, that will be used in public key encryption for IPFS data
+  /// @notice This function enables the admin to save a transaction hash; generated off-chain, that will be used in public key encryption for IPFS data.
+  /// @param _messageHash The hash of the admin initialization message.
+  /// @param _signature The signature of the admin address on the message.
   function saveAdminInitializationMessageHash(bytes32 _messageHash, bytes memory _signature)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(!ds.hasAdminInitializationMessageHashAndSignature[msg.sender], LibADS.AuthorizationError("Admin already has initialization transaction hash"));
@@ -81,17 +99,26 @@ contract ArcaIdentityRegistry{
     emit LibADS.AdminInitializationMessageHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, messageHashAndSignature);
   }
 
-
+  
+  /// @notice This function get the message hash to an admin's signature.
+  /// @param _signature The signature of the admin.
   function getMessageHashOfAdminInitializationSignature(bytes memory _signature) public view returns (bytes32) {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     return ds.messageHashOfAdminInitializationSignature[_signature];
   }
 
+
+  /// @notice This gets all admin's initialized message hashes and their signatures. Used when an identity is being registered for verification. 
   function getAdminInitializationMessageHashesAndSignatures() public view returns (LibADS.AdminInitializationMessageHashAndSignature[] memory) {
     return LibADS.diamondStorage().adminInitializationMessageHashesAndSignatures;
   }
 
 
+  /// @notice This function registers a patient identity. It records the content identifier of the patient's IPFS data, the admin initialization signature used to register the identity,and the RSA-encrypted DataEncryptionKey.
+  /// @param _registeredAt The Unix timestamp at which the patient registered.
+  /// @param _cid The Content Identifier of the patient's IPFS data.
+  /// @param _adminInitializationSignatureUsed The admin initialization signature used to register the patient.
+  /// @param _rsaMasterDEK The RSA encrypted Data Encryption Key, which is used by patient to decrypt encrypted off-chain data.
   function registerPatient(
     uint256 _registeredAt, 
     bytes memory _cid, 
@@ -122,6 +149,8 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice This function gets the IPFS Content Identifier of the registered patient
+  /// @param _address The patient's address
   function getAddressCid(address _address)public returns(bytes memory){
     bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _address);
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
@@ -131,6 +160,9 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice This function is meant to update the recorded Content Identifier of the patient after each change on patient's data.
+  /// @param _address The address of the patient.
+  /// @param _cid  The new Content Identifier.
   function updateAddressCid(address _address, bytes memory _cid) public{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
@@ -138,7 +170,10 @@ contract ArcaIdentityRegistry{
     ds.addressCid[_address] = _cid;
   }
 
-  // this sends a request for a patient primary address to link the sender for a unified data access
+  /// @notice This function (for a secondary-address-to-be) makes a request for a patient primary address to link the sender for a unified data access.
+  /// @param _primaryAddress The patient's address.
+  /// @param _requestHash The hash of the request message.
+  /// @param _requestSignature The signature of the secondary-address-to-be. 
   function linkAddressRequest(
     address _primaryAddress, 
     bytes32 _requestHash, 
@@ -158,21 +193,28 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice This function gets the current nonce, to be used to prevent replay attack.
   function getCurrentNonce()public view returns(uint256){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     return ds.internalNonce;
   }
 
-  // verifies that the signature is valid and that the signer is the sender of the transaction. 
-  // this is used to validate the authenticity of the approval on the link address request
+
+  /// @notice This is used to check on-chain if a signature is valid. It verifies that the signature is valid and that the signer is the sender of the transaction. It is used to validate the authenticity of the approval on the link address request
+  /// @param _hash The hash of the message.
+  /// @param _signature The signature of the address to be verified
   function isSignatureValid(bytes32 _hash, bytes memory _signature) public view returns (bool) {
     address signer = _hash.recover(_signature);
     return (signer == msg.sender);
   }
 
 
-  // approves link request for secondary to patient's identity profile
-  // a maximum of 2 secondary addresses can be linked to the patient identity
+  /// @notice This approves link request for secondary to patient's identity profile.  a maximum of 2 secondary addresses can be linked to the patient identity.
+  /// @param _secondaryAddress The secondary address that requested for unified connection on patient identity. 
+  /// @param _timestamp The Unix timestamp, at which the request was approved. Used to test against replay attack.
+  /// @param _nonce The current internal nonce from (getCurrentNonce()). Used to test against replay attack.
+  /// @param _requestHash The hash of the request message.
+  /// @param _requestSignature The signature of the secondary address that sent the request. 
   function approveLinkAddressRequest(
     address _secondaryAddress,
     uint256 _timestamp,
@@ -227,6 +269,9 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice This function stores RSA-encrypted DataEncryptionKey for the linked secondary address on patient identity. To be used after approval on link request.
+  /// @param _secondaryAddress The approved secondary address.
+  /// @param _rsaMasterDEK  The RSA-encrypted DataEncryptionKey to be used by secondary address to decrypted encrypted IPFS patient identity data. 
   function storeRsaMasterDekForLinkedAddress(
     address _secondaryAddress,
     bytes memory _rsaMasterDEK
@@ -249,7 +294,9 @@ contract ArcaIdentityRegistry{
   }
 
 
-  // unlinks secondary account to from patient's identity profile
+  /// @notice This function unlinks secondary account to from patient's on-chain identity profile.
+  /// @param _secondaryAddress The secondary address to be disconnected.
+  /// @param _cid The updated Content Identifier after secondary address is removed from IPFS data.
   function unlinkSecondaryAddress(address _secondaryAddress, bytes memory _cid) public  {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
@@ -280,7 +327,10 @@ contract ArcaIdentityRegistry{
     emit LibADS.SuccessfulSecondaryAddressDisconnectionEvent(_secondaryAddress);
   }
 
-
+  
+  /// @notice This function should be called immediately after the (unlinkSecondaryAddress) function, as it removes the stored RSA-encrypted DataEncryptionKey for the disconnected secondary address.
+  /// @param _primaryAddress The main address of the patient's identity profile.
+  /// @param _secondaryAddress The disconnected secondary address.
   function removeStoredRsaMasterDekForLinkedAddress(address _primaryAddress, address _secondaryAddress) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(
@@ -310,12 +360,17 @@ contract ArcaIdentityRegistry{
     }
   }
 
+
+  /// @notice This function gets the count of secondary addresses linked to a patient identity profile.
   function getSecondaryAddressConnectionCount()public view returns(uint8){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
     return ds.secondaryAddressConnectionCount[msg.sender];
   }
 
+
+  /// @notice This get the patient identity of the primary patient's address. 
+  /// @param _patientAddress The primary patient's address.
   function getPatientIdentity(address _patientAddress)public returns(LibADS.PatientIdentity memory){
     bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _patientAddress);
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
@@ -326,6 +381,8 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice This is used by the admin to mark a patient's onchain identity as verified after successful IPFS verification.
+  /// @param _patientAddress The primary address of the patient. 
   function verifyPatientIdentity(address _patientAddress)public onlyAdmin onlyAdminWithInitTxnHash{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     LibADS.PatientIdentity storage patient = ds.patientAccount[_patientAddress];
@@ -333,6 +390,10 @@ contract ArcaIdentityRegistry{
     emit LibADS.PatientIdentityVerifiedEvent("Patient identity verified", patient);
   }
 
+  /// @notice This returns the count of identity types registered.
+  /// @return _patientCount Count of registered patient.
+  /// @return _providerCount Count of registered medical providers. 
+  /// @return _medicalGuardianCount Count of registered medical guardians.
   function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount, uint256 _medicalGuardianCount){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     _patientCount = ds.patientCount;
@@ -342,6 +403,10 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice This registers a medical guardian.
+  /// @param _guardianAddress The medical guardian's address. 
+  /// @param _addedAt The Unix timestamp at when registration was initialized off-chain.
+  /// @param _addedBy The address that initiated the  registration. Either medical guardian's address or address of minor patient.
   function registerMedicalGuardian(address _guardianAddress, uint256 _addedAt, address _addedBy) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     uint256 medicalGuardianCount = ds.medicalGuardianCount;
@@ -360,7 +425,14 @@ contract ArcaIdentityRegistry{
   }
 
 
-  // this creates an account for the current minor(msg.sender) and assigns primary access to a medical guardian
+  /// @notice This creates an account for the current minor(msg.sender) and assigns primary access to a medical guardian
+  /// @param _registeredAt The Unix timestamp at when registration was initialized off-chain.
+  /// @param _cid The content identifier of the IPFS patient identity.
+  /// @param _adminInitializationSignatureUsed The admin initialization signature used to register the patient.
+  /// @param _rsaMasterDEK The RSA encrypted Data Encryption Key, which is used by patient to decrypt encrypted off-chain data.
+  /// @param _rsaMasterDEKforMedicalGuardian The RSA encrypted Data Encryption Key, which is used by medical guardian to decrypt encrypted off-chain data.
+  /// @param _medicalGuardianAddress The address of the medical guardian.
+  /// @param _ageOfMajority The age of majority of the patient. This will be used to track majority age and disconnect access from medical guardian when due.
   function registerMinorPatientWithMedicalGuardian(
     uint256 _registeredAt, 
     bytes memory _cid, 
@@ -432,7 +504,8 @@ contract ArcaIdentityRegistry{
   }
 
 
-  //** function to see patient medical guardians
+  /// @notice This function is used to see patient medical guardians attached to a minor patient.
+  /// @param _patientAddress The primary address of the minor patient.
   function getMedicalGuardians(address _patientAddress) public returns(LibADS.MedicalGuardian[] memory _medicalGuardians) {
     require(_patientAddress != address(0), LibADS.AuthorizationError("Patient address must be a valid address"));
     bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _patientAddress);
