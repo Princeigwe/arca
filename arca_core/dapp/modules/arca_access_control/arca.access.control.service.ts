@@ -5,6 +5,7 @@ import {
   testWallets,
   testConnects,
 } from "../../test.wallets.contract.connects";
+import { MedicalGuardianRoleEnum } from "./enums/medical.guardian.role.type";
 
 export class ArcaAccessControlService{
   constructor(private accessControlEthersOnchain: AccessControlEthersOnchain){}
@@ -30,6 +31,40 @@ export class ArcaAccessControlService{
     }
   }
 
+  async assignMedicalGuardian(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract,
+    medicalGuardianAddress: string,
+    mainPatientAddress: string,
+    role: MedicalGuardianRoleEnum,
+    canGrantProviderAccess?: boolean,
+    canGrantGuardianAccess?: boolean,
+    canRevokeProviderAccess?: boolean,
+    canRevokeGuardianAccess?: boolean,
+    canUploadRecords?: boolean,
+    canReadRecords?: boolean,
+    canDeleteRecords?: boolean
+  ){
+    try {
+      return await this.accessControlEthersOnchain.assignMedicalGuardian(
+        wallet,
+        contractConnect,
+        medicalGuardianAddress,
+        mainPatientAddress,
+        role,
+        canGrantProviderAccess,
+        canGrantGuardianAccess,
+        canRevokeProviderAccess,
+        canRevokeGuardianAccess,
+        canUploadRecords,
+        canReadRecords,
+        canDeleteRecords
+      )
+    } catch (error) {
+      throw new Error(`Error assigning medical guardian to patient: ${error}`)
+    }
+  }
+
 }
 
 
@@ -43,7 +78,25 @@ const arcaAccessControlService = new ArcaAccessControlService(accessControlEther
 
 const anyWallet = testWallets[2];
 const primaryGuardianWallet = testWallets[4];
+const primaryGuardianConnect = testConnects[4]
 const patient1Wallet = testWallets[1];
 
+const secondaryGuardianWallet = testWallets[5];
+const secondaryGuardianConnect = testConnects[5]
+
 // arcaAccessControlService.getMyMedicalGuardianPermissions(primaryGuardianWallet)
-arcaAccessControlService.getMedicalPermission(anyWallet, primaryGuardianWallet.address, patient1Wallet.address)
+// arcaAccessControlService.getMedicalPermission(anyWallet, primaryGuardianWallet.address, patient1Wallet.address)
+arcaAccessControlService.assignMedicalGuardian(
+  primaryGuardianWallet, 
+  primaryGuardianConnect,
+  secondaryGuardianWallet.address,
+  patient1Wallet.address,
+  MedicalGuardianRoleEnum.PRIMARY,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true
+)

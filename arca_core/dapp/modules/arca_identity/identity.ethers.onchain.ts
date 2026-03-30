@@ -197,7 +197,7 @@ export class IdentityEthersOnchain {
       };
       const response = await wallet.call(txOption); // fallback call for a view function with call()
       const result = ethers.AbiCoder.defaultAbiCoder().decode(
-        ["uint256", "uint256"],
+        ["uint256", "uint256", "uint256"],
         response,
       );
       console.log(result);

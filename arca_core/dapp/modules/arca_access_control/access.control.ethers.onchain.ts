@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { testWallets, testConnects } from "../../test.wallets.contract.connects";
 import { arca_diamond_abi } from "../../abis/arca.diamond.abi";
 import { arca_access_control_facet_abi } from "../../abis/arca.access.control.facet.abi";
+import { MedicalGuardianRoleType, MedicalGuardianRoleEnum } from "./enums/medical.guardian.role.type";
 
 const dotenv = require("dotenv");
 const path = require("path");
@@ -80,6 +81,64 @@ export class AccessControlEthersOnchain{
       }
       console.log("formatted medical permission: ", formattedMedicalGuardianPermission)
       return formattedMedicalGuardianPermission
+    } catch (error: any) {
+      const iFace = new ethers.Interface(combinedABIs)
+      const errorData = error?.data ?? error?.error?.data ?? error?.info?.error?.data
+
+      if (errorData) {
+        const decodedError = iFace.parseError(errorData)
+        throw new Error(`Onchain error -  ${decodedError?.name}(${decodedError?.args?.join(', ')})`)
+      }
+      throw error
+    }
+  }
+
+
+  async assignMedicalGuardian(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract,
+    medicalGuardianAddress: string,
+    mainPatientAddress: string,
+    role: MedicalGuardianRoleEnum,
+    canGrantProviderAccess: boolean = false,
+    canGrantGuardianAccess: boolean = false,
+    canRevokeProviderAccess: boolean = false,
+    canRevokeGuardianAccess: boolean = false,
+    canUploadRecords: boolean = false,
+    canReadRecords: boolean = false,
+    canDeleteRecords: boolean = false
+  ){
+    const medicalGuardianRoleType = role === MedicalGuardianRoleEnum.PRIMARY ? MedicalGuardianRoleType.PRIMARY : MedicalGuardianRoleType.SECONDARY
+    
+    try {
+      const iFace = new ethers.Interface(combinedABIs)
+      const data = iFace.encodeFunctionData(
+        'assignMedicalGuardian',
+        [
+          medicalGuardianAddress,
+          mainPatientAddress,
+          medicalGuardianRoleType,
+          canGrantProviderAccess,
+          canGrantGuardianAccess,
+          canRevokeProviderAccess,
+          canRevokeGuardianAccess,
+          canUploadRecords,
+          canReadRecords,
+          canDeleteRecords
+        ]
+      )
+
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
+
+      contractConnect.once('MedicalGuardianAssignedToPatientEvent', (message, medicalGuardian, patient)=>{
+        console.log(`Event emitted: ${message} - ${medicalGuardian} - ${patient}`)
+      })
     } catch (error: any) {
       const iFace = new ethers.Interface(combinedABIs)
       const errorData = error?.data ?? error?.error?.data ?? error?.info?.error?.data

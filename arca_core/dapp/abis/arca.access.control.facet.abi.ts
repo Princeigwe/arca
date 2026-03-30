@@ -22,6 +22,112 @@ export const arca_access_control_facet_abi = [
       "type": "error"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "medicalGuardian",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "patient",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianAssignedToPatientEvent",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_guardianAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_addedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_addedBy",
+          "type": "address"
+        }
+      ],
+      "name": "arcaIdentityRegistryFacetRegisterMedicalGuardian",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_medicalGuardian",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_mainPatientAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "enum LibArcaDiamondStorage.MedicalGuardianRole",
+          "name": "_role",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canGrantProviderAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canGrantGuardianAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canRevokeProviderAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canRevokeGuardianAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canUploadRecords",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canReadRecords",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canDeleteRecords",
+          "type": "bool"
+        }
+      ],
+      "name": "assignMedicalGuardian",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",

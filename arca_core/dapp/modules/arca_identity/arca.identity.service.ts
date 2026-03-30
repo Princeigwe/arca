@@ -760,7 +760,7 @@ let ownerContractConnect = testConnects[0];
 // arcaIdentityService.addAdmin(ownerWallet, ownerContractConnect, admin2Wallet.address)
 // arcaIdentityService.checkIsAdmin(ownerWallet)
 
-const adminInitMessage = "Hello world";
+const adminInitMessage = "I am an Arca admin";
 // arcaIdentityService.createAdminMsgAndSig(adminInitMessage, ownerWallet, ownerContractConnect)
 // arcaIdentityService.getAdminMsgAndSigs(ownerWallet);
 
@@ -855,8 +855,8 @@ const primaryGuardianWallet = testWallets[4];
 // )
 
 
-// arcaIdentityService.getMedicalGuardians(
-//   patient1Wallet, 
-//   // patient1SecondaryWallet,
-//   patient1Wallet.address
-// )
+arcaIdentityService.getMedicalGuardians(
+  patient1Wallet, 
+  // patient1SecondaryWallet,
+  patient1Wallet.address
+)

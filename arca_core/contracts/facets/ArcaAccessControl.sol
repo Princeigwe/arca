@@ -9,6 +9,13 @@ import {LibArcaDiamondStorage as LibADS} from  "../libraries/LibArcaDiamondStora
 /// @author Prince Igwenagha
 /// @notice  Responsible for managing access control to on-chain data
 contract ArcaAccessControl {
+
+  function arcaIdentityRegistryFacetRegisterMedicalGuardian(address _guardianAddress, uint256 _addedAt, address _addedBy) public {
+    (bool success, ) = address(this).call(abi.encodeWithSignature("registerMedicalGuardian(address,uint256,address)", _guardianAddress, _addedAt, _addedBy));
+    if(!success){
+      revert("Something went wrong with registering medical guardian to identity registry facet");
+    }
+  }
   //todo: function requestAccessToPatientIdentityData(address _providerAddress, address _patientAddress) public {}
 
   //todo: function grantAccessToPatientIdentityData() public {}
@@ -37,10 +44,21 @@ contract ArcaAccessControl {
 
   //todo: function usePreAuthorizedAccessToPatientIdentityData() public {}
 
-  //todo: add function to assign a medical guardian to a minor patient. (the sender is a primary medical guardian)
+  /// @notice This add function to assign a medical guardian to a minor patient. (the sender must be a primary medical guardian).
+  /// @param _medicalGuardian The address of the medical guardian to be assigned to the primary patient address. 
+  /// @param _mainPatientAddress The primary patient address.
+  /// @param _role The medical guardian role to be assigned.
+  /// @param _canGrantProviderAccess permission.
+  /// @param _canGrantGuardianAccess permission.
+  /// @param _canRevokeProviderAccess permission.
+  /// @param _canRevokeGuardianAccess permission.
+  /// @param _canUploadRecords permission.
+  /// @param _canReadRecords permission.
+  /// @param _canDeleteRecords permission.
   function assignMedicalGuardian(
     address _medicalGuardian,
     address _mainPatientAddress,
+    LibADS.MedicalGuardianRole _role,
     bool _canGrantProviderAccess,
     bool _canGrantGuardianAccess,
     bool _canRevokeProviderAccess,
@@ -50,9 +68,57 @@ contract ArcaAccessControl {
     bool _canDeleteRecords
   )public{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
+    require(
+      ds.medicalGuardianExists[msg.sender], 
+      LibADS.AuthorizationError('Error getting current medical guardian permissions: Medical guardian entity does not exist for this sender')
+    );
     require(
       ds.isMedicalGuardianOfPatient[msg.sender][_mainPatientAddress], 
       LibADS.AuthorizationError("Error assigning medical guardian: Sender is not a medical guardian to the patient")
+    );
+    require(
+      ds.medicalGuardianPermissionsOnPatient[msg.sender][_mainPatientAddress].role == LibADS.MedicalGuardianRole.PRIMARY,
+      LibADS.AuthorizationError("Error assigning medical guardian: Sender is not a primary medical guardian to the patient")
+    );
+    if(_role !=  LibADS.MedicalGuardianRole.PRIMARY && (
+      _canGrantProviderAccess ||
+      _canGrantGuardianAccess ||
+      _canRevokeProviderAccess ||
+      _canRevokeGuardianAccess ||
+      _canUploadRecords ||
+      _canDeleteRecords
+      // _canReadRecords  // this permission is allowed for a secondary medical guardian
+    )){
+      revert LibADS.AuthorizationError("Error assigning medical guardian to patient: Secondary guardian is not allowed to perform delicate action(s)");
+    }
+
+    // creating medical guardian entity if not already created for the medical guardian address
+    if(!ds.medicalGuardianExists[_medicalGuardian]){
+      arcaIdentityRegistryFacetRegisterMedicalGuardian(_medicalGuardian, block.timestamp, msg.sender);
+    } 
+
+    ds.isMedicalGuardianOfPatient[_medicalGuardian][_mainPatientAddress] = true;
+    ds.patientMedicalGuardians[_mainPatientAddress].push(ds.medicalGuardianAccount[_medicalGuardian]);
+    ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_mainPatientAddress] = LibADS.MedicalGuardianPermission({
+      role: _role,
+      guardian: _medicalGuardian,
+      patient: _mainPatientAddress,
+      canGrantProviderAccess: _canGrantProviderAccess,
+      canGrantGuardianAccess: _canGrantGuardianAccess,
+      canRevokeProviderAccess: _canRevokeProviderAccess,
+      canRevokeGuardianAccess: _canRevokeGuardianAccess,
+      canUploadRecords: _canUploadRecords,
+      canReadRecords: _canReadRecords,
+      canDeleteRecords: _canDeleteRecords
+    });
+
+    ds.medicalGuardianPermissions[_medicalGuardian].push(ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_mainPatientAddress]);
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent(
+      "Medical guardian assigned to patient", 
+      _medicalGuardian, 
+      _mainPatientAddress
     );
   }
 
