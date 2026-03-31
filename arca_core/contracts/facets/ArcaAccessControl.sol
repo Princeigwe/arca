@@ -55,6 +55,8 @@ contract ArcaAccessControl {
   /// @param _canUploadRecords permission.
   /// @param _canReadRecords permission.
   /// @param _canDeleteRecords permission.
+  /// @param _rsaMasterDekForMedicalGuardian the RSA master DEK for the new medical guardian
+  /// @param _cid the updated IPFS content identifier of the patient's data
   function assignMedicalGuardian(
     address _medicalGuardian,
     address _mainPatientAddress,
@@ -65,7 +67,9 @@ contract ArcaAccessControl {
     bool _canRevokeGuardianAccess,
     bool _canUploadRecords,
     bool _canReadRecords,
-    bool _canDeleteRecords
+    bool _canDeleteRecords,
+    bytes memory _rsaMasterDekForMedicalGuardian, 
+    bytes memory _cid
   )public{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
@@ -114,6 +118,14 @@ contract ArcaAccessControl {
     });
 
     ds.medicalGuardianPermissions[_medicalGuardian].push(ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_mainPatientAddress]);
+
+    // storing RSA encrypted DEK of the assigned medical guardian
+    ds.patientAccount[_mainPatientAddress].rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+      identity: _medicalGuardian,
+      rsaMasterDEK: _rsaMasterDekForMedicalGuardian
+    }));
+
+    ds.addressCid[_mainPatientAddress] = _cid;
 
     emit LibADS.MedicalGuardianAssignedToPatientEvent(
       "Medical guardian assigned to patient", 

@@ -13,7 +13,7 @@ async function hardhatDeployDiamond() {
     action: 0,
     functionSelectors: [
       '0x0f12b746',
-      '0xa94f6b1c',
+      '0xb8b9258b',
       '0x7427223c',
       '0x1a6c90a1',
       '0x747915f7'

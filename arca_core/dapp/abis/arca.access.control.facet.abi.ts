@@ -120,6 +120,16 @@ export const arca_access_control_facet_abi = [
           "internalType": "bool",
           "name": "_canDeleteRecords",
           "type": "bool"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDekForMedicalGuardian",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
         }
       ],
       "name": "assignMedicalGuardian",

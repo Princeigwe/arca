@@ -131,6 +131,8 @@ contract ArcaIdentityRegistry{
     patientCount++;
     ds.patientCount = patientCount;
 
+    ds.accountExists[msg.sender] = true;
+
     LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
     newPatient.primaryAddress = msg.sender;
     newPatient.registeredAt = _registeredAt;
@@ -144,7 +146,6 @@ contract ArcaIdentityRegistry{
     ds.addressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
-    ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered", newPatient);
   }
 
@@ -454,6 +455,8 @@ contract ArcaIdentityRegistry{
     patientCount++;
     ds.patientCount = patientCount;
 
+    ds.accountExists[msg.sender] = true;
+
     // creating the minor patient's identity as the current msg.sender
     LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
     newPatient.primaryAddress = msg.sender;
@@ -473,7 +476,6 @@ contract ArcaIdentityRegistry{
     ds.addressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
-    ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
 
     // assigning permission to primary guardian

@@ -548,7 +548,7 @@ export class ArcaIdentityService {
     patientAddress: string
   ){
     try {
-      const connectionMessage = `I, ${guardianWallet.address}, request to be connected as a medical guardian to patient with address ${patientAddress}`;
+      const connectionMessage = `I, ${guardianWallet.address}, agree to be connected as a medical guardian to patient with address ${patientAddress}`;
       const connectionSignature = await guardianWallet.signMessage(connectionMessage); // pass raw string
       console.log("Medical guardian connection signature: ", connectionSignature);
       return connectionSignature;
@@ -564,7 +564,7 @@ export class ArcaIdentityService {
     expectedSignature: string
   ){
     try {
-      const connectionMessage = `I, ${medicalGuardianAddress}, request to be connected as a medical guardian to patient with address ${patientAddress}`
+      const connectionMessage = `I, ${medicalGuardianAddress}, agree to be connected as a medical guardian to patient with address ${patientAddress}`
       const connectionMessageHash = ethers.hashMessage(connectionMessage);
 
       console.log("Medical Guardian Address (passed in):", medicalGuardianAddress);
@@ -661,7 +661,8 @@ export class ArcaIdentityService {
         minorWallet.address,
         senderPk,
         adminRecoveredPublicKey!,
-        recoveredMedicalGuardianPublicKey!
+        recoveredMedicalGuardianPublicKey!,
+        medicalGuardianAddress
       )!;
 
       const encryptionMetadata: EncryptionMetadata = {
@@ -851,12 +852,12 @@ const primaryGuardianWallet = testWallets[4];
 //   "123 Main St",
 //   EmploymentStatus.STUDENT,
 //   primaryGuardianWallet.address,
-//   "0x17e4944e3190f5b4dbc1a6f32f3c675ca31b82aca6f4f51e9e18bbc61c2e49fa68b30f42ca585e69d0805d6bad030e513402ef0db3f182f16cfc81025706810d1c",
+//   "0xbed0f72088b2f47c6f82f3143de94946a1c10c2e9d501a212e621db1751f63f4789b839e671f5100825ee3e8b11ad33cfd6eabb7ff3f4780b9d5f9c177936edc1c",
 // )
 
 
-arcaIdentityService.getMedicalGuardians(
-  patient1Wallet, 
-  // patient1SecondaryWallet,
-  patient1Wallet.address
-)
+// arcaIdentityService.getMedicalGuardians(
+//   patient1Wallet, 
+//   // patient1SecondaryWallet,
+//   patient1Wallet.address
+// )

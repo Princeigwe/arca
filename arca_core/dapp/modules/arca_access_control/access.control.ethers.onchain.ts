@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { testWallets, testConnects } from "../../test.wallets.contract.connects";
 import { arca_diamond_abi } from "../../abis/arca.diamond.abi";
 import { arca_access_control_facet_abi } from "../../abis/arca.access.control.facet.abi";
+import { arca_identity_facet_abi } from "../../abis/arca.identity.facet.abi";
 import { MedicalGuardianRoleType, MedicalGuardianRoleEnum } from "./enums/medical.guardian.role.type";
 
 const dotenv = require("dotenv");
@@ -10,7 +11,7 @@ const path = require("path");
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const arcaDiamondAddress = process.env.DEPLOYED_DIAMOND_ADDRESS || process.env.LOCAL_DIAMOND_ADDRESS;
-const combinedABIs = [...arca_diamond_abi, ...arca_access_control_facet_abi];
+const combinedABIs = [...arca_diamond_abi, ...arca_access_control_facet_abi, ...arca_identity_facet_abi];
 
 const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
@@ -94,6 +95,7 @@ export class AccessControlEthersOnchain{
   }
 
 
+  // can only be executed by a primary guardian, and only for guardian assignment
   async assignMedicalGuardian(
     wallet: ethers.Wallet, 
     contractConnect: ethers.Contract,
@@ -106,11 +108,16 @@ export class AccessControlEthersOnchain{
     canRevokeGuardianAccess: boolean = false,
     canUploadRecords: boolean = false,
     canReadRecords: boolean = false,
-    canDeleteRecords: boolean = false
+    canDeleteRecords: boolean = false,
+    rsaMasterDekForMedicalGuardian: string,
+    cid: string
   ){
     const medicalGuardianRoleType = role === MedicalGuardianRoleEnum.PRIMARY ? MedicalGuardianRoleType.PRIMARY : MedicalGuardianRoleType.SECONDARY
     
     try {
+      const cidBytes = ethers.toUtf8Bytes(cid)
+      const rsaMasterDEKbytes = ethers.toUtf8Bytes(rsaMasterDekForMedicalGuardian);
+
       const iFace = new ethers.Interface(combinedABIs)
       const data = iFace.encodeFunctionData(
         'assignMedicalGuardian',
@@ -124,7 +131,9 @@ export class AccessControlEthersOnchain{
           canRevokeGuardianAccess,
           canUploadRecords,
           canReadRecords,
-          canDeleteRecords
+          canDeleteRecords,
+          rsaMasterDEKbytes,
+          cidBytes
         ]
       )
 
@@ -137,7 +146,7 @@ export class AccessControlEthersOnchain{
       await response.wait();
 
       contractConnect.once('MedicalGuardianAssignedToPatientEvent', (message, medicalGuardian, patient)=>{
-        console.log(`Event emitted: ${message} - ${medicalGuardian} - ${patient}`)
+        console.log(`Event emitted: Message:${message} - Medical Guardian: ${medicalGuardian} - Patient: ${patient}`)
       })
     } catch (error: any) {
       const iFace = new ethers.Interface(combinedABIs)
@@ -150,5 +159,27 @@ export class AccessControlEthersOnchain{
       throw error
     }
   }
+
+
+  async getIdentityCidOfAddress(wallet: ethers.Wallet, address: string) {
+    try {
+      const iFace = new ethers.Interface(combinedABIs);
+      const data = iFace.encodeFunctionData("getAddressCid", [address]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption)
+      const decoded = iFace.decodeFunctionResult("getAddressCid", response)
+      const addressCid = ethers.toUtf8String(decoded[0])
+      return addressCid
+    } catch (error: any) {
+      const iFace = new ethers.Interface(combinedABIs)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
+      throw new Error(`Error fetching address cid: ${error}`)
+    }
+  }
+  
 }
 
