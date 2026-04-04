@@ -282,6 +282,64 @@ export const arca_access_control_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "_medicalGuardian",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_mainPatientAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "enum LibArcaDiamondStorage.MedicalGuardianRole",
+          "name": "_role",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canGrantProviderAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canGrantGuardianAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canRevokeProviderAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canRevokeGuardianAccess",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canUploadRecords",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canReadRecords",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "_canDeleteRecords",
+          "type": "bool"
+        }
+      ],
+      "name": "updateMedicalGuardianPermission",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_requester",
           "type": "address"
         },

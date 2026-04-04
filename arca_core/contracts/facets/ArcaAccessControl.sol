@@ -75,7 +75,7 @@ contract ArcaAccessControl {
     require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
     require(
       ds.medicalGuardianExists[msg.sender], 
-      LibADS.AuthorizationError('Error getting current medical guardian permissions: Medical guardian entity does not exist for this sender')
+      LibADS.AuthorizationError('Error assigning medical guardian: Medical guardian entity does not exist for this sender')
     );
     require(
       ds.isMedicalGuardianOfPatient[msg.sender][_mainPatientAddress], 
@@ -134,7 +134,75 @@ contract ArcaAccessControl {
     );
   }
 
-  //todo: add function to update medical guardian permissions on patient identity. (the sender is a primary medical guardian)
+  /// @notice This function is used to update medical guardian permissions on patient identity. (the sender is a primary medical guardian)
+  /// @param _medicalGuardian The address of the medical guardian for which permissions are to be updated. 
+  /// @param _mainPatientAddress The primary patient address.
+  /// @param _role The medical guardian role to be assigned.
+  /// @param _canGrantProviderAccess permission.
+  /// @param _canGrantGuardianAccess permission.
+  /// @param _canRevokeProviderAccess permission.
+  /// @param _canRevokeGuardianAccess permission.
+  /// @param _canUploadRecords permission.
+  /// @param _canReadRecords permission.
+  /// @param _canDeleteRecords permission.
+  function updateMedicalGuardianPermission(
+    address _medicalGuardian,
+    address _mainPatientAddress,
+    LibADS.MedicalGuardianRole _role,
+    bool _canGrantProviderAccess,
+    bool _canGrantGuardianAccess,
+    bool _canRevokeProviderAccess,
+    bool _canRevokeGuardianAccess,
+    bool _canUploadRecords,
+    bool _canReadRecords,
+    bool _canDeleteRecords
+  ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
+    require(
+      ds.medicalGuardianExists[msg.sender], 
+      LibADS.AuthorizationError('Error updating medical guardian permissions: Medical guardian entity does not exist for this sender')
+    );
+    require(
+      ds.isMedicalGuardianOfPatient[msg.sender][_mainPatientAddress], 
+      LibADS.AuthorizationError("Error updating medical guardian permissions: Sender is not a medical guardian to the patient")
+    );
+    require(
+      ds.medicalGuardianPermissionsOnPatient[msg.sender][_mainPatientAddress].role == LibADS.MedicalGuardianRole.PRIMARY,
+      LibADS.AuthorizationError("Error updating medical guardian permissions: Sender is not a primary medical guardian to the patient")
+    );
+
+    if(_role !=  LibADS.MedicalGuardianRole.PRIMARY && (
+      _canGrantProviderAccess ||
+      _canGrantGuardianAccess ||
+      _canRevokeProviderAccess ||
+      _canRevokeGuardianAccess ||
+      _canUploadRecords ||
+      _canDeleteRecords
+      // _canReadRecords  // this permission is allowed for a secondary medical guardian
+    )){
+      revert LibADS.AuthorizationError("Error updating medical guardian permissions: Secondary guardian is not allowed to perform delicate action(s)");
+    }
+
+    ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_mainPatientAddress] = LibADS.MedicalGuardianPermission({
+      role: _role,
+      guardian: _medicalGuardian,
+      patient: _mainPatientAddress,
+      canGrantProviderAccess: _canGrantProviderAccess,
+      canGrantGuardianAccess: _canGrantGuardianAccess,
+      canRevokeProviderAccess: _canRevokeProviderAccess,
+      canRevokeGuardianAccess: _canRevokeGuardianAccess,
+      canUploadRecords: _canUploadRecords,
+      canReadRecords: _canReadRecords,
+      canDeleteRecords: _canDeleteRecords
+    });
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent(
+      "Update on medical guardian permission to patient", 
+      _medicalGuardian, 
+      _mainPatientAddress
+    );
+  }
 
   //todo: add function to revoke/remove medical guardian access to patient identity. (the sender is a primary medical guardian)
 

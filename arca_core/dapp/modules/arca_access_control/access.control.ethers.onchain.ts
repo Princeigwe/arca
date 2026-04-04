@@ -161,6 +161,65 @@ export class AccessControlEthersOnchain{
   }
 
 
+  async updateMedicalGuardianPermission(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract,
+    medicalGuardianAddress: string,
+    mainPatientAddress: string,
+    role: MedicalGuardianRoleEnum,
+    canGrantProviderAccess: boolean = false,
+    canGrantGuardianAccess: boolean = false,
+    canRevokeProviderAccess: boolean = false,
+    canRevokeGuardianAccess: boolean = false,
+    canUploadRecords: boolean = false,
+    canReadRecords: boolean = false,
+    canDeleteRecords: boolean = false,
+  ){
+    try {
+      const medicalGuardianRoleType = role === MedicalGuardianRoleEnum.PRIMARY ? MedicalGuardianRoleType.PRIMARY : MedicalGuardianRoleType.SECONDARY
+
+      const iFace = new ethers.Interface(combinedABIs)
+      const data = iFace.encodeFunctionData(
+        'updateMedicalGuardianPermission',
+        [
+          medicalGuardianAddress,
+          mainPatientAddress,
+          medicalGuardianRoleType,
+          canGrantProviderAccess,
+          canGrantGuardianAccess,
+          canRevokeProviderAccess,
+          canRevokeGuardianAccess,
+          canUploadRecords,
+          canReadRecords,
+          canDeleteRecords
+        ]
+      )
+
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+
+      const response = await wallet.sendTransaction(txOption);
+      await response.wait();
+
+      contractConnect.once('MedicalGuardianAssignedToPatientEvent', (message, medicalGuardian, patient)=>{
+        console.log(`Event emitted: Message:${message} - Medical Guardian: ${medicalGuardian} - Patient: ${patient}`)
+      })
+
+    } catch (error: any) {
+      const iFace = new ethers.Interface(combinedABIs)
+      const errorData = error?.data ?? error?.error?.data ?? error?.info?.error?.data
+
+      if (errorData) {
+        const decodedError = iFace.parseError(errorData)
+        throw new Error(`Onchain error -  ${decodedError?.name}(${decodedError?.args?.join(', ')})`)
+      }
+      throw error
+    }
+  }
+
+
   async getIdentityCidOfAddress(wallet: ethers.Wallet, address: string) {
     try {
       const iFace = new ethers.Interface(combinedABIs);

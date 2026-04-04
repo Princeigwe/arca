@@ -186,6 +186,41 @@ export class ArcaAccessControlService{
     }
   }
 
+
+  async updateMedicalGuardianPermission(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract,
+    assigneeMedicalGuardianAddress: string,
+    mainPatientAddress: string,
+    role: MedicalGuardianRoleEnum,
+    canGrantProviderAccess?: boolean,
+    canGrantGuardianAccess?: boolean,
+    canRevokeProviderAccess?: boolean,
+    canRevokeGuardianAccess?: boolean,
+    canUploadRecords?: boolean,
+    canReadRecords?: boolean,
+    canDeleteRecords?: boolean,
+  ){
+    try {
+      return await this.accessControlEthersOnchain.updateMedicalGuardianPermission(
+        wallet,
+        contractConnect,
+        assigneeMedicalGuardianAddress,
+        mainPatientAddress,
+        role,
+        canGrantProviderAccess,
+        canGrantGuardianAccess,
+        canRevokeProviderAccess,
+        canRevokeGuardianAccess,
+        canUploadRecords,
+        canReadRecords,
+        canDeleteRecords
+      )
+    } catch (error) {
+      throw new Error(`Error updating medical guardian permissions: ${error}`)
+    }
+  }
+
 }
 
 
@@ -207,23 +242,40 @@ const secondGuardianConnect = testConnects[5]
 
 // arcaAccessControlService.getMyMedicalGuardianPermissions(primaryGuardianWallet)
 // arcaAccessControlService.getMedicalPermission(anyWallet, primaryGuardianWallet.address, patient1Wallet.address)
+arcaAccessControlService.getMedicalPermission(anyWallet, secondGuardianWallet.address, patient1Wallet.address)
+
 // arcaAccessControlService.generateMedicalGuardianConnectionSignature(
 //   secondGuardianWallet,
 //   patient1Wallet.address
 // )
 
-arcaAccessControlService.assignMedicalGuardian(
-  primaryGuardianWallet, 
-  primaryGuardianConnect,
-  secondGuardianWallet.address,
-  patient1Wallet.address,
-  MedicalGuardianRoleEnum.PRIMARY,
-  "0x5925b53d20cbcbd43107e57ba30ea67d7ef50bc9181db740e4f05261840a75f009bc4fc1453aa0057822fd85ba33531dbc0ef74177f2f633b50cf342c99a8b501b",
-  true,
-  true,
-  true,
-  true,
-  true,
-  true,
-  true
-)
+// arcaAccessControlService.assignMedicalGuardian(
+//   primaryGuardianWallet, 
+//   primaryGuardianConnect,
+//   secondGuardianWallet.address,
+//   patient1Wallet.address,
+//   MedicalGuardianRoleEnum.PRIMARY,
+//   "0x5925b53d20cbcbd43107e57ba30ea67d7ef50bc9181db740e4f05261840a75f009bc4fc1453aa0057822fd85ba33531dbc0ef74177f2f633b50cf342c99a8b501b",
+//   true,
+//   true,
+//   true,
+//   true,
+//   true,
+//   true,
+//   true
+// )
+
+// arcaAccessControlService.updateMedicalGuardianPermission(
+//   primaryGuardianWallet, 
+//   primaryGuardianConnect,
+//   secondGuardianWallet.address,
+//   patient1Wallet.address,
+//   MedicalGuardianRoleEnum.PRIMARY,
+//   true,
+//   true,
+//   true,
+//   true,
+//   true,
+//   true,
+//   false
+// )
