@@ -26,7 +26,7 @@ Arca also handles real-world edge cases: patients can link multiple wallet addre
 
 **For Patients**
 - Register onchain as a patient for a profile.
-- Link a maximum od two secondary wallet addresses to a single patient profile.
+- Link a maximum of two secondary wallet addresses to a single patient profile.
 - Designate a medical guardian address to manage records on behalf of underage patients.
 
 
@@ -82,9 +82,9 @@ And with public key encryption, the DEK is encrypted patient's public key to ena
 
 
 
-#### b. Minor Patient Registration with Medical Guardian Designation
+#### b. Minor Patient Registration with Primary Medical Guardian Designation
 
-This method enables and individual to register as a minor patient with designation to a medical guardian. THe same process as the standalone patient registration applies here. Only difference is that the age of majority be provided, together with the address and signature of the medical guardian for verification of designation.
+This method enables and individual to register as a minor patient with designation to a primary medical guardian. The same process as the standalone patient registration applies here. Only difference is that the age of majority be provided, together with the address and signature of the medical guardian for verification of designation.
 
 ```typescript
 async verifyPrimaryMedicalGuardianConnectionSignature(
@@ -125,6 +125,240 @@ async verifyPrimaryMedicalGuardianConnectionSignature(
   }
 ```
 
+With granular permissions defined, after a successful registration, the medical guardian is granted full access to operations, data and resources related to the minor patient.
+
+```solidity
+  enum MedicalGuardianRole{
+    PRIMARY,
+    SECONDARY
+  }
+
+  struct MedicalGuardianPermission{
+    MedicalGuardianRole role;
+    address guardian;
+    address patient;
+    bool canGrantProviderAccess;
+    bool canGrantGuardianAccess;
+    bool canRevokeProviderAccess;
+    bool canRevokeGuardianAccess;
+    bool canUploadRecords;
+    bool canReadRecords;
+    bool canDeleteRecords;
+  }
+```
+
+```solidity
+function registerMinorPatientWithMedicalGuardian(
+    uint256 _registeredAt, 
+    bytes memory _cid, 
+    bytes memory _adminInitializationSignatureUsed,
+    bytes memory _rsaMasterDEK, // for minor patient
+    bytes memory _rsaMasterDEKforMedicalGuardian, // for medical guardian
+    address _medicalGuardianAddress,
+    uint256 _ageOfMajority
+  ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
+    require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
+    if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
+      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, msg.sender);
+    }
+
+    uint256 patientCount = ds.patientCount;
+    patientCount++;
+    ds.patientCount = patientCount;
+
+    // creating the minor patient's identity as the current msg.sender
+    LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
+    newPatient.primaryAddress = msg.sender;
+    newPatient.registeredAt = _registeredAt;
+    newPatient.isVerified = false;
+    newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: msg.sender,
+      rsaMasterDEK: _rsaMasterDEK
+    }));
+    newPatient.ageOfMajority = _ageOfMajority;
+    newPatient.rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+      identity: _medicalGuardianAddress,
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian
+    }));
+
+    ds.addressCid[msg.sender] = _cid;
+
+    ds.patientAccount[msg.sender] = newPatient;
+    ds.accountExists[msg.sender] = true;
+    emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
+
+    // assigning permission to primary guardian
+
+    ds.isMedicalGuardianOfPatient[_medicalGuardianAddress][msg.sender] = true;
+    ds.patientMedicalGuardians[msg.sender].push(ds.medicalGuardianAccount[_medicalGuardianAddress]);
+
+
+    LibADS.MedicalGuardianPermission storage medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[_medicalGuardianAddress][msg.sender];
+    medicalGuardianPermission.role = LibADS.MedicalGuardianRole.PRIMARY;
+    medicalGuardianPermission.guardian = _medicalGuardianAddress;
+    medicalGuardianPermission.patient = msg.sender;
+    medicalGuardianPermission.canGrantProviderAccess = true;
+    medicalGuardianPermission.canGrantGuardianAccess = true;
+    medicalGuardianPermission.canRevokeProviderAccess = true;
+    medicalGuardianPermission.canRevokeGuardianAccess = true;
+    medicalGuardianPermission.canUploadRecords = true;
+    medicalGuardianPermission.canReadRecords = true;
+    medicalGuardianPermission.canDeleteRecords = true;
+
+    ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent(
+      "Primary medical guardian assigned to minor patient", 
+      _medicalGuardianAddress, 
+      msg.sender
+    );
+  }
+```
+
+### 2. Multi-link to Patient Profile with Secondary Address
+
+A patient can attach additional wallet addresses to their profile after registration. This is useful when a patient wants to interact with Arca from multiple wallets. This process begins with an external address. A link-request is sent from the external address to the patient. It is the duty of the patient to thoroughly confirm the external address before approval of request.
+
+```typescript
+async linkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    patientAddress: string,
+    randomMessage: string,
+  ) {
+    try {
+      return await this.identityEthersOnchain.linkAddressRequest(
+        wallet,
+        contractConnect,
+        patientAddress,
+        randomMessage,
+      );
+    } catch (error) {
+      throw new Error(`Error sending request for linking address: ${error}`);
+    }
+  }
+```
+
+```solidity
+function linkAddressRequest(
+    address _primaryAddress, 
+    bytes32 _requestHash, 
+    bytes memory _requestSignature
+    ) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(_primaryAddress != address(0), "Recipient must be a valid address");
+    require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
+    ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
+    emit LibADS.LinkAccountRequestEvent(
+      "Incoming request to link to primary address",
+      msg.sender,
+      _requestHash,
+      _requestSignature,
+      _primaryAddress
+    );
+  }
+```
+
+The primary address goes ahead to approve this multi-link request. After approval another operation is set to generate store the RSA-encrypted key of the patient's identity data on/off-chain, for the linked address.
+
+```typescript
+async approveLinkAddressRequest(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    secondaryAddress: string,
+    randomApprovalMessage: string,
+  ) {
+    try {
+
+      await this.identityEthersOnchain.approveLinkAddressRequest(
+        wallet,
+        contractConnect,
+        secondaryAddress,
+        randomApprovalMessage,
+      );
+
+    } catch (error) {
+      throw new Error(`Error approving link address request: ${error}`);
+    }
+  }
+```
+
+```typescript
+async storeRsaMasterDekForLinkedAccount(
+    wallet: ethers.Wallet,
+    contractConnect: ethers.Contract,
+    requestHash: string,
+    requestSignature: string,
+  ) {
+    try {
+      const walletAddress = await wallet.getAddress();
+      const patient = await this.readPatientOnchainData(
+        wallet,
+        walletAddress,
+      );
+      const patientRsaMasterDEKs = patient.rsaMasterDEKs;
+      const mainItemRsaData = patientRsaMasterDEKs.find(
+        (item) => item.identity === patient.primaryAddress,
+      );
+      const mainRsaKey = mainItemRsaData!.rsaMasterDEK // already converted from bytes to string
+
+      let decryptedMainRsaKey = mainRsaKey;
+      if (mainRsaKey.length > 100) {
+        decryptedMainRsaKey = RED.decryptDek(wallet.privateKey, mainRsaKey);
+      }
+
+      const recoveredPublicKey = ethers.SigningKey.recoverPublicKey(
+        requestHash,
+        requestSignature,
+      );
+      const recoveredAddress = ethers.recoverAddress(
+        requestHash,
+        requestSignature,
+      );
+      console.log("Linked Account Recovered public key: ", recoveredPublicKey);
+      console.log("Linked Account Recovered address: ", recoveredAddress);
+
+      const linkedAccountRsaMasterDek = RED.encryptDek(
+        recoveredPublicKey,
+        decryptedMainRsaKey,
+      );
+      await this.identityEthersOnchain.storeRsaMasterDekForLinkedAddressOnChain(
+        wallet,
+        contractConnect,
+        recoveredAddress,
+        linkedAccountRsaMasterDek,
+      );
+
+      //* storing the linked master key in IPFS data
+      await this.addLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, recoveredAddress, linkedAccountRsaMasterDek)
+
+      console.log("RSA master dek for linked account stored successfully")
+    } catch (error) {
+      throw new Error(
+        `Error storing RSA master dek for linked account: ${error}`,
+      );
+    }
+  }
+```
+After successful multi-link connection, the primary address can unlink the secondary address whenever the need arises.
+
+```typescript
+async unlinkSecondaryAddress(wallet: ethers.Wallet, secondaryAddress: string){
+    try{
+      const updatedCid = await this.removeLinkedSecondaryRsaMasterKeysIpfsProfileData(wallet, secondaryAddress)
+
+      await this.identityEthersOnchain.unlinkSecondaryAddress(wallet, secondaryAddress, updatedCid)
+      console.log("Successful disconnection on linked address")
+    }
+    catch(error){
+      throw new Error(`Error disconnecting secondary address: ${error}`)
+    }
+  }
+```
 
 > Documentation will grow as project develops..
 

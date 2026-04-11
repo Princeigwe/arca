@@ -10,6 +10,7 @@ export class RsaEncryptDecrypt {
    * @param senderPk The sender's wallet public key
    * @param adminPk The selected public key of an arca admin
    * @param medicalGuardianPk The medical guardian's wallet public key, only required for minor patients with medical guardians
+   * @param medicalGuardianAddress The wallet address of the medical guardian, used to identify the medical guardian in the list of encrypted keys for medical guardians, only required for minor patients with medical guardians
    * @returns a set of RSA encrypted keys
    */
   dualKeyEncryption(
@@ -17,7 +18,8 @@ export class RsaEncryptDecrypt {
     senderAddress: string, 
     senderPk: string, 
     adminPk: string, 
-    medicalGuardianPk?: string
+    medicalGuardianPk?: string,
+    medicalGuardianAddress?: string
   ) {
     try {
       const bufferDek = Buffer.from(dek, "utf-8");
@@ -57,7 +59,8 @@ export class RsaEncryptDecrypt {
 
       if(medicalGuardianEncryptedDek) {
         medicalGuardianToRsaMasterKey = {
-          medicalGuardian: senderAddress, // assuming the medical guardian is the same as the sender for now
+          // medicalGuardian: senderAddress, // assuming the medical guardian is the same as the sender for now
+          medicalGuardian: medicalGuardianAddress!,
           rsaEncryptedMasterDEK: medicalGuardianEncryptedDek.toString("base64"),
         }
       }
