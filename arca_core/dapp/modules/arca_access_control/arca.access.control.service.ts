@@ -221,6 +221,52 @@ export class ArcaAccessControlService{
     }
   }
 
+
+  async revokeMedicalGuardianPermission(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract,
+    assigneeMedicalGuardianAddress: string,
+    mainPatientAddress: string,
+  ){
+    try {
+      //1. get the CID and fetch patient's IPFS data
+      const patientIdentityCid = await this.accessControlEthersOnchain.getIdentityCidOfAddress(wallet, mainPatientAddress)
+      let patientOffchainData = await ipfsOperator.getFileByCid(patientIdentityCid)
+
+      //2. locate the RSA-encrypted DEK of the medical guardian to be revoked, and delete it
+      let parsedOffchainData = JSON.parse(patientOffchainData)
+
+      parsedOffchainData.encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians = parsedOffchainData
+        .encryptionMetaData
+        .rsaKeys
+        .rsaEncryptedMasterDEKsForMedicalGuardians
+        .filter((item: any) => item.medicalGuardian.toLowerCase() !== assigneeMedicalGuardianAddress.toLowerCase());
+
+      //3. with offchain data updated, upload it and retrieve new CID
+
+      const jsonData = JSON.stringify(parsedOffchainData);
+
+      const fileName: string = `${mainPatientAddress}-patient-identity.json`; // using the wallet address as file key
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        fileName,
+        jsonData,
+      );
+      console.log("Filebase upload response: ", uploadRequest);
+
+      //4. call the ethers interaction function with the updated CID to apply changes onchain
+
+      return await this.accessControlEthersOnchain.revokeMedicalGuardianPermission(
+        wallet,
+        contractConnect,
+        assigneeMedicalGuardianAddress,
+        mainPatientAddress,
+        cid
+      )
+    } catch (error) {
+      throw new Error(`Error revoking medical guardian from patient: ${error}`)
+    }
+  }
+
 }
 
 
@@ -242,7 +288,7 @@ const secondGuardianConnect = testConnects[5]
 
 // arcaAccessControlService.getMyMedicalGuardianPermissions(primaryGuardianWallet)
 // arcaAccessControlService.getMedicalPermission(anyWallet, primaryGuardianWallet.address, patient1Wallet.address)
-arcaAccessControlService.getMedicalPermission(anyWallet, secondGuardianWallet.address, patient1Wallet.address)
+// arcaAccessControlService.getMedicalPermission(anyWallet, secondGuardianWallet.address, patient1Wallet.address)
 
 // arcaAccessControlService.generateMedicalGuardianConnectionSignature(
 //   secondGuardianWallet,
@@ -278,4 +324,11 @@ arcaAccessControlService.getMedicalPermission(anyWallet, secondGuardianWallet.ad
 //   true,
 //   true,
 //   false
+// )
+
+// arcaAccessControlService.revokeMedicalGuardianPermission(
+//   primaryGuardianWallet, 
+//   primaryGuardianConnect,
+//   secondGuardianWallet.address,
+//   patient1Wallet.address,
 // )

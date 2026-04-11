@@ -205,6 +205,88 @@ contract ArcaAccessControl {
   }
 
   //todo: add function to revoke/remove medical guardian access to patient identity. (the sender is a primary medical guardian)
+  function revokeMedicalGuardianPermission(address _medicalGuardian, address _mainPatientAddress, bytes memory _cid) public {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.accountExists[_mainPatientAddress], LibADS.AccountDoesNotExistError(_mainPatientAddress));
+    require(
+      ds.medicalGuardianExists[msg.sender], 
+      LibADS.AuthorizationError('Error updating medical guardian permissions: Medical guardian entity does not exist for this sender')
+    );
+    require(
+      ds.isMedicalGuardianOfPatient[msg.sender][_mainPatientAddress], 
+      LibADS.AuthorizationError("Error updating medical guardian permissions: Sender is not a medical guardian to the patient")
+    );
+    require(
+      ds.medicalGuardianPermissionsOnPatient[msg.sender][_mainPatientAddress].role == LibADS.MedicalGuardianRole.PRIMARY,
+      LibADS.AuthorizationError("Error updating medical guardian permissions: Sender is not a primary medical guardian to the patient")
+    );
+
+    // locating the medical guardian to be removed
+    LibADS.MedicalGuardian[] storage patientMedicalGuardians = ds.patientMedicalGuardians[_mainPatientAddress];
+    uint256 medicalGuardianIndex;
+    bool medicalGuardianFound = false;
+
+    for(uint256 i = 0; i < patientMedicalGuardians.length; i++){
+      if(patientMedicalGuardians[i].guardianAddress == _medicalGuardian){
+        medicalGuardianIndex = i;
+        medicalGuardianFound = true;
+        break;
+      }
+    }
+    require(medicalGuardianFound, LibADS.AccountDoesNotExistError(_medicalGuardian));
+    // removing the medical guardian from the patient's medical guardians array
+    patientMedicalGuardians[medicalGuardianIndex] = patientMedicalGuardians[patientMedicalGuardians.length - 1];
+    patientMedicalGuardians.pop();
+
+    // locating the permission to be removed
+    LibADS.MedicalGuardianPermission[] storage medicalGuardianPermissions = ds.medicalGuardianPermissions[_medicalGuardian];
+    uint256 medicalGuardianPermissionIndex;
+    bool medicalGuardianPermissionFound = false;
+
+    for(uint256 i = 0; i < medicalGuardianPermissions.length; i++){
+      if(medicalGuardianPermissions[i].patient == _mainPatientAddress){
+        medicalGuardianPermissionIndex = i;
+        medicalGuardianPermissionFound = true;
+        break;
+      }
+    }
+    require(medicalGuardianPermissionFound, LibADS.MedicalGuardianPermissionDoesNotExistError(_medicalGuardian));
+    // removing the permission from the medical guardian's permissions array
+    medicalGuardianPermissions[medicalGuardianPermissionIndex] = medicalGuardianPermissions[medicalGuardianPermissions.length - 1];
+    medicalGuardianPermissions.pop();
+
+    // locating the RSA master DEK to be removed
+    LibADS.IdentityRSAMasterDEK[] storage rsaMasterDEKsForMedicalGuardians = ds.patientAccount[_mainPatientAddress].rsaMasterDEKsForMedicalGuardians;
+    uint256 medicalGuardianDekIndex;
+    bool medicalGuardianDekFound = false;
+
+    for(uint256 i = 0; i < rsaMasterDEKsForMedicalGuardians.length; i++){
+      if(rsaMasterDEKsForMedicalGuardians[i].identity == _medicalGuardian){
+        medicalGuardianDekIndex = i;
+        medicalGuardianDekFound = true;
+        break;
+      }
+    }
+    require(medicalGuardianDekFound, "Error revoking medical guardian permission: RSA master DEK for medical guardian not found");
+    // removing the RSA master DEK from the patient's account
+    rsaMasterDEKsForMedicalGuardians[medicalGuardianDekIndex] = rsaMasterDEKsForMedicalGuardians[rsaMasterDEKsForMedicalGuardians.length - 1];
+    rsaMasterDEKsForMedicalGuardians.pop();
+
+
+    // medical guardian entity in not a medical guardian to the patient
+    ds.isMedicalGuardianOfPatient[_medicalGuardian][_mainPatientAddress] = false;
+    // deleting the permission that the medical guardian has on the patient identity
+    delete ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_mainPatientAddress];
+
+    ds.addressCid[_mainPatientAddress] = _cid;
+
+    emit LibADS.MedicalGuardianPermissionRevokedEvent(
+      "Medical guardian is no longer assigned to patient", 
+      _medicalGuardian, 
+      _mainPatientAddress
+    );
+  }
+
 
   /// @notice This function is used to see medical guardian permissions on patient identity. It is required that the sender is also a medical guardian to the patient.
   /// @param _medicalGuardian The address of the medical guardian.

@@ -35,6 +35,7 @@ library LibArcaDiamondStorage{
   event SuccessfulSecondaryAddressDisconnectionEvent(address secondaryAddress);
   event MedicalGuardianCreationEvent(address guardianAddress, uint256 addedAt, address addedBy);
   event MedicalGuardianAssignedToPatientEvent(string message, address medicalGuardian, address patient);
+  event MedicalGuardianPermissionRevokedEvent (string message, address medicalGuardian, address patient);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
 
@@ -48,6 +49,7 @@ library LibArcaDiamondStorage{
   error NotLinkedSecondaryAddress(address providedAddress);
   error InvalidRsaMasterDEKRemovalError(string);
   error MaximumSecondaryAddressConnectionReachError(string);
+  error MedicalGuardianPermissionDoesNotExistError(address guardian);
 
   //** FACETS ENUMS
   enum ProviderType{

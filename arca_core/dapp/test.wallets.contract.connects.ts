@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { arca_diamond_abi } from "./abis/arca.diamond.abi";
 import { arca_identity_facet_abi } from "./abis/arca.identity.facet.abi";
+import { arca_access_control_facet_abi } from "./abis/arca.access.control.facet.abi";
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -8,7 +9,7 @@ const providerUrl = process.env.PROVIDER_URL || "http://localhost:8545";
 const provider = new ethers.JsonRpcProvider(providerUrl);
 
 const arcaDiamondAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
+const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi, ...arca_access_control_facet_abi];
 
 export class TestWallet {
   privateKey: string;
@@ -107,7 +108,7 @@ let primaryMedicalGuardianContractConnectInit = new ContractConnect(
 let primaryMedicalGuardianContractConnect = primaryMedicalGuardianContractConnectInit.connect();
 
 
-const secondMedicalGuardianPrivateKey = "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba"
+const secondMedicalGuardianPrivateKey = "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba" // account 5
 let secondMedicalGuardianWalletInit = new TestWallet(secondMedicalGuardianPrivateKey);
 let secondMedicalGuardianWallet = secondMedicalGuardianWalletInit.getWallet();
 let secondMedicalGuardianContractConnectInit = new ContractConnect(

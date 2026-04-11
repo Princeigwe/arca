@@ -219,6 +219,46 @@ export class AccessControlEthersOnchain{
     }
   }
 
+  async revokeMedicalGuardianPermission(
+    wallet: ethers.Wallet, 
+    contractConnect: ethers.Contract,
+    medicalGuardianAddress: string,
+    mainPatientAddress: string,
+    cid: string
+  ){
+    try {
+      const cidBytes = ethers.toUtf8Bytes(cid)
+      const iFace = new ethers.Interface(combinedABIs)
+      const data = iFace.encodeFunctionData(
+        'revokeMedicalGuardianPermission',
+        [
+          medicalGuardianAddress,
+          mainPatientAddress,
+          cidBytes
+        ]
+      )
+
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+      const response = await wallet.sendTransaction(txOption)
+      await response.wait()
+
+      contractConnect.once('MedicalGuardianPermissionRevokedEvent', (message, medicalGuardian, patient)=>{
+        console.log(`Event emitted: Message:${message} - Medical Guardian: ${medicalGuardian} - Patient: ${patient}`)
+      })
+    } catch (error: any) {
+      const iFace = new ethers.Interface(combinedABIs)
+      const errorData = error?.data ?? error?.error?.data ?? error?.info?.error?.data
+
+      if (errorData) {
+        const decodedError = iFace.parseError(errorData)
+        throw new Error(`Onchain error -  ${decodedError?.name}(${decodedError?.args?.join(', ')})`)
+      }
+      throw error
+    }
+  }
 
   async getIdentityCidOfAddress(wallet: ethers.Wallet, address: string) {
     try {

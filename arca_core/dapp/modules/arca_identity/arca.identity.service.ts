@@ -832,8 +832,8 @@ const secondGuardianWallet = testWallets[5];
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
 //   // admin2Wallet,
-//   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
-//   secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
+//   primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+//   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
 //   patient1Wallet.address,
 //   adminInitMessage
 // )

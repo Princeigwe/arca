@@ -22,6 +22,17 @@ export const arca_access_control_facet_abi = [
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "guardian",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianPermissionDoesNotExistError",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {
@@ -44,6 +55,31 @@ export const arca_access_control_facet_abi = [
         }
       ],
       "name": "MedicalGuardianAssignedToPatientEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "medicalGuardian",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "patient",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianPermissionRevokedEvent",
       "type": "event"
     },
     {
@@ -276,6 +312,29 @@ export const arca_access_control_facet_abi = [
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_medicalGuardian",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_mainPatientAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        }
+      ],
+      "name": "revokeMedicalGuardianPermission",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

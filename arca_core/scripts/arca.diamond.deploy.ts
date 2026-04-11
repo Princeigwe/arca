@@ -11,11 +11,12 @@ async function hardhatDeployDiamond() {
   const arcaAccessControlFacetCut = {
     facetAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     action: 0,
-    functionSelectors: [
+    functionSelectors:  [
       '0x0f12b746',
       '0xb8b9258b',
       '0x7427223c',
       '0x1a6c90a1',
+      '0x714e6b0e',
       '0xb7beebd5',
       '0x747915f7'
     ]
