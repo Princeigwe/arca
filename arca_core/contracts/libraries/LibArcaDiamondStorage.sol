@@ -68,6 +68,13 @@ library LibArcaDiamondStorage{
     SECONDARY
   }
 
+  // used to distinguish different identities for their RSA encrypted key
+  enum RsaIdentityType{
+    PATIENT,
+    PATIENT_LINKED_ADDRESS,
+    MEDICAL_GUARDIAN
+  }
+
   struct MedicalGuardianPermission{
     MedicalGuardianRole role;
     address guardian;
@@ -86,6 +93,7 @@ library LibArcaDiamondStorage{
   struct IdentityRSAMasterDEK{
     address identity;
     bytes rsaMasterDEK;
+    RsaIdentityType identityType;
   }
 
 
@@ -96,10 +104,10 @@ library LibArcaDiamondStorage{
     uint256 registeredAt;
     bool isVerified;
     bytes adminInitializationSignature;
-    IdentityRSAMasterDEK[] rsaMasterDEKs; // RSA encrypted master DEKs for main and linked accounts
+    IdentityRSAMasterDEK[] rsaMasterDEKs; // RSA encrypted master DEKs for main patient, linked accounts, and medical guardians
     bool isMinor;
     uint256 ageOfMajority; // Unix timestamp (seconds) representing the age of majority for the patient
-    IdentityRSAMasterDEK[] rsaMasterDEKsForMedicalGuardians; // RSA encrypted master DEKs for medical guardians (if patient is a minor)
+    // IdentityRSAMasterDEK[] rsaMasterDEKsForMedicalGuardians; // RSA encrypted master DEKs for medical guardians (if patient is a minor)
   }
 
 

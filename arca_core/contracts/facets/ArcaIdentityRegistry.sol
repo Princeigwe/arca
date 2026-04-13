@@ -140,7 +140,8 @@ contract ArcaIdentityRegistry{
     newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
     newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: msg.sender,
-      rsaMasterDEK: _rsaMasterDEK
+      rsaMasterDEK: _rsaMasterDEK,
+      identityType: LibADS.RsaIdentityType.PATIENT
     }));
 
     ds.addressCid[msg.sender] = _cid;
@@ -288,7 +289,8 @@ contract ArcaIdentityRegistry{
     );
     ds.patientAccount[msg.sender].rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: _secondaryAddress,
-      rsaMasterDEK: _rsaMasterDEK
+      rsaMasterDEK: _rsaMasterDEK,
+      identityType: LibADS.RsaIdentityType.PATIENT_LINKED_ADDRESS
     }));
     ds.sentLinkRequest[_secondaryAddress][msg.sender] = true;
     emit LibADS.PatientIdentityUpdateEvent("RSA master DEK stored for linked account");
@@ -340,7 +342,7 @@ contract ArcaIdentityRegistry{
     );
     require(
       ds.primaryAccountOf[_secondaryAddress] == address(0), 
-      LibADS.InvalidRsaMasterDEKRemovalError("Provided secondary address is linked to patient identity")
+      LibADS.InvalidRsaMasterDEKRemovalError("Provided secondary address is linked to a patient identity")
     );
     bool isValidSecondaryAddress = false;
     // LibADS.PatientIdentity storage patient = ds.patientAccount[msg.sender];
@@ -465,12 +467,14 @@ contract ArcaIdentityRegistry{
     newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
     newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: msg.sender,
-      rsaMasterDEK: _rsaMasterDEK
+      rsaMasterDEK: _rsaMasterDEK,
+      identityType: LibADS.RsaIdentityType.PATIENT
     }));
     newPatient.ageOfMajority = _ageOfMajority;
-    newPatient.rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: _medicalGuardianAddress,
-      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian,
+      identityType: LibADS.RsaIdentityType.MEDICAL_GUARDIAN
     }));
 
     ds.addressCid[msg.sender] = _cid;

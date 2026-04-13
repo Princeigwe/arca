@@ -293,6 +293,8 @@ export class IdentityEthersOnchain {
       const patient = decoded[0];
       console.log("Patient: ", patient);
 
+      const identityTypes = ["patient", "patient-linked-address", "medical guardian"]
+
       const formattedPatient = {
         primaryAddress: patient[0],
         linkedAddresses: Array.from(patient[1]),
@@ -302,13 +304,10 @@ export class IdentityEthersOnchain {
         rsaMasterDEKs: Array.from(patient[5]).map((item: any) => ({
           identity: item[0],
           rsaMasterDEK: ethers.toUtf8String(item[1]),
+          identityType: identityTypes[item[2]]
         })),
         isMinor: patient[6],
-        ageOfMajorityUnixTimestamp: Number(patient[7]),
-        rsaMasterDEKsForMedicalGuardians: Array.from(patient[8]).map((item: any) => ({
-          identity: item[0],
-          rsaMasterDEK: ethers.toUtf8String(item[1]),
-        })),
+        ageOfMajorityUnixTimestamp: Number(patient[7])
       };
       console.log("Formatted Patient Identity:", formattedPatient);
       return formattedPatient;
