@@ -169,6 +169,8 @@ function registerMinorPatientWithMedicalGuardian(
     patientCount++;
     ds.patientCount = patientCount;
 
+    ds.accountExists[msg.sender] = true;
+
     // creating the minor patient's identity as the current msg.sender
     LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
     newPatient.primaryAddress = msg.sender;
@@ -177,18 +179,19 @@ function registerMinorPatientWithMedicalGuardian(
     newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
     newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: msg.sender,
-      rsaMasterDEK: _rsaMasterDEK
+      rsaMasterDEK: _rsaMasterDEK,
+      identityType: LibADS.RsaIdentityType.PATIENT
     }));
     newPatient.ageOfMajority = _ageOfMajority;
-    newPatient.rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: _medicalGuardianAddress,
-      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian,
+      identityType: LibADS.RsaIdentityType.MEDICAL_GUARDIAN
     }));
 
     ds.addressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
-    ds.accountExists[msg.sender] = true;
     emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
 
     // assigning permission to primary guardian
@@ -228,14 +231,14 @@ async linkAddressRequest(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     patientAddress: string,
-    randomMessage: string,
+    linkMessage: string,
   ) {
     try {
       return await this.identityEthersOnchain.linkAddressRequest(
         wallet,
         contractConnect,
         patientAddress,
-        randomMessage,
+        linkMessage,
       );
     } catch (error) {
       throw new Error(`Error sending request for linking address: ${error}`);
@@ -270,7 +273,7 @@ async approveLinkAddressRequest(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
-    randomApprovalMessage: string,
+    approvalMessage: string,
   ) {
     try {
 
@@ -278,7 +281,7 @@ async approveLinkAddressRequest(
         wallet,
         contractConnect,
         secondaryAddress,
-        randomApprovalMessage,
+        approvalMessage,
       );
 
     } catch (error) {

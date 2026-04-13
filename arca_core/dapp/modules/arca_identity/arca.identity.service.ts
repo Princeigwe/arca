@@ -374,14 +374,14 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     patientAddress: string,
-    randomMessage: string,
+    linkMessage: string,
   ) {
     try {
       return await this.identityEthersOnchain.linkAddressRequest(
         wallet,
         contractConnect,
         patientAddress,
-        randomMessage,
+        linkMessage,
       );
     } catch (error) {
       throw new Error(`Error sending request for linking address: ${error}`);
@@ -392,7 +392,7 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
-    randomApprovalMessage: string,
+    approvalMessage: string,
   ) {
     try {
 
@@ -400,7 +400,7 @@ export class ArcaIdentityService {
         wallet,
         contractConnect,
         secondaryAddress,
-        randomApprovalMessage,
+        approvalMessage,
       );
 
     } catch (error) {
@@ -828,21 +828,21 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];
-const randomLinkRequestMessage = "Request for unified access";
+const linkRequestMessage = "Request for unified access";
 
 // arcaIdentityService.linkAddressRequest(
 //   patient1SecondaryWallet,
 //   patient1SecondaryContractConnect,
 //   patient1Wallet.address,
-//   randomLinkRequestMessage
+//   linkRequestMessage
 // )
 
-const randomApprovalMessage = "I approve the request for unified access";
+const approvalMessage = "I approve the request for unified access";
 // arcaIdentityService.approveLinkAddressRequest(
 //   patient1Wallet,
 //   patient1ContractConnect,
 //   patient1SecondaryWallet.address,
-//   randomApprovalMessage,
+//   approvalMessage,
 // );
 
 
