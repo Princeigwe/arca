@@ -6,15 +6,6 @@ export type IdentityRsaMasterKey = {
   identityType: IdentityType;
 }
 
-// export type MedicalGuardianToRsaMasterKey = {
-//   medicalGuardian: string;
-//   rsaEncryptedMasterDEK: string;
-// }
-// export type RsaEncryptedKeys = {
-//   rsaEncryptedMasterDEKs: IdentityRsaMasterKey[];
-//   rsaEncryptedMasterDEKsForMedicalGuardians?: MedicalGuardianToRsaMasterKey[]; // Optional, only for minors with medical guardians
-// }
-
 export type EncryptionMetadata = {
   rsaKeys: IdentityRsaMasterKey[]
   dekIv: string;

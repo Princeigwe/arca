@@ -1,4 +1,4 @@
-import {IdentityRsaMasterKey } from "../modules/arca_identity/entities/base.entity.type";
+import {IdentityRsaMasterKey } from "../modules/arca_identity/entities/ipfs.patient.entity.type";
 import { decrypt, encrypt } from "eciesjs";
 import { IdentityType } from "../modules/arca_identity/enums/identity.type.enum";
 

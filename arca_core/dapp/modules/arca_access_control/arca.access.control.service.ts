@@ -8,7 +8,7 @@ import {
 import { MedicalGuardianRoleEnum } from "./enums/medical.guardian.role.type";
 import { IpfsOperator } from "../../utils/ipfs.operator";
 import { RsaEncryptDecrypt } from "../../utils/rsa.encrypt.decrypt";
-import {IpfsEnvelope} from "../arca_identity/entities/base.entity.type";
+import {IpfsEnvelope} from "../arca_identity/entities/ipfs.patient.entity.type";
 import { IdentityType } from "../arca_identity/enums/identity.type.enum";
 
 const RED = new RsaEncryptDecrypt()

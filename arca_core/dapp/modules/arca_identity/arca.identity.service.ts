@@ -1,5 +1,5 @@
-import { EncryptionMetadata, IpfsEnvelope, IdentityRsaMasterKey } from "./entities/base.entity.type";
-import { PatientIdentity } from "./entities/patient.identity";
+import { EncryptionMetadata, IpfsEnvelope, IdentityRsaMasterKey } from "./entities/ipfs.patient.entity.type";
+import { FhirPatient } from "./entities/fhir.patient.resource";
 import { Gender } from "./enums/gender.enum";
 import { EmploymentStatus } from "./enums/employment.status.enum";
 import { IpfsOperator } from "../../utils/ipfs.operator";
@@ -28,7 +28,7 @@ const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
 const ipfsOperator = new IpfsOperator();
 
-const storageType = PatientIdentity.name;
+const storageType = FhirPatient.name;
 
 const SED = new SymmetricEncryptDecrypt();
 const RED = new RsaEncryptDecrypt();
@@ -105,9 +105,13 @@ export class ArcaIdentityService {
     lastName: string,
     dateOfBirth: Date,
     gender: Gender,
-    nationalID: string,
     homeAddress: string,
-    employmentStatus: EmploymentStatus,
+    cityOfResidence?: string,
+    stateOfResidence?: string,
+    countryOfResidence?: string,
+    employmentStatus?: EmploymentStatus,
+    telephone?: string,
+    email?: string
   ) {
     try {
       // check if there are admin init msg and sigs
@@ -118,17 +122,24 @@ export class ArcaIdentityService {
       if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) {
         throw new Error("No admin initialization hashes found.");
       }
-      const identityData = new PatientIdentity(
+      let identityData = new FhirPatient(
+        wallet.address,
         firstName,
         lastName,
         dateOfBirth,
         gender,
-        nationalID,
         homeAddress,
+        cityOfResidence,
+        stateOfResidence,
+        countryOfResidence,
         employmentStatus,
-      );
+        telephone,
+        email
+      )
 
-      const plainIdentityJsonData = JSON.stringify(identityData);
+      const fhirPatientResource = identityData.constructResource()
+
+      const plainIdentityJsonData = JSON.stringify(fhirPatientResource);
       // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
@@ -612,11 +623,15 @@ export class ArcaIdentityService {
     lastName: string,
     dateOfBirth: Date,
     gender: Gender,
-    nationalID: string,
     homeAddress: string,
-    employmentStatus: EmploymentStatus,
     medicalGuardianAddress: string,
-    medicalGuardianConnectionSignature: string
+    medicalGuardianConnectionSignature: string,
+    cityOfResidence?: string,
+    stateOfResidence?: string,
+    countryOfResidence?: string,
+    employmentStatus?: EmploymentStatus,
+    telephone?: string,
+    email?: string
   ){
     try {
       const adminMsgAndSigs =
@@ -638,17 +653,25 @@ export class ArcaIdentityService {
         throw new Error('Signature of provided address of medical guardian is not valid')
       }
       
-      const identityData = new PatientIdentity(
+      let identityData = new FhirPatient(
+        minorWallet.address,
         firstName,
         lastName,
         dateOfBirth,
         gender,
-        nationalID,
         homeAddress,
+        cityOfResidence,
+        stateOfResidence,
+        countryOfResidence,
         employmentStatus,
-      );
+        telephone,
+        email
+      )
 
-      const plainIdentityJsonData = JSON.stringify(identityData);
+
+      const fhirPatientResource = identityData.constructResource()
+
+      const plainIdentityJsonData = JSON.stringify(fhirPatientResource);
       // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
@@ -754,9 +777,13 @@ let admin2ContractConnect = testConnects[3];
 //   "Doe",
 //   new Date(),
 //   Gender.MALE,
-//   "123456789",
 //   "123 Main St",
+//   "Lagos",
+//   "Lagos",
+//   "Nigeria",
 //   EmploymentStatus.STUDENT,
+//   "+2349058858858",
+//   "testprince@gmail.com",
 // );
 
 const iv = "89c16532618816bd38342b9170d5f9b4";
@@ -844,8 +871,8 @@ const secondGuardianWallet = testWallets[5];
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
 //   // admin2Wallet,
-//   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
-//   secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
+//   primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+//   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
 //   patient1Wallet.address,
 //   adminInitMessage
 // )
@@ -863,11 +890,15 @@ const secondGuardianWallet = testWallets[5];
 //   "Doe",
 //   new Date(),
 //   Gender.MALE,
-//   "123456789",
 //   "123 Main St",
-//   EmploymentStatus.STUDENT,
 //   primaryGuardianWallet.address,
 //   "0xbed0f72088b2f47c6f82f3143de94946a1c10c2e9d501a212e621db1751f63f4789b839e671f5100825ee3e8b11ad33cfd6eabb7ff3f4780b9d5f9c177936edc1c",
+//   "Lagos",
+//   "Lagos",
+//   "Nigeria",
+//   EmploymentStatus.STUDENT,
+//   "+2349058858858",
+//   "testprince@gmail.com",
 // )
 
 
