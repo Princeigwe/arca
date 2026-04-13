@@ -120,9 +120,10 @@ contract ArcaAccessControl {
     ds.medicalGuardianPermissions[_medicalGuardian].push(ds.medicalGuardianPermissionsOnPatient[_medicalGuardian][_mainPatientAddress]);
 
     // storing RSA encrypted DEK of the assigned medical guardian
-    ds.patientAccount[_mainPatientAddress].rsaMasterDEKsForMedicalGuardians.push(LibADS.IdentityRSAMasterDEK({
+    ds.patientAccount[_mainPatientAddress].rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
       identity: _medicalGuardian,
-      rsaMasterDEK: _rsaMasterDekForMedicalGuardian
+      rsaMasterDEK: _rsaMasterDekForMedicalGuardian,
+      identityType: LibADS.RsaIdentityType.MEDICAL_GUARDIAN
     }));
 
     ds.addressCid[_mainPatientAddress] = _cid;
@@ -256,12 +257,12 @@ contract ArcaAccessControl {
     medicalGuardianPermissions.pop();
 
     // locating the RSA master DEK to be removed
-    LibADS.IdentityRSAMasterDEK[] storage rsaMasterDEKsForMedicalGuardians = ds.patientAccount[_mainPatientAddress].rsaMasterDEKsForMedicalGuardians;
+    LibADS.IdentityRSAMasterDEK[] storage rsaMasterDEKs = ds.patientAccount[_mainPatientAddress].rsaMasterDEKs;
     uint256 medicalGuardianDekIndex;
     bool medicalGuardianDekFound = false;
 
-    for(uint256 i = 0; i < rsaMasterDEKsForMedicalGuardians.length; i++){
-      if(rsaMasterDEKsForMedicalGuardians[i].identity == _medicalGuardian){
+    for(uint256 i = 0; i < rsaMasterDEKs.length; i++){
+      if(rsaMasterDEKs[i].identity == _medicalGuardian){
         medicalGuardianDekIndex = i;
         medicalGuardianDekFound = true;
         break;
@@ -269,8 +270,8 @@ contract ArcaAccessControl {
     }
     require(medicalGuardianDekFound, "Error revoking medical guardian permission: RSA master DEK for medical guardian not found");
     // removing the RSA master DEK from the patient's account
-    rsaMasterDEKsForMedicalGuardians[medicalGuardianDekIndex] = rsaMasterDEKsForMedicalGuardians[rsaMasterDEKsForMedicalGuardians.length - 1];
-    rsaMasterDEKsForMedicalGuardians.pop();
+    rsaMasterDEKs[medicalGuardianDekIndex] = rsaMasterDEKs[rsaMasterDEKs.length - 1];
+    rsaMasterDEKs.pop();
 
 
     // medical guardian entity in not a medical guardian to the patient

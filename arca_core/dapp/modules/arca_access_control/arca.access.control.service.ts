@@ -8,6 +8,8 @@ import {
 import { MedicalGuardianRoleEnum } from "./enums/medical.guardian.role.type";
 import { IpfsOperator } from "../../utils/ipfs.operator";
 import { RsaEncryptDecrypt } from "../../utils/rsa.encrypt.decrypt";
+import {IpfsEnvelope} from "../arca_identity/entities/ipfs.patient.entity.type";
+import { IdentityType } from "../arca_identity/enums/identity.type.enum";
 
 const RED = new RsaEncryptDecrypt()
 
@@ -127,15 +129,14 @@ export class ArcaAccessControlService{
       //2. get the offchain data from IPFS using the CID and extract the RSA-encrypted master DEK of the medical guardian(assigner) from the data
       let patientOffchainData = await ipfsOperator.getFileByCid(patientIdentityCid)
       console.log("Offchain patient data fetched by CID: ", patientOffchainData)
-      const parsedOffchainData = JSON.parse(patientOffchainData);
+      const parsedOffchainData: IpfsEnvelope = JSON.parse(patientOffchainData);
 
-      console.log("Keys for medical guardians in offchain data: ", parsedOffchainData.encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians)
+      console.log("Keys for medical guardians in offchain data: ", parsedOffchainData.encryptionMetaData!.rsaKeys)
 
       let assignerRsaMasterDekPosition = parsedOffchainData
-        .encryptionMetaData
+        .encryptionMetaData!
         .rsaKeys
-        .rsaEncryptedMasterDEKsForMedicalGuardians
-        .findIndex((item: any) => item.medicalGuardian.toLowerCase() === wallet.address.toLowerCase())
+        .findIndex((item: any) => item.wallet == wallet.address)
       
       console.log("Position of assigner medical guardian's RSA-encrypted master DEK in offchain data: ", assignerRsaMasterDekPosition)
 
@@ -145,15 +146,16 @@ export class ArcaAccessControlService{
       
       const decryptedDekForAssigner = RED.decryptDek(
         wallet.privateKey, 
-        parsedOffchainData.encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians[assignerRsaMasterDekPosition].rsaEncryptedMasterDEK
+        parsedOffchainData.encryptionMetaData!.rsaKeys[assignerRsaMasterDekPosition].rsaEncryptedMasterDEK
       )
 
       // RSA-encrypting the master DEK with the public key of the new medical guardian(assignee)
       const encryptedDekForAssignee = RED.encryptDek(recoveredMedicalGuardianPublicKey!, decryptedDekForAssigner)
 
-      parsedOffchainData.encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians.push({
-        medicalGuardian: assigneeMedicalGuardianAddress,
-        rsaEncryptedMasterDEK: encryptedDekForAssignee
+      parsedOffchainData.encryptionMetaData!.rsaKeys.push({
+        wallet: assigneeMedicalGuardianAddress,
+        rsaEncryptedMasterDEK: encryptedDekForAssignee,
+        identityType: IdentityType.MEDICAL_GUARDIAN
       });
 
       const jsonData = JSON.stringify(parsedOffchainData);
@@ -295,21 +297,21 @@ const secondGuardianConnect = testConnects[5]
 //   patient1Wallet.address
 // )
 
-// arcaAccessControlService.assignMedicalGuardian(
-//   primaryGuardianWallet, 
-//   primaryGuardianConnect,
-//   secondGuardianWallet.address,
-//   patient1Wallet.address,
-//   MedicalGuardianRoleEnum.PRIMARY,
-//   "0x5925b53d20cbcbd43107e57ba30ea67d7ef50bc9181db740e4f05261840a75f009bc4fc1453aa0057822fd85ba33531dbc0ef74177f2f633b50cf342c99a8b501b",
-//   true,
-//   true,
-//   true,
-//   true,
-//   true,
-//   true,
-//   true
-// )
+arcaAccessControlService.assignMedicalGuardian(
+  primaryGuardianWallet, 
+  primaryGuardianConnect,
+  secondGuardianWallet.address,
+  patient1Wallet.address,
+  MedicalGuardianRoleEnum.PRIMARY,
+  "0x5925b53d20cbcbd43107e57ba30ea67d7ef50bc9181db740e4f05261840a75f009bc4fc1453aa0057822fd85ba33531dbc0ef74177f2f633b50cf342c99a8b501b",
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true
+)
 
 // arcaAccessControlService.updateMedicalGuardianPermission(
 //   primaryGuardianWallet, 
@@ -323,7 +325,7 @@ const secondGuardianConnect = testConnects[5]
 //   true,
 //   true,
 //   true,
-//   false
+//   true
 // )
 
 // arcaAccessControlService.revokeMedicalGuardianPermission(

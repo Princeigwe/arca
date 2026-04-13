@@ -1,5 +1,6 @@
-import { MedicalGuardianToRsaMasterKey, RsaEncryptedKeys, SenderToRsaMasterKey } from "../modules/arca_identity/entities/base.entity.type";
+import {IdentityRsaMasterKey } from "../modules/arca_identity/entities/ipfs.patient.entity.type";
 import { decrypt, encrypt } from "eciesjs";
+import { IdentityType } from "../modules/arca_identity/enums/identity.type.enum";
 
 export class RsaEncryptDecrypt {
   /**
@@ -18,15 +19,16 @@ export class RsaEncryptDecrypt {
     senderAddress: string, 
     senderPk: string, 
     adminPk: string, 
+    adminAddress: string,
     medicalGuardianPk?: string,
-    medicalGuardianAddress?: string
+    medicalGuardianAddress?: string,
   ) {
     try {
       const bufferDek = Buffer.from(dek, "utf-8");
 
       let medicalGuardianPkBuffer: Buffer | null = null;
       let medicalGuardianEncryptedDek: Buffer | null = null;
-      let medicalGuardianToRsaMasterKey: MedicalGuardianToRsaMasterKey | null = null;
+      let medicalGuardianToRsaMasterKey: IdentityRsaMasterKey | null = null;
 
       // public keys from ethers.js are hex strings, often with a '0x' prefix
       // they also represent uncompressed keys, which eciesjs can handle
@@ -40,7 +42,10 @@ export class RsaEncryptDecrypt {
       );
 
 
+      // RSA-encrypted DEK for the sender (patient)
       const sendEncryptedDek = encrypt(senderPkBuffer, bufferDek);
+
+      // RSA-encrypted DEK for the Arca admin for KYC-verification
       const adminEncryptedDek = encrypt(adminPkBuffer, bufferDek);
 
       if(medicalGuardianPk){
@@ -52,25 +57,39 @@ export class RsaEncryptDecrypt {
       }
 
 
-      const senderToRsaMasterKey: SenderToRsaMasterKey = {
-        sender: senderAddress,
+      const senderToRsaMasterKey: IdentityRsaMasterKey = {
+        wallet: senderAddress, // patient main address
         rsaEncryptedMasterDEK: sendEncryptedDek.toString("base64"),
+        identityType: IdentityType.PATIENT
+      }
+
+      const adminToRsaMasterKey: IdentityRsaMasterKey = {
+        wallet : adminAddress,
+        rsaEncryptedMasterDEK: adminEncryptedDek.toString("base64"),
+        identityType: IdentityType.ADMIN
       }
 
       if(medicalGuardianEncryptedDek) {
         medicalGuardianToRsaMasterKey = {
-          // medicalGuardian: senderAddress, // assuming the medical guardian is the same as the sender for now
-          medicalGuardian: medicalGuardianAddress!,
+          wallet: medicalGuardianAddress!,
           rsaEncryptedMasterDEK: medicalGuardianEncryptedDek.toString("base64"),
+          identityType: IdentityType.MEDICAL_GUARDIAN
         }
       }
 
-      let keys: RsaEncryptedKeys = {
-        rsaEncryptedDEKForAdmin: adminEncryptedDek.toString("base64"),
-        rsaEncryptedMasterDEKsForSender: [senderToRsaMasterKey],
-        rsaEncryptedMasterDEKsForMedicalGuardians: medicalGuardianToRsaMasterKey ? [medicalGuardianToRsaMasterKey] : undefined
-      };
+      // let keys: RsaEncryptedKeys = {
+      //   rsaEncryptedDEKForAdmin: adminEncryptedDek.toString("base64"),
+      //   rsaEncryptedMasterDEKs: [senderToRsaMasterKey],
+      //   rsaEncryptedMasterDEKsForMedicalGuardians: medicalGuardianToRsaMasterKey ? [medicalGuardianToRsaMasterKey] : undefined
+      // };
+      // return keys;
+
+      let keys = [senderToRsaMasterKey, adminToRsaMasterKey];
+      if(medicalGuardianEncryptedDek) {
+        keys.push(medicalGuardianToRsaMasterKey!);
+      }
       return keys;
+
     } catch (error) {
       console.error("Error in dual encryption process: ", error);
       throw error;

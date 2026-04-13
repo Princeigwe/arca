@@ -337,6 +337,11 @@ export const arca_identity_facet_abi = [
                   "internalType": "bytes",
                   "name": "rsaMasterDEK",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
+                  "name": "identityType",
+                  "type": "uint8"
                 }
               ],
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
@@ -352,23 +357,6 @@ export const arca_identity_facet_abi = [
               "internalType": "uint256",
               "name": "ageOfMajority",
               "type": "uint256"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKsForMedicalGuardians",
-              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -440,6 +428,11 @@ export const arca_identity_facet_abi = [
                   "internalType": "bytes",
                   "name": "rsaMasterDEK",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
+                  "name": "identityType",
+                  "type": "uint8"
                 }
               ],
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
@@ -455,23 +448,6 @@ export const arca_identity_facet_abi = [
               "internalType": "uint256",
               "name": "ageOfMajority",
               "type": "uint256"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKsForMedicalGuardians",
-              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -530,6 +506,11 @@ export const arca_identity_facet_abi = [
                   "internalType": "bytes",
                   "name": "rsaMasterDEK",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
+                  "name": "identityType",
+                  "type": "uint8"
                 }
               ],
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
@@ -545,23 +526,6 @@ export const arca_identity_facet_abi = [
               "internalType": "uint256",
               "name": "ageOfMajority",
               "type": "uint256"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKsForMedicalGuardians",
-              "type": "tuple[]"
             }
           ],
           "indexed": false,
@@ -882,6 +846,11 @@ export const arca_identity_facet_abi = [
                   "internalType": "bytes",
                   "name": "rsaMasterDEK",
                   "type": "bytes"
+                },
+                {
+                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
+                  "name": "identityType",
+                  "type": "uint8"
                 }
               ],
               "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
@@ -897,23 +866,6 @@ export const arca_identity_facet_abi = [
               "internalType": "uint256",
               "name": "ageOfMajority",
               "type": "uint256"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKsForMedicalGuardians",
-              "type": "tuple[]"
             }
           ],
           "internalType": "struct LibArcaDiamondStorage.PatientIdentity",

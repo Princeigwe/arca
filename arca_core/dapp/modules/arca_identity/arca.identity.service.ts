@@ -1,5 +1,5 @@
-import { EncryptionMetadata, IPFS, SenderToRsaMasterKey } from "./entities/base.entity.type";
-import { PatientIdentity } from "./entities/patient.identity";
+import { EncryptionMetadata, IpfsEnvelope, IdentityRsaMasterKey } from "./entities/ipfs.patient.entity.type";
+import { FhirPatient } from "./entities/fhir.patient.resource";
 import { Gender } from "./enums/gender.enum";
 import { EmploymentStatus } from "./enums/employment.status.enum";
 import { IpfsOperator } from "../../utils/ipfs.operator";
@@ -16,6 +16,7 @@ import { arca_identity_facet_abi } from "../../abis/arca.identity.facet.abi";
 import { RsaEncryptDecrypt } from "../../utils/rsa.encrypt.decrypt";
 import { IdentityEthersOnchain } from "./identity.ethers.onchain";
 import { isTemplateExpression } from "typescript";
+import { IdentityType } from "./enums/identity.type.enum";
 
 // const dotenv = require("dotenv");
 // const path = require("path");
@@ -27,7 +28,7 @@ const combinedABIs = [...arca_diamond_abi, ...arca_identity_facet_abi];
 
 const ipfsOperator = new IpfsOperator();
 
-const storageType = PatientIdentity.name;
+const storageType = FhirPatient.name;
 
 const SED = new SymmetricEncryptDecrypt();
 const RED = new RsaEncryptDecrypt();
@@ -104,9 +105,13 @@ export class ArcaIdentityService {
     lastName: string,
     dateOfBirth: Date,
     gender: Gender,
-    nationalID: string,
     homeAddress: string,
-    employmentStatus: EmploymentStatus,
+    cityOfResidence?: string,
+    stateOfResidence?: string,
+    countryOfResidence?: string,
+    employmentStatus?: EmploymentStatus,
+    telephone?: string,
+    email?: string
   ) {
     try {
       // check if there are admin init msg and sigs
@@ -117,17 +122,24 @@ export class ArcaIdentityService {
       if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) {
         throw new Error("No admin initialization hashes found.");
       }
-      const identityData = new PatientIdentity(
+      let identityData = new FhirPatient(
+        wallet.address,
         firstName,
         lastName,
         dateOfBirth,
         gender,
-        nationalID,
         homeAddress,
+        cityOfResidence,
+        stateOfResidence,
+        countryOfResidence,
         employmentStatus,
-      );
+        telephone,
+        email
+      )
 
-      const plainIdentityJsonData = JSON.stringify(identityData);
+      const fhirPatientResource = identityData.constructResource()
+
+      const plainIdentityJsonData = JSON.stringify(fhirPatientResource);
       // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
@@ -142,17 +154,19 @@ export class ArcaIdentityService {
       const { adminRecoveredPublicKey, adminMessageSignature } = await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
           wallet,
         );
+      const computedAdminAddress = ethers.computeAddress(adminRecoveredPublicKey!)
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
         wallet.address,
         senderPk,
         adminRecoveredPublicKey!,
+        computedAdminAddress
       )!;
       const encryptionMetadata: EncryptionMetadata = {
         dekIv: iv,
         rsaKeys: rsaEncryptedKeys,
       };
-      const data: IPFS = {
+      const data: IpfsEnvelope = {
         storageType,
         primaryWalletAddress: wallet.address,
         uploadedAt: new Date(),
@@ -174,7 +188,7 @@ export class ArcaIdentityService {
         contractConnect,
         cid!,
         adminMessageSignature,
-        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
+        rsaEncryptedKeys[0].rsaEncryptedMasterDEK,
       );
       console.log("Patient registration successful");
     } catch (error) {
@@ -272,16 +286,20 @@ export class ArcaIdentityService {
           throw new Error("The signature of the admin sender cannot be verified to have initialized the patient data, hence cannot be authorized to read the patient IPFS data")
         }
         const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
-        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const ipfsDataEnvelope = await ipfsOperator.getFileByCid(patientCid)
+        let jsonIPFSDataEnvelope: IpfsEnvelope = JSON.parse(ipfsDataEnvelope)
+
+        const adminRsaEncryptedDEK = jsonIPFSDataEnvelope.encryptionMetaData?.rsaKeys.find(item=> item.identityType == IdentityType.ADMIN)?.rsaEncryptedMasterDEK
+
         const decryptedDekForAdmin = RED.decryptDek(
           wallet.privateKey, 
-          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedDEKForAdmin
+          adminRsaEncryptedDEK!
         )
 
         const decryptedPatientData = SED.decryptData(
-          JSON.parse(encryptedIpfsData).encryptedData,
+          JSON.parse(ipfsDataEnvelope).encryptedData,
           decryptedDekForAdmin,
-          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+          JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
         )
         console.log("Decrypted patient data:", decryptedPatientData);
         return decryptedPatientData;
@@ -291,21 +309,22 @@ export class ArcaIdentityService {
       // else if sender is medical guardian
       else if(senderIsMedicalGuardianOfPatient){
         const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
-        const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+        // const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
 
-        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKsForMedicalGuardians.findIndex(
-          item => item.identity == wallet.address
-        )
-        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+
+        const ipfsDataEnvelope = await ipfsOperator.getFileByCid(patientCid)
+        let jsonIPFSDataEnvelope: IpfsEnvelope = JSON.parse(ipfsDataEnvelope)
+
+        const medicalGuardianRsaEncryptedDEK = jsonIPFSDataEnvelope.encryptionMetaData?.rsaKeys.find(item=> item.identityType == IdentityType.MEDICAL_GUARDIAN && item.wallet == wallet.address)?.rsaEncryptedMasterDEK
         const decryptedDekForSender = RED.decryptDek(
           wallet.privateKey, 
-          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForMedicalGuardians[senderRsaMasterDekPosition].rsaEncryptedMasterDEK
+          medicalGuardianRsaEncryptedDEK!
         )
 
         const decryptedPatientData = SED.decryptData(
-          JSON.parse(encryptedIpfsData).encryptedData,
+          JSON.parse(ipfsDataEnvelope).encryptedData,
           decryptedDekForSender,
-          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+          JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
         )
 
         console.log("Decrypted patient data:", decryptedPatientData);
@@ -315,22 +334,22 @@ export class ArcaIdentityService {
       // else sender is patient
       else{
         const patientCid = await this.identityEthersOnchain.getCidOfAddress(wallet, patientAddress)
-        const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
+        // const patientOnchainData = await this.readPatientOnchainData(wallet, patientAddress)
 
-        let senderRsaMasterDekPosition = patientOnchainData.rsaMasterDEKs.findIndex(
-          item => item.identity == wallet.address
-        )
-    
-        const encryptedIpfsData = await ipfsOperator.getFileByCid(patientCid)
+        const ipfsDataEnvelope = await ipfsOperator.getFileByCid(patientCid)
+        let jsonIPFSDataEnvelope: IpfsEnvelope = JSON.parse(ipfsDataEnvelope)
+
+        // allowing either the main patient address or linked secondary address to read the data
+        const patientRsaEncryptedDEK = jsonIPFSDataEnvelope.encryptionMetaData?.rsaKeys.find(item=> item.wallet == wallet.address)?.rsaEncryptedMasterDEK
         const decryptedDekForSender = RED.decryptDek(
           wallet.privateKey, 
-          JSON.parse(encryptedIpfsData).encryptionMetaData.rsaKeys.rsaEncryptedMasterDEKsForSender[senderRsaMasterDekPosition].rsaEncryptedMasterDEK
+          patientRsaEncryptedDEK!
         )
 
         const decryptedPatientData = SED.decryptData(
-          JSON.parse(encryptedIpfsData).encryptedData,
+          JSON.parse(ipfsDataEnvelope).encryptedData,
           decryptedDekForSender,
-          JSON.parse(encryptedIpfsData).encryptionMetaData.dekIv,
+          JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
         )
 
         console.log("Decrypted patient data:", decryptedPatientData);
@@ -355,14 +374,14 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     patientAddress: string,
-    randomMessage: string,
+    linkMessage: string,
   ) {
     try {
       return await this.identityEthersOnchain.linkAddressRequest(
         wallet,
         contractConnect,
         patientAddress,
-        randomMessage,
+        linkMessage,
       );
     } catch (error) {
       throw new Error(`Error sending request for linking address: ${error}`);
@@ -373,7 +392,7 @@ export class ArcaIdentityService {
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     secondaryAddress: string,
-    randomApprovalMessage: string,
+    approvalMessage: string,
   ) {
     try {
 
@@ -381,7 +400,7 @@ export class ArcaIdentityService {
         wallet,
         contractConnect,
         secondaryAddress,
-        randomApprovalMessage,
+        approvalMessage,
       );
 
     } catch (error) {
@@ -473,11 +492,12 @@ export class ArcaIdentityService {
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
 
-      const senderToRsaMasterDEK: SenderToRsaMasterKey = {
-        sender: secondaryAddress,
-        rsaEncryptedMasterDEK: linkedRsaMasterDEK
+      const walletToRsaMasterDEK: IdentityRsaMasterKey = {
+        wallet: secondaryAddress,
+        rsaEncryptedMasterDEK: linkedRsaMasterDEK,
+        identityType: IdentityType.PATIENT_LINKED_ADDRESS
       }
-      newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender.push(senderToRsaMasterDEK)
+      newData.encryptionMetaData!.rsaKeys.push(walletToRsaMasterDEK)
       const jsonData = JSON.stringify(newData);
 
       const fileName: string = `${wallet.address}-patient-identity.json`; // using the wallet address as file key
@@ -513,15 +533,15 @@ export class ArcaIdentityService {
       const oldData = JSON.parse(await ipfsOperator.getFileByCid(oldCid))
       let newData = oldData
 
-      let senderKeys: SenderToRsaMasterKey[] = newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender
+      let senderKeys: IdentityRsaMasterKey[] = newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender
 
-      const secondaryAddressExists = senderKeys.some(item => item.sender === secondaryAddress)
+      const secondaryAddressExists = senderKeys.some(item => item.wallet === secondaryAddress)
 
       if (!secondaryAddressExists) {
         throw new Error(`Secondary address ${secondaryAddress} does not exist in the linked addresses list`)
       }
 
-      let reservedMasterSenderDEKsForSender = senderKeys.filter(senderKeys => senderKeys.sender !== secondaryAddress)
+      let reservedMasterSenderDEKsForSender = senderKeys.filter(senderKeys => senderKeys.wallet !== secondaryAddress)
 
       newData.encryptionMetaData!.rsaKeys.rsaEncryptedMasterDEKsForSender = reservedMasterSenderDEKsForSender
 
@@ -603,11 +623,15 @@ export class ArcaIdentityService {
     lastName: string,
     dateOfBirth: Date,
     gender: Gender,
-    nationalID: string,
     homeAddress: string,
-    employmentStatus: EmploymentStatus,
     medicalGuardianAddress: string,
-    medicalGuardianConnectionSignature: string
+    medicalGuardianConnectionSignature: string,
+    cityOfResidence?: string,
+    stateOfResidence?: string,
+    countryOfResidence?: string,
+    employmentStatus?: EmploymentStatus,
+    telephone?: string,
+    email?: string
   ){
     try {
       const adminMsgAndSigs =
@@ -629,17 +653,25 @@ export class ArcaIdentityService {
         throw new Error('Signature of provided address of medical guardian is not valid')
       }
       
-      const identityData = new PatientIdentity(
+      let identityData = new FhirPatient(
+        minorWallet.address,
         firstName,
         lastName,
         dateOfBirth,
         gender,
-        nationalID,
         homeAddress,
+        cityOfResidence,
+        stateOfResidence,
+        countryOfResidence,
         employmentStatus,
-      );
+        telephone,
+        email
+      )
 
-      const plainIdentityJsonData = JSON.stringify(identityData);
+
+      const fhirPatientResource = identityData.constructResource()
+
+      const plainIdentityJsonData = JSON.stringify(fhirPatientResource);
       // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
@@ -655,12 +687,14 @@ export class ArcaIdentityService {
         minorWallet,
       );
 
+      const computedAdminAddress = ethers.computeAddress(adminRecoveredPublicKey!)
 
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
         minorWallet.address,
         senderPk,
         adminRecoveredPublicKey!,
+        computedAdminAddress,
         recoveredMedicalGuardianPublicKey!,
         medicalGuardianAddress
       )!;
@@ -670,19 +704,19 @@ export class ArcaIdentityService {
         rsaKeys: rsaEncryptedKeys,
       };
 
-      const data: IPFS = {
+      const ipfsDataEnvelope: IpfsEnvelope = {
         storageType,
         primaryWalletAddress: minorWallet.address,
         uploadedAt: new Date(),
         encryptedData,
         encryptionMetaData: encryptionMetadata,
       };
-      const jsonData = JSON.stringify(data);
+      const jsonIpfsDataEnvelope = JSON.stringify(ipfsDataEnvelope);
 
       const fileName: string = `${minorWallet.address}-patient-identity.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
-        jsonData,
+        jsonIpfsDataEnvelope,
       );
       console.log("Filebase upload response: ", uploadRequest);
 
@@ -690,14 +724,15 @@ export class ArcaIdentityService {
       const dateOfAgeOfMajority = new Date(dateOfBirth);
       dateOfAgeOfMajority.setFullYear(dateOfAgeOfMajority.getFullYear() + 18);
 
+
       //* registering patient onchain with guardian
       await this.identityEthersOnchain.registerMinorPatientWithMedicalGuardian(
         minorWallet,
         contractConnect,
         cid!,
         adminMessageSignature,
-        rsaEncryptedKeys.rsaEncryptedMasterDEKsForSender[0].rsaEncryptedMasterDEK,
-        rsaEncryptedKeys.rsaEncryptedMasterDEKsForMedicalGuardians![0].rsaEncryptedMasterDEK,
+        rsaEncryptedKeys[0].rsaEncryptedMasterDEK,
+        rsaEncryptedKeys![0].rsaEncryptedMasterDEK,
         medicalGuardianAddress,
         dateOfAgeOfMajority
       )
@@ -742,9 +777,13 @@ let admin2ContractConnect = testConnects[3];
 //   "Doe",
 //   new Date(),
 //   Gender.MALE,
-//   "123456789",
 //   "123 Main St",
+//   "Lagos",
+//   "Lagos",
+//   "Nigeria",
 //   EmploymentStatus.STUDENT,
+//   "+2349058858858",
+//   "testprince@gmail.com",
 // );
 
 const iv = "89c16532618816bd38342b9170d5f9b4";
@@ -789,21 +828,21 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 
 const patient1SecondaryWallet = testWallets[2];
 const patient1SecondaryContractConnect = testConnects[2];
-const randomLinkRequestMessage = "Request for unified access";
+const linkRequestMessage = "Request for unified access";
 
 // arcaIdentityService.linkAddressRequest(
 //   patient1SecondaryWallet,
 //   patient1SecondaryContractConnect,
 //   patient1Wallet.address,
-//   randomLinkRequestMessage
+//   linkRequestMessage
 // )
 
-const randomApprovalMessage = "I approve the request for unified access";
+const approvalMessage = "I approve the request for unified access";
 // arcaIdentityService.approveLinkAddressRequest(
 //   patient1Wallet,
 //   patient1ContractConnect,
 //   patient1SecondaryWallet.address,
-//   randomApprovalMessage,
+//   approvalMessage,
 // );
 
 
@@ -851,11 +890,15 @@ const secondGuardianWallet = testWallets[5];
 //   "Doe",
 //   new Date(),
 //   Gender.MALE,
-//   "123456789",
 //   "123 Main St",
-//   EmploymentStatus.STUDENT,
 //   primaryGuardianWallet.address,
 //   "0xbed0f72088b2f47c6f82f3143de94946a1c10c2e9d501a212e621db1751f63f4789b839e671f5100825ee3e8b11ad33cfd6eabb7ff3f4780b9d5f9c177936edc1c",
+//   "Lagos",
+//   "Lagos",
+//   "Nigeria",
+//   EmploymentStatus.STUDENT,
+//   "+2349058858858",
+//   "testprince@gmail.com",
 // )
 
 
