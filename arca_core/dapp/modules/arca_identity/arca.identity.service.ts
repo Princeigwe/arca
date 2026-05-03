@@ -98,6 +98,23 @@ export class ArcaIdentityService {
     }
   }
 
+  async isRegisteredPatient(wallet: ethers.Wallet, patientAddress: string) {
+    try {
+      return await this.identityEthersOnchain.isRegisteredPatient(wallet, patientAddress);
+    } catch (error) {
+      throw new Error(`Error checking if registered patient: ${error}`)
+    }
+  }
+
+
+  async isRegisteredMedicalGuardian(wallet: ethers.Wallet, medicalGuardianAddress: string){
+    try {
+      return await this.identityEthersOnchain.isRegisteredMedicalGuardian(wallet, medicalGuardianAddress);
+    } catch (error) {
+      throw new Error(`Error checking if registered medical guardian: ${error}`)
+    }
+  }
+
   async registerPatient(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
@@ -770,6 +787,13 @@ let patient1ContractConnect = testConnects[1];
 let admin2Wallet = testWallets[3];
 let admin2ContractConnect = testConnects[3];
 
+const primaryGuardianWallet = testWallets[4];
+const secondGuardianWallet = testWallets[5];
+
+
+// arcaIdentityService.isRegisteredPatient(patient1Wallet, patient1Wallet.address)
+// arcaIdentityService.isRegisteredMedicalGuardian(patient1Wallet, primaryGuardianWallet.address)
+
 // arcaIdentityService.registerPatient(
 //   patient1Wallet,
 //   patient1ContractConnect,
@@ -861,8 +885,6 @@ const approvalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
-const primaryGuardianWallet = testWallets[4];
-const secondGuardianWallet = testWallets[5];
 
 
 

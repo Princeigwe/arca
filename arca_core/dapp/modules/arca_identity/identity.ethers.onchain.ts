@@ -64,6 +64,55 @@ export class IdentityEthersOnchain {
     }
   }
 
+
+  async isRegisteredPatient(wallet: ethers.Wallet, address: string) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("isRegisteredPatient", [address]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption);
+  
+      // decoding ABI encoded returned data
+      const [isPatient] = iFace.decodeFunctionResult("isRegisteredPatient", response);
+      console.log(`Is registered patient ${address}: `, isPatient);
+
+      return isPatient
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
+      console.error("Error checking if patient: ", error);
+    }
+  }
+
+
+  async isRegisteredMedicalGuardian(wallet: ethers.Wallet, address: string) {
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi);
+      const data = iFace.encodeFunctionData("isRegisteredMedicalGuardian", [address]);
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data,
+      };
+      const response = await wallet.call(txOption);
+  
+      // decoding ABI encoded returned data
+      const [isMedicalGuardian] = iFace.decodeFunctionResult("isRegisteredMedicalGuardian", response);
+      console.log(`Is registered medical guardian ${address}: `, isMedicalGuardian);
+
+      return isMedicalGuardian
+      
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
+      console.error("Error checking if medical guardian: ", error);
+    }
+  }
+
   async checkIsMedicalGuardianOfPatient(medicalGuardianWallet: ethers.Wallet, patientAddress: string) {
     try {
       const iFace = new ethers.Interface(arca_identity_facet_abi)    

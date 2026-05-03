@@ -25,14 +25,15 @@ async function hardhatDeployDiamond() {
   const arcaIdentityFacetCut = {
     facetAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     action: 0,
-    functionSelectors:  [
+    functionSelectors:   [
       '0x70480275', '0x8bf6cdd9',
       '0x06644cbd', '0xd953689d',
       '0xcfcd570c', '0xf37aa5d0',
       '0x7c6dcd2e', '0x3a60c386',
       '0x652cec06', '0x7077cdbd',
       '0x8ddc4e68', '0xcfd549f7',
-      '0x85c89e3c', '0x0892beb7',
+      '0x85c89e3c', '0xa1180950',
+      '0x3c4f7a9d', '0x0892beb7',
       '0x1b3780d1', '0x33523ebe',
       '0x4576c45a', '0x6d8dbf9a',
       '0x1785f53c', '0x3da4cbee',
