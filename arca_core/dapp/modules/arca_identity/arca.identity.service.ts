@@ -172,6 +172,9 @@ export class ArcaIdentityService {
           wallet,
         );
       const computedAdminAddress = ethers.computeAddress(adminRecoveredPublicKey!)
+
+      console.log("Admin Recovered Public Key: ", adminRecoveredPublicKey)
+      console.log("Admin computed address: ", computedAdminAddress)
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
         wallet.address,
@@ -313,7 +316,7 @@ export class ArcaIdentityService {
           adminRsaEncryptedDEK!
         )
 
-        const decryptedPatientData = SED.decryptData(
+        const decryptedPatientData = await SED.decryptData(
           JSON.parse(ipfsDataEnvelope).encryptedData,
           decryptedDekForAdmin,
           JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
@@ -888,16 +891,16 @@ const approvalMessage = "I approve the request for unified access";
 
 
 
-// arcaIdentityService.readPatientIpfsData(
-//   // patient1Wallet,
-//   // patient1SecondaryWallet,
-//   // ownerWallet,
-//   // admin2Wallet,
-//   primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
-//   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
-//   patient1Wallet.address,
-//   adminInitMessage
-// )
+arcaIdentityService.readPatientIpfsData(
+  patient1Wallet,
+  // patient1SecondaryWallet,
+  // ownerWallet,
+  // admin2Wallet,
+  // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+  // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
+  patient1Wallet.address,
+  adminInitMessage
+)
 
 
 // arcaIdentityService.generatePrimaryMedicalGuardianConnectionSignature(
