@@ -336,14 +336,14 @@ export class ArcaIdentityService {
         let jsonIPFSDataEnvelope: IpfsEnvelope = JSON.parse(ipfsDataEnvelope)
 
         const medicalGuardianRsaEncryptedDEK = jsonIPFSDataEnvelope.encryptionMetaData?.rsaKeys.find(item=> item.identityType == IdentityType.MEDICAL_GUARDIAN && item.wallet == wallet.address)?.rsaEncryptedMasterDEK
-        const decryptedDekForSender = RED.decryptDek(
+        const decryptedDekForMedicalGuardian = RED.decryptDek(
           wallet.privateKey, 
           medicalGuardianRsaEncryptedDEK!
         )
 
         const decryptedPatientData = SED.decryptData(
           JSON.parse(ipfsDataEnvelope).encryptedData,
-          decryptedDekForSender,
+          decryptedDekForMedicalGuardian,
           JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
         )
 
@@ -891,16 +891,16 @@ const approvalMessage = "I approve the request for unified access";
 
 
 
-arcaIdentityService.readPatientIpfsData(
-  patient1Wallet,
-  // patient1SecondaryWallet,
-  // ownerWallet,
-  // admin2Wallet,
-  // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
-  // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
-  patient1Wallet.address,
-  adminInitMessage
-)
+// arcaIdentityService.readPatientIpfsData(
+//   patient1Wallet,
+//   // patient1SecondaryWallet,
+//   // ownerWallet,
+//   // admin2Wallet,
+//   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+//   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
+//   patient1Wallet.address,
+//   adminInitMessage
+// )
 
 
 // arcaIdentityService.generatePrimaryMedicalGuardianConnectionSignature(

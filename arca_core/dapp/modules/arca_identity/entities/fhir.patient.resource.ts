@@ -104,6 +104,12 @@ export class FhirPatient {
           state: this.stateOfResidence,
           country: this.countryOfResidence
         }
+      ],
+      extension: [
+        {
+          url: "arca/extensions/employment-status",
+          valueString: this.employmentStatus
+        },
       ]
     }
   }
