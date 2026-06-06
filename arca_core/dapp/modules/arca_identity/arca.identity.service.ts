@@ -98,6 +98,23 @@ export class ArcaIdentityService {
     }
   }
 
+  async isRegisteredPatient(wallet: ethers.Wallet, patientAddress: string) {
+    try {
+      return await this.identityEthersOnchain.isRegisteredPatient(wallet, patientAddress);
+    } catch (error) {
+      throw new Error(`Error checking if registered patient: ${error}`)
+    }
+  }
+
+
+  async isRegisteredMedicalGuardian(wallet: ethers.Wallet, medicalGuardianAddress: string){
+    try {
+      return await this.identityEthersOnchain.isRegisteredMedicalGuardian(wallet, medicalGuardianAddress);
+    } catch (error) {
+      throw new Error(`Error checking if registered medical guardian: ${error}`)
+    }
+  }
+
   async registerPatient(
     wallet: ethers.Wallet,
     contractConnect: ethers.Contract,
@@ -155,6 +172,9 @@ export class ArcaIdentityService {
           wallet,
         );
       const computedAdminAddress = ethers.computeAddress(adminRecoveredPublicKey!)
+
+      console.log("Admin Recovered Public Key: ", adminRecoveredPublicKey)
+      console.log("Admin computed address: ", computedAdminAddress)
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
         wallet.address,
@@ -296,7 +316,7 @@ export class ArcaIdentityService {
           adminRsaEncryptedDEK!
         )
 
-        const decryptedPatientData = SED.decryptData(
+        const decryptedPatientData = await SED.decryptData(
           JSON.parse(ipfsDataEnvelope).encryptedData,
           decryptedDekForAdmin,
           JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
@@ -316,14 +336,14 @@ export class ArcaIdentityService {
         let jsonIPFSDataEnvelope: IpfsEnvelope = JSON.parse(ipfsDataEnvelope)
 
         const medicalGuardianRsaEncryptedDEK = jsonIPFSDataEnvelope.encryptionMetaData?.rsaKeys.find(item=> item.identityType == IdentityType.MEDICAL_GUARDIAN && item.wallet == wallet.address)?.rsaEncryptedMasterDEK
-        const decryptedDekForSender = RED.decryptDek(
+        const decryptedDekForMedicalGuardian = RED.decryptDek(
           wallet.privateKey, 
           medicalGuardianRsaEncryptedDEK!
         )
 
         const decryptedPatientData = SED.decryptData(
           JSON.parse(ipfsDataEnvelope).encryptedData,
-          decryptedDekForSender,
+          decryptedDekForMedicalGuardian,
           JSON.parse(ipfsDataEnvelope).encryptionMetaData.dekIv,
         )
 
@@ -770,6 +790,13 @@ let patient1ContractConnect = testConnects[1];
 let admin2Wallet = testWallets[3];
 let admin2ContractConnect = testConnects[3];
 
+const primaryGuardianWallet = testWallets[4];
+const secondGuardianWallet = testWallets[5];
+
+
+// arcaIdentityService.isRegisteredPatient(patient1Wallet, patient1Wallet.address)
+// arcaIdentityService.isRegisteredMedicalGuardian(patient1Wallet, primaryGuardianWallet.address)
+
 // arcaIdentityService.registerPatient(
 //   patient1Wallet,
 //   patient1ContractConnect,
@@ -861,17 +888,15 @@ const approvalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService. getAddressCidOfCurrentSender(patient1Wallet)
-const primaryGuardianWallet = testWallets[4];
-const secondGuardianWallet = testWallets[5];
 
 
 
 // arcaIdentityService.readPatientIpfsData(
-//   // patient1Wallet,
+//   patient1Wallet,
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
 //   // admin2Wallet,
-//   primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+//   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
 //   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
 //   patient1Wallet.address,
 //   adminInitMessage

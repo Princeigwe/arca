@@ -114,6 +114,17 @@ contract ArcaIdentityRegistry{
   }
 
 
+  function isRegisteredPatient(address _address) public view returns (bool) {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    return ds.accountExists[_address];
+  }
+
+  function isRegisteredMedicalGuardian(address _address) public view returns (bool) {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    return ds.medicalGuardianExists[_address];
+  }
+
+
   /// @notice This function registers a patient identity. It records the content identifier of the patient's IPFS data, the admin initialization signature used to register the identity,and the RSA-encrypted DataEncryptionKey.
   /// @param _registeredAt The Unix timestamp at which the patient registered.
   /// @param _cid The Content Identifier of the patient's IPFS data.
