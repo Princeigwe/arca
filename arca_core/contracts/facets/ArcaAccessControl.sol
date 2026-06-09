@@ -129,9 +129,9 @@ contract ArcaAccessControl {
     ds.addressCid[_mainPatientAddress] = _cid;
 
     emit LibADS.MedicalGuardianAssignedToPatientEvent(
-      "Medical guardian assigned to patient", 
       _medicalGuardian, 
-      _mainPatientAddress
+      _mainPatientAddress,
+      "Medical guardian assigned to patient"
     );
   }
 
@@ -199,9 +199,9 @@ contract ArcaAccessControl {
     });
 
     emit LibADS.MedicalGuardianAssignedToPatientEvent(
-      "Update on medical guardian permission to patient", 
       _medicalGuardian, 
-      _mainPatientAddress
+      _mainPatientAddress,
+      "Update on medical guardian permission to patient"
     );
   }
 

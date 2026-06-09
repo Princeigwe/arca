@@ -76,8 +76,8 @@ async function registerPatient() {
   try {
     arcaDiamondContractConnect1.once(
       "PatientRegisteredEvent",
-      (message, patient) => {
-        console.log(`Event received: ${message}`, patient);
+      (patientAddress, message) => {
+        console.log(`Event received: ${message}`, patientAddress);
       },
     );
 
@@ -140,7 +140,7 @@ async function getDiamondFacets() {
 
 async function addAdmin(address: string) {
   try {
-    arcaDiamondContractConnect1.once("AdminAddedEvent", (message, admin) => {
+    arcaDiamondContractConnect1.once("AdminAddedEvent", (admin, message) => {
       console.log(`Event received: ${message}`, admin);
     });
     const iFace = new ethers.Interface(arca_identity_facet_abi);
@@ -183,7 +183,7 @@ async function saveAdminInitializationMessageHash(
   try {
     contractConnect.once(
       "AdminInitializationMessageHashWrittenEvent",
-      (message, writer, customMessageHash) => {
+      (writer, message, customMessageHash) => {
         const data = {
           message,
           writer,
@@ -227,8 +227,8 @@ async function verifyPatientIdentity(address: string) {
   try {
     arcaDiamondContractConnect1.once(
       "PatientIdentityVerifiedEvent",
-      (message, patient) => {
-        console.log(`Event received: ${message}`, patient);
+      (patientAddress, message) => {
+        console.log(`Event received: ${message}`, patientAddress);
       },
     );
     const iFace = new ethers.Interface(arca_identity_facet_abi);
@@ -247,8 +247,8 @@ async function getPatientIdentity(address: string) {
   try {
     arcaDiamondContractConnect1.once(
       "PatientIdentityFetchedEvent",
-      (message, patient) => {
-        console.log(`Event received: ${message}`, patient);
+      (patientAddress, message) => {
+        console.log(`Event received: ${message}`, patientAddress);
       },
     );
     const iFace = new ethers.Interface(arca_identity_facet_abi);
@@ -351,7 +351,7 @@ async function linkAddressRequest(primaryAddress: string) {
   try {
     arcaDiamondContractConnect1.once(
       "LinkAccountRequestEvent",
-      (message, sender, primaryAddress) => {
+      (sender, primaryAddress, message) => {
         console.log(
           `Event received: ${message}: Sender: ${sender}: Primary Address:  ${primaryAddress}`,
         );
@@ -378,7 +378,7 @@ async function approveLinkAddressRequest(
   try {
     arcaDiamondContractConnect1.once(
       "LinkAccountRequestApprovalEvent",
-      (message, sender, secondaryAddress) => {
+      (sender, secondaryAddress, message) => {
         console.log(
           `Event received: ${message}: Sender: ${sender}: Secondary Address:  ${secondaryAddress}`,
         );

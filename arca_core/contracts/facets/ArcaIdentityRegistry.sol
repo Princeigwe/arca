@@ -35,7 +35,7 @@ contract ArcaIdentityRegistry{
   function addAdmin(address _newAdmin)public onlyAdmin{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     ds.isAdmin[_newAdmin] = true;
-    emit LibADS.AdminAddedEvent("Admin added", _newAdmin);
+    emit LibADS.AdminAddedEvent(_newAdmin, "Admin added");
   }
 
   /// @notice This function removes an exsiting contract admin. The contract owner cannont be removed, and this can only be accomplished as a contract admin.
@@ -44,7 +44,7 @@ contract ArcaIdentityRegistry{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(_admin != ds.contractOwner, LibADS.AuthorizationError("Cannot remove contract owner"));
     ds.isAdmin[_admin] = false;
-    emit LibADS.AdminRemovedEvent("Admin removed", _admin);
+    emit LibADS.AdminRemovedEvent(_admin, "Admin removed");
   }
 
   /// @notice This function checks if the provided address is an admin.
@@ -96,7 +96,7 @@ contract ArcaIdentityRegistry{
 
     ds.adminInitializationMessageHashesAndSignatures.push(messageHashAndSignature);
 
-    emit LibADS.AdminInitializationMessageHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, messageHashAndSignature);
+    emit LibADS.AdminInitializationMessageHashWrittenEvent(msg.sender, "Admin initialization transaction hash saved", messageHashAndSignature);
   }
 
   
@@ -158,7 +158,7 @@ contract ArcaIdentityRegistry{
     ds.addressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
-    emit LibADS.PatientRegisteredEvent("Patient registered", newPatient);
+    emit LibADS.PatientRegisteredEvent(msg.sender, "Patient registration successful");
   }
 
 
@@ -197,11 +197,11 @@ contract ArcaIdentityRegistry{
     require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
     ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
     emit LibADS.LinkAccountRequestEvent(
-      "Incoming request to link to primary address",
       msg.sender,
+      _primaryAddress,
+      "Incoming request to link to primary address",
       _requestHash,
-      _requestSignature,
-      _primaryAddress
+      _requestSignature
     );
   }
 
@@ -275,9 +275,9 @@ contract ArcaIdentityRegistry{
     ds.sentLinkRequest[_secondaryAddress][msg.sender] = false;
 
     emit LibADS.LinkAccountRequestApprovalEvent(
-      "Account link request approved",
       msg.sender,
-      _secondaryAddress
+      _secondaryAddress,
+      "Account link request approved"
     );
   }
 
@@ -304,7 +304,7 @@ contract ArcaIdentityRegistry{
       identityType: LibADS.RsaIdentityType.PATIENT_LINKED_ADDRESS
     }));
     ds.sentLinkRequest[_secondaryAddress][msg.sender] = true;
-    emit LibADS.PatientIdentityUpdateEvent("RSA master DEK stored for linked account");
+    emit LibADS.PatientIdentityUpdateEvent(_secondaryAddress, "RSA master DEK stored for linked account");
   }
 
 
@@ -390,7 +390,7 @@ contract ArcaIdentityRegistry{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(hasAccess == true, LibADS.AuthorizationError("Access denied to patient identity data"));
     LibADS.PatientIdentity memory patient = ds.patientAccount[_patientAddress];
-    emit LibADS.PatientIdentityFetchedEvent("Patient identity fetched", patient);
+    emit LibADS.PatientIdentityFetchedEvent(_patientAddress, "Patient identity fetched");
     return patient;
   }
 
@@ -401,7 +401,7 @@ contract ArcaIdentityRegistry{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     LibADS.PatientIdentity storage patient = ds.patientAccount[_patientAddress];
     patient.isVerified = true;
-    emit LibADS.PatientIdentityVerifiedEvent("Patient identity verified", patient);
+    emit LibADS.PatientIdentityVerifiedEvent(_patientAddress, "Patient identity verified");
   }
 
   /// @notice This returns the count of identity types registered.
@@ -435,7 +435,7 @@ contract ArcaIdentityRegistry{
     ds.medicalGuardianExists[_guardianAddress] = true;
     ds.medicalGuardianAccount[_guardianAddress] = newMedicalGuardian;
 
-    emit LibADS.MedicalGuardianCreationEvent(_guardianAddress, _addedAt, _addedBy);
+    emit LibADS.MedicalGuardianCreationEvent(_guardianAddress, _addedBy, _addedAt);
   }
 
 
@@ -491,7 +491,7 @@ contract ArcaIdentityRegistry{
     ds.addressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
-    emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
+    emit LibADS.PatientRegisteredEvent(msg.sender, "Minor patient registration successful");
 
     // assigning permission to primary guardian
 
@@ -514,9 +514,9 @@ contract ArcaIdentityRegistry{
     ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
 
     emit LibADS.MedicalGuardianAssignedToPatientEvent(
-      "Primary medical guardian assigned to minor patient", 
       _medicalGuardianAddress, 
-      msg.sender
+      msg.sender,
+      "Primary medical guardian assigned to minor patient"
     );
   }
 
