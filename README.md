@@ -69,7 +69,7 @@ The creation of a patient's identity begins with an Arca admin. For every admin 
 
     ds.adminInitializationMessageHashesAndSignatures.push(messageHashAndSignature);
 
-    emit LibADS.AdminInitializationMessageHashWrittenEvent("Admin initialization transaction hash saved", msg.sender, messageHashAndSignature);
+    emit LibADS.AdminInitializationMessageHashWrittenEvent(msg.sender, "Admin initialization transaction hash saved", messageHashAndSignature);
   }
 ```
 After this process, patient identity registration happens in any of the two methods:
@@ -215,9 +215,9 @@ function registerMinorPatientWithMedicalGuardian(
     ds.medicalGuardianPermissions[_medicalGuardianAddress].push(medicalGuardianPermission);
 
     emit LibADS.MedicalGuardianAssignedToPatientEvent(
-      "Primary medical guardian assigned to minor patient", 
       _medicalGuardianAddress, 
-      msg.sender
+      msg.sender,
+      "Primary medical guardian assigned to minor patient"
     );
   }
 ```
@@ -257,11 +257,11 @@ function linkAddressRequest(
     require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
     ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
     emit LibADS.LinkAccountRequestEvent(
-      "Incoming request to link to primary address",
       msg.sender,
+      _primaryAddress,
+      "Incoming request to link to primary address",
       _requestHash,
-      _requestSignature,
-      _primaryAddress
+      _requestSignature
     );
   }
 ```

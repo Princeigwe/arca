@@ -145,7 +145,7 @@ export class AccessControlEthersOnchain{
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
 
-      contractConnect.once('MedicalGuardianAssignedToPatientEvent', (message, medicalGuardian, patient)=>{
+      contractConnect.once('MedicalGuardianAssignedToPatientEvent', (medicalGuardian, patient, message)=>{
         console.log(`Event emitted: Message:${message} - Medical Guardian: ${medicalGuardian} - Patient: ${patient}`)
       })
     } catch (error: any) {
@@ -203,7 +203,7 @@ export class AccessControlEthersOnchain{
       const response = await wallet.sendTransaction(txOption);
       await response.wait();
 
-      contractConnect.once('MedicalGuardianAssignedToPatientEvent', (message, medicalGuardian, patient)=>{
+      contractConnect.once('MedicalGuardianAssignedToPatientEvent', (medicalGuardian, patient, message)=>{
         console.log(`Event emitted: Message:${message} - Medical Guardian: ${medicalGuardian} - Patient: ${patient}`)
       })
 

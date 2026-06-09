@@ -22,7 +22,7 @@ export class IdentityEthersOnchain {
     newAdminAddress: string
   ) {
     try {
-      contractConnect.once("AdminAddedEvent", (message, admin) => {
+      contractConnect.once("AdminAddedEvent", (admin, message) => {
         console.log(`Event received: ${message}`, admin);
       });
       const iFace = new ethers.Interface(arca_identity_facet_abi);
@@ -145,7 +145,7 @@ export class IdentityEthersOnchain {
     try {
       contractConnect.once(
         "AdminInitializationMessageHashWrittenEvent",
-        (message, writer, customMessageHash) => {
+        (writer, message, customMessageHash) => {
           const data = {
             message,
             writer,
@@ -266,8 +266,8 @@ export class IdentityEthersOnchain {
     rsaMasterDEK: string,
   ) {
     try {
-      contractConnect.once("PatientRegisteredEvent", (message, patient) => {
-        console.log(`Event received: ${message}`, patient);
+      contractConnect.once("PatientRegisteredEvent", (patientAddress, message) => {
+        console.log(`Event received: ${message}`, patientAddress);
       });
 
       // converting unix date to bytes32
@@ -386,7 +386,7 @@ export class IdentityEthersOnchain {
     try {
       contractConnect.once(
         "LinkAccountRequestEvent",
-        (message, sender, requestHash, requestSignature, primaryAddress) => {
+        (sender,  primaryAddress, message, requestHash, requestSignature) => {
           console.log(
             `Event received: ${message}
             Sender: ${sender}
@@ -451,7 +451,7 @@ export class IdentityEthersOnchain {
     try {
       contractConnect.once(
         "LinkAccountRequestApprovalEvent",
-        (message, sender, secondaryAddress) => {
+        (sender, secondaryAddress, message) => {
           console.log(
             `Event received: ${message}: Sender: ${sender}: Secondary Address:  ${secondaryAddress}`,
           );
@@ -496,8 +496,8 @@ export class IdentityEthersOnchain {
     secondaryRsaMasterKey: string,
   ) {
     try {
-      contractConnect.once("PatientIdentityUpdateEvent", (message) => {
-        console.log(`Event received: ${message}`);
+      contractConnect.once("PatientIdentityUpdateEvent", (secondaryAddress, message) => {
+        console.log(`Event received: ${message}, ${secondaryAddress}`);
       });
       // fix for error on blockchain nonce too low on transaction
       const nonce = await provider.getTransactionCount(wallet.address, 'pending')
@@ -619,11 +619,11 @@ export class IdentityEthersOnchain {
     dateOfAgeOfMajority: Date // this is will used in determining the age of majority
   ){
     try {
-      contractConnect.once("PatientRegisteredEvent", (message, patient) => {
-        console.log(`Event received: ${message}`, patient);
+      contractConnect.once("PatientRegisteredEvent", (patientAddress, message) => {
+        console.log(`Event received: ${message}`, patientAddress);
       });
 
-      contractConnect.once("MedicalGuardianAssignedToPatientEvent", (message, medicalGuardian, patient) => {
+      contractConnect.once("MedicalGuardianAssignedToPatientEvent", (medicalGuardian, patient, message) => {
         console.log(`Event received: ${message}, Medical Guardian: ${medicalGuardian}, Patient: ${patient}`);
       })
       const cidBytes = ethers.toUtf8Bytes(cid)

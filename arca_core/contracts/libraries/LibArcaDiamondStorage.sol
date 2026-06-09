@@ -23,18 +23,18 @@ library LibArcaDiamondStorage{
   }
 
   //** FACETS EVENTS 
-  event PatientRegisteredEvent(string message, PatientIdentity);
-  event PatientIdentityVerifiedEvent(string message, PatientIdentity);
-  event PatientIdentityFetchedEvent(string message, PatientIdentity);
-  event AdminAddedEvent(string message, address admin);
-  event AdminRemovedEvent(string message, address admin);
-  event AdminInitializationMessageHashWrittenEvent(string message, address writer, AdminInitializationMessageHashAndSignature);
-  event LinkAccountRequestEvent(string message, address requester, bytes32 requestHash, bytes requestSignature, address recipient);
-  event LinkAccountRequestApprovalEvent(string message, address primary, address secondary);
-  event PatientIdentityUpdateEvent(string message);
-  event SuccessfulSecondaryAddressDisconnectionEvent(address secondaryAddress);
-  event MedicalGuardianCreationEvent(address guardianAddress, uint256 addedAt, address addedBy);
-  event MedicalGuardianAssignedToPatientEvent(string message, address medicalGuardian, address patient);
+  event PatientRegisteredEvent(address indexed patientAddress, string message);
+  event PatientIdentityVerifiedEvent(address indexed patientAddress, string message);
+  event PatientIdentityFetchedEvent(address indexed patientAddress, string message);
+  event AdminAddedEvent( address indexed admin, string message);
+  event AdminRemovedEvent( address indexed admin, string message);
+  event AdminInitializationMessageHashWrittenEvent(address indexed writer, string message, AdminInitializationMessageHashAndSignature);
+  event LinkAccountRequestEvent( address indexed requester, address indexed recipient, string message, bytes32 requestHash, bytes requestSignature);
+  event LinkAccountRequestApprovalEvent(address indexed primary, address indexed secondary, string message);
+  event PatientIdentityUpdateEvent(address indexed patientAddress, string message);
+  event SuccessfulSecondaryAddressDisconnectionEvent(address indexed secondaryAddress);
+  event MedicalGuardianCreationEvent(address indexed guardianAddress, address indexed addedBy , uint256 addedAt);
+  event MedicalGuardianAssignedToPatientEvent(address indexed medicalGuardian, address indexed patient, string message);
   event MedicalGuardianPermissionRevokedEvent (string message, address medicalGuardian, address patient);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
 
