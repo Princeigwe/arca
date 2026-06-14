@@ -185,8 +185,8 @@ async function saveAdminInitializationMessageHash(
       "AdminInitializationMessageHashWrittenEvent",
       (writer, message, customMessageHash) => {
         const data = {
-          message,
           writer,
+          message,
           customMessageHash,
         };
         console.log(`Event data:`, data);
