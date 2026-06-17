@@ -158,7 +158,7 @@ function registerMinorPatientWithMedicalGuardian(
     uint256 _ageOfMajority
   ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    require(!ds.patientExists[msg.sender], LibADS.PatientExistsErrorError(msg.sender));
     require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
     require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
     if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
@@ -169,7 +169,7 @@ function registerMinorPatientWithMedicalGuardian(
     patientCount++;
     ds.patientCount = patientCount;
 
-    ds.accountExists[msg.sender] = true;
+    ds.patientExists[msg.sender] = true;
 
     // creating the minor patient's identity as the current msg.sender
     LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
@@ -189,7 +189,7 @@ function registerMinorPatientWithMedicalGuardian(
       identityType: LibADS.RsaIdentityType.MEDICAL_GUARDIAN
     }));
 
-    ds.addressCid[msg.sender] = _cid;
+    ds.patientAddressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
     emit LibADS.PatientRegisteredEvent("Patient registered as minor", newPatient);
@@ -254,7 +254,7 @@ function linkAddressRequest(
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(_primaryAddress != address(0), "Recipient must be a valid address");
-    require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
+    require(ds.patientExists[_primaryAddress], LibADS.PatientDoesNotExistError(_primaryAddress));
     ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
     emit LibADS.LinkAccountRequestEvent(
       msg.sender,
@@ -325,7 +325,7 @@ async storeRsaMasterDekForLinkedAccount(
       console.log("Linked Account Recovered public key: ", recoveredPublicKey);
       console.log("Linked Account Recovered address: ", recoveredAddress);
 
-      const linkedAccountRsaMasterDek = RED.encryptDek(
+      const linkedAccountRsaMasterDek = RED.encryptData(
         recoveredPublicKey,
         decryptedMainRsaKey,
       );
