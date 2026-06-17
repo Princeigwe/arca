@@ -2,17 +2,6 @@ export const arca_access_control_facet_abi = [
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "identity",
-          "type": "address"
-        }
-      ],
-      "name": "AccountDoesNotExistError",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "string",
           "name": "",
           "type": "string"
@@ -29,29 +18,51 @@ export const arca_access_control_facet_abi = [
           "type": "address"
         }
       ],
+      "name": "MedicalGuardianDoesNotExistError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "guardian",
+          "type": "address"
+        }
+      ],
       "name": "MedicalGuardianPermissionDoesNotExistError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "identity",
+          "type": "address"
+        }
+      ],
+      "name": "PatientDoesNotExistError",
       "type": "error"
     },
     {
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
-          "internalType": "string",
-          "name": "message",
-          "type": "string"
-        },
-        {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "medicalGuardian",
           "type": "address"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "patient",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
         }
       ],
       "name": "MedicalGuardianAssignedToPatientEvent",

@@ -33,7 +33,7 @@ library LibArcaDiamondStorage{
   event LinkAccountRequestApprovalEvent(address indexed primary, address indexed secondary, string message);
   event PatientIdentityUpdateEvent(address indexed patientAddress, string message);
   event SuccessfulSecondaryAddressDisconnectionEvent(address indexed secondaryAddress);
-  event MedicalGuardianCreationEvent(address indexed guardianAddress, address indexed addedBy , uint256 addedAt);
+  event MedicalGuardianRegisteredEvent(address indexed guardianAddress, string message);
   event MedicalGuardianAssignedToPatientEvent(address indexed medicalGuardian, address indexed patient, string message);
   event MedicalGuardianPermissionRevokedEvent (string message, address medicalGuardian, address patient);
   // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
@@ -41,14 +41,16 @@ library LibArcaDiamondStorage{
 
 
   //** FACETS ERRORS
-  error AccountExistsError(address caller);
-  error AccountDoesNotExistError(address identity);
+  error PatientExistsError(address caller);
+  error PatientDoesNotExistError(address identity);
   error IncorrectGuardianCountMatchError(string);
   error AuthorizationError(string);
   error LinkRequestApprovalError(string);
   error NotLinkedSecondaryAddress(address providedAddress);
   error InvalidRsaMasterDEKRemovalError(string);
   error MaximumSecondaryAddressConnectionReachError(string);
+  error MedicalGuardianExistsError(address guardian);
+  error MedicalGuardianDoesNotExistError(address guardian);
   error MedicalGuardianPermissionDoesNotExistError(address guardian);
 
   //** FACETS ENUMS
@@ -113,8 +115,7 @@ library LibArcaDiamondStorage{
 
   struct MedicalGuardian{
     address guardianAddress;
-    uint256 addedAt;
-    address addedBy;
+    uint256 registeredAt;
   }
 
 
@@ -156,11 +157,16 @@ library LibArcaDiamondStorage{
     uint256 internalNonce;
     ProviderType providerType;
     mapping (address => PatientIdentity) patientAccount;
-    mapping (address => bool) accountExists;
+    mapping (address => bool) patientExists;
     mapping(uint256 => PatientIdentity) patientIdentity;
     mapping(uint256 => ProviderIdentity) providerIdentity;
-    mapping (address => bytes) addressCid;
+    mapping (address => bytes) patientAddressCid;
     mapping (address => bool) medicalGuardianExists;
+    mapping (address => bytes) medicalGuardianFhirPersonCid; // the CID the points to the IPFS envelope that holds the FHIR Person resource
+
+    // the CID the points to the IPFS envelope that holds the FHIR RelatedPerson resource linked to the patient (medical guardian => patient => cidBytes)
+    mapping(address => mapping(address => bytes)) medicalGuardianFhirRelatedPersonCid; 
+
     mapping (address => MedicalGuardian) medicalGuardianAccount;
     mapping (address => mapping(address => bool)) isMedicalGuardianOfPatient; // medical guardian => patient => isGuardian
     mapping(address => MedicalGuardian[]) patientMedicalGuardians; // patient => medical guardians

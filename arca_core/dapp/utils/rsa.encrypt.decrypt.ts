@@ -97,13 +97,13 @@ export class RsaEncryptDecrypt {
   }
 
   /**
-   * This function decrypts the RSA encrypted key to return the original DEK,
+   * This function decrypts the RSA encrypted data. This encrypted data, could be an encrypted DEK to return the original DEK,
    * which will in turn be used to symmetrically decrypt the plain data
    * @param privateKey the private key of the reader's wallet
-   * @param encryptedDek the RSA encrypted key
+   * @param rsaEncryptedData the RSA encrypted data
    * @returns the decrypted DEK
    */
-  decryptDek(privateKey: string, encryptedDek: string) {
+  decryptData(privateKey: string, rsaEncryptedData: string) {
     try {
       // the private key is a hex string, convert it to a Buffer, removing the '0x' prefix if it exists
       const privateKeyBuffer = Buffer.from(
@@ -111,7 +111,7 @@ export class RsaEncryptDecrypt {
         "hex",
       );
       // converting base64 string back to buffer
-      const encryptedBuffer = Buffer.from(encryptedDek, "base64");
+      const encryptedBuffer = Buffer.from(rsaEncryptedData, "base64");
 
       const decryptedBuffer = decrypt(privateKeyBuffer, encryptedBuffer);
 
@@ -123,9 +123,15 @@ export class RsaEncryptDecrypt {
     }
   }
 
-  encryptDek(publicKey: string, dek: string) {
+  /**
+   * This function encrypts data with RSA/ECIES encryption with a public key
+   * @param publicKey the public key used to encrypt the data
+   * @param plainData the data to be encrypted asymmetrically with RSA/ECIES encryption
+   * @returns 
+   */
+  encryptData(publicKey: string, plainData: string) {
     try {
-      const bufferDek = Buffer.from(dek, "utf-8");
+      const bufferDek = Buffer.from(plainData, "utf-8");
       const pkBuffer = Buffer.from(
         publicKey.startsWith("0x") ? publicKey.substring(2) : publicKey,
         "hex",

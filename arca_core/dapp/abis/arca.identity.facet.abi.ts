@@ -2,28 +2,6 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "identity",
-          "type": "address"
-        }
-      ],
-      "name": "AccountDoesNotExistError",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "caller",
-          "type": "address"
-        }
-      ],
-      "name": "AccountExistsError",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "string",
           "name": "",
           "type": "string"
@@ -96,6 +74,28 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "guardian",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianDoesNotExistError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "guardian",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalGuardianExistsError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "providedAddress",
           "type": "address"
         }
@@ -104,19 +104,41 @@ export const arca_identity_facet_abi = [
       "type": "error"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "identity",
+          "type": "address"
+        }
+      ],
+      "name": "PatientDoesNotExistError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "caller",
+          "type": "address"
+        }
+      ],
+      "name": "PatientExistsError",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        },
         {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "admin",
-          "type": "address"
         }
       ],
       "name": "AdminAddedEvent",
@@ -126,16 +148,16 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "writer",
+          "type": "address"
+        },
+        {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "writer",
-          "type": "address"
         },
         {
           "components": [
@@ -163,16 +185,16 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        },
+        {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "admin",
-          "type": "address"
         }
       ],
       "name": "AdminRemovedEvent",
@@ -182,22 +204,22 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
-          "internalType": "string",
-          "name": "message",
-          "type": "string"
-        },
-        {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "primary",
           "type": "address"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "secondary",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
         }
       ],
       "name": "LinkAccountRequestApprovalEvent",
@@ -207,16 +229,22 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "requester",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "requester",
-          "type": "address"
         },
         {
           "indexed": false,
@@ -229,12 +257,6 @@ export const arca_identity_facet_abi = [
           "internalType": "bytes",
           "name": "requestSignature",
           "type": "bytes"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "recipient",
-          "type": "address"
         }
       ],
       "name": "LinkAccountRequestEvent",
@@ -244,22 +266,22 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
-          "internalType": "string",
-          "name": "message",
-          "type": "string"
-        },
-        {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "medicalGuardian",
           "type": "address"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "patient",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
         }
       ],
       "name": "MedicalGuardianAssignedToPatientEvent",
@@ -269,100 +291,35 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "guardianAddress",
           "type": "address"
         },
         {
           "indexed": false,
-          "internalType": "uint256",
-          "name": "addedAt",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "addedBy",
-          "type": "address"
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
         }
       ],
-      "name": "MedicalGuardianCreationEvent",
+      "name": "MedicalGuardianRegisteredEvent",
       "type": "event"
     },
     {
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "patientAddress",
+          "type": "address"
+        },
+        {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "components": [
-            {
-              "internalType": "address",
-              "name": "primaryAddress",
-              "type": "address"
-            },
-            {
-              "internalType": "address[]",
-              "name": "linkedAddresses",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "registeredAt",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVerified",
-              "type": "bool"
-            },
-            {
-              "internalType": "bytes",
-              "name": "adminInitializationSignature",
-              "type": "bytes"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                },
-                {
-                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
-                  "name": "identityType",
-                  "type": "uint8"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKs",
-              "type": "tuple[]"
-            },
-            {
-              "internalType": "bool",
-              "name": "isMinor",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "ageOfMajority",
-              "type": "uint256"
-            }
-          ],
-          "indexed": false,
-          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
-          "name": "",
-          "type": "tuple"
         }
       ],
       "name": "PatientIdentityFetchedEvent",
@@ -371,6 +328,12 @@ export const arca_identity_facet_abi = [
     {
       "anonymous": false,
       "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "patientAddress",
+          "type": "address"
+        },
         {
           "indexed": false,
           "internalType": "string",
@@ -385,75 +348,16 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "patientAddress",
+          "type": "address"
+        },
+        {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "components": [
-            {
-              "internalType": "address",
-              "name": "primaryAddress",
-              "type": "address"
-            },
-            {
-              "internalType": "address[]",
-              "name": "linkedAddresses",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "registeredAt",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVerified",
-              "type": "bool"
-            },
-            {
-              "internalType": "bytes",
-              "name": "adminInitializationSignature",
-              "type": "bytes"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                },
-                {
-                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
-                  "name": "identityType",
-                  "type": "uint8"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKs",
-              "type": "tuple[]"
-            },
-            {
-              "internalType": "bool",
-              "name": "isMinor",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "ageOfMajority",
-              "type": "uint256"
-            }
-          ],
-          "indexed": false,
-          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
-          "name": "",
-          "type": "tuple"
         }
       ],
       "name": "PatientIdentityVerifiedEvent",
@@ -463,75 +367,16 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "patientAddress",
+          "type": "address"
+        },
+        {
           "indexed": false,
           "internalType": "string",
           "name": "message",
           "type": "string"
-        },
-        {
-          "components": [
-            {
-              "internalType": "address",
-              "name": "primaryAddress",
-              "type": "address"
-            },
-            {
-              "internalType": "address[]",
-              "name": "linkedAddresses",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint256",
-              "name": "registeredAt",
-              "type": "uint256"
-            },
-            {
-              "internalType": "bool",
-              "name": "isVerified",
-              "type": "bool"
-            },
-            {
-              "internalType": "bytes",
-              "name": "adminInitializationSignature",
-              "type": "bytes"
-            },
-            {
-              "components": [
-                {
-                  "internalType": "address",
-                  "name": "identity",
-                  "type": "address"
-                },
-                {
-                  "internalType": "bytes",
-                  "name": "rsaMasterDEK",
-                  "type": "bytes"
-                },
-                {
-                  "internalType": "enum LibArcaDiamondStorage.RsaIdentityType",
-                  "name": "identityType",
-                  "type": "uint8"
-                }
-              ],
-              "internalType": "struct LibArcaDiamondStorage.IdentityRSAMasterDEK[]",
-              "name": "rsaMasterDEKs",
-              "type": "tuple[]"
-            },
-            {
-              "internalType": "bool",
-              "name": "isMinor",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "ageOfMajority",
-              "type": "uint256"
-            }
-          ],
-          "indexed": false,
-          "internalType": "struct LibArcaDiamondStorage.PatientIdentity",
-          "name": "",
-          "type": "tuple"
         }
       ],
       "name": "PatientRegisteredEvent",
@@ -541,7 +386,7 @@ export const arca_identity_facet_abi = [
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "secondaryAddress",
           "type": "address"
@@ -664,25 +509,6 @@ export const arca_identity_facet_abi = [
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_address",
-          "type": "address"
-        }
-      ],
-      "name": "getAddressCid",
-      "outputs": [
-        {
-          "internalType": "bytes",
-          "name": "",
-          "type": "bytes"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "getAdminInitializationMessageHashesAndSignatures",
       "outputs": [
@@ -747,6 +573,25 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "_medicalGuardianAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getMedicalGuardianFhirPersonCid",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_patientAddress",
           "type": "address"
         }
@@ -762,13 +607,8 @@ export const arca_identity_facet_abi = [
             },
             {
               "internalType": "uint256",
-              "name": "addedAt",
+              "name": "registeredAt",
               "type": "uint256"
-            },
-            {
-              "internalType": "address",
-              "name": "addedBy",
-              "type": "address"
             }
           ],
           "internalType": "struct LibArcaDiamondStorage.MedicalGuardian[]",
@@ -796,6 +636,25 @@ export const arca_identity_facet_abi = [
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_address",
+          "type": "address"
+        }
+      ],
+      "name": "getPatientAddressCid",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -977,19 +836,14 @@ export const arca_identity_facet_abi = [
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "_guardianAddress",
-          "type": "address"
-        },
-        {
           "internalType": "uint256",
-          "name": "_addedAt",
+          "name": "_registeredAt",
           "type": "uint256"
         },
         {
-          "internalType": "address",
-          "name": "_addedBy",
-          "type": "address"
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
         }
       ],
       "name": "registerMedicalGuardian",
@@ -1006,7 +860,7 @@ export const arca_identity_facet_abi = [
         },
         {
           "internalType": "bytes",
-          "name": "_cid",
+          "name": "_fhirPatientCid",
           "type": "bytes"
         },
         {
@@ -1033,6 +887,11 @@ export const arca_identity_facet_abi = [
           "internalType": "uint256",
           "name": "_ageOfMajority",
           "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_fhirRelatedPersonCid",
+          "type": "bytes"
         }
       ],
       "name": "registerMinorPatientWithMedicalGuardian",
@@ -1166,7 +1025,7 @@ export const arca_identity_facet_abi = [
           "type": "bytes"
         }
       ],
-      "name": "updateAddressCid",
+      "name": "updatePatientAddressCid",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

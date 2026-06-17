@@ -116,7 +116,7 @@ contract ArcaIdentityRegistry{
 
   function isRegisteredPatient(address _address) public view returns (bool) {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    return ds.accountExists[_address];
+    return ds.patientExists[_address];
   }
 
   function isRegisteredMedicalGuardian(address _address) public view returns (bool) {
@@ -137,12 +137,12 @@ contract ArcaIdentityRegistry{
     bytes memory _rsaMasterDEK
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
+    require(ds.patientExists[msg.sender] == false, LibADS.PatientExistsError(msg.sender));
     uint256 patientCount = ds.patientCount;
     patientCount++;
     ds.patientCount = patientCount;
 
-    ds.accountExists[msg.sender] = true;
+    ds.patientExists[msg.sender] = true;
 
     LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
     newPatient.primaryAddress = msg.sender;
@@ -155,7 +155,7 @@ contract ArcaIdentityRegistry{
       identityType: LibADS.RsaIdentityType.PATIENT
     }));
 
-    ds.addressCid[msg.sender] = _cid;
+    ds.patientAddressCid[msg.sender] = _cid;
 
     ds.patientAccount[msg.sender] = newPatient;
     emit LibADS.PatientRegisteredEvent(msg.sender, "Patient registration successful");
@@ -164,23 +164,30 @@ contract ArcaIdentityRegistry{
 
   /// @notice This function gets the IPFS Content Identifier of the registered patient
   /// @param _address The patient's address
-  function getAddressCid(address _address)public returns(bytes memory){
+  function getPatientAddressCid(address _address)public returns(bytes memory){
     bool hasAccess = arcaAccessControlFacetVerifyAccessToPatientIdentityData(msg.sender, _address);
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
+    require(ds.patientExists[_address], LibADS.PatientDoesNotExistError(_address));
     require(hasAccess, LibADS.AuthorizationError("Access denied to content identifier data"));
-    return ds.addressCid[_address];
+    return ds.patientAddressCid[_address];
+  }
+
+
+  function getMedicalGuardianFhirPersonCid(address _medicalGuardianAddress)public view returns(bytes memory){
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.medicalGuardianExists[_medicalGuardianAddress], LibADS.MedicalGuardianDoesNotExistError(_medicalGuardianAddress));
+    return ds.medicalGuardianFhirPersonCid[_medicalGuardianAddress];
   }
 
 
   /// @notice This function is meant to update the recorded Content Identifier of the patient after each change on patient's data.
   /// @param _address The address of the patient.
   /// @param _cid  The new Content Identifier.
-  function updateAddressCid(address _address, bytes memory _cid) public{
+  function updatePatientAddressCid(address _address, bytes memory _cid) public{
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[_address], LibADS.AccountDoesNotExistError(_address));
+    require(ds.patientExists[_address], LibADS.PatientDoesNotExistError(_address));
     require(_address == msg.sender, LibADS.AuthorizationError("CID does not belong to sender"));
-    ds.addressCid[_address] = _cid;
+    ds.patientAddressCid[_address] = _cid;
   }
 
   /// @notice This function (for a secondary-address-to-be) makes a request for a patient primary address to link the sender for a unified data access.
@@ -194,7 +201,7 @@ contract ArcaIdentityRegistry{
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(_primaryAddress != address(0), "Recipient must be a valid address");
-    require(ds.accountExists[_primaryAddress], LibADS.AccountDoesNotExistError(_primaryAddress));
+    require(ds.patientExists[_primaryAddress], LibADS.PatientDoesNotExistError(_primaryAddress));
     ds.sentLinkRequest[msg.sender][_primaryAddress] = true;
     emit LibADS.LinkAccountRequestEvent(
       msg.sender,
@@ -237,8 +244,8 @@ contract ArcaIdentityRegistry{
     ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(
-      ds.accountExists[msg.sender],
-      LibADS.AccountDoesNotExistError(msg.sender)
+      ds.patientExists[msg.sender],
+      LibADS.PatientDoesNotExistError(msg.sender)
     );
     require(
       ds.primaryAccountOf[_secondaryAddress] == address(0), 
@@ -313,7 +320,7 @@ contract ArcaIdentityRegistry{
   /// @param _cid The updated Content Identifier after secondary address is removed from IPFS data.
   function unlinkSecondaryAddress(address _secondaryAddress, bytes memory _cid) public  {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
+    require(ds.patientExists[msg.sender], LibADS.PatientDoesNotExistError(msg.sender));
     bool isLinkedSecondaryAddress = false;
     // LibADS.PatientIdentity storage patient = ds.patientAccount[msg.sender];
 
@@ -336,7 +343,7 @@ contract ArcaIdentityRegistry{
     }
 
     ds.secondaryAddressConnectionCount[msg.sender] -=1;
-    ds.addressCid[msg.sender] = _cid;
+    ds.patientAddressCid[msg.sender] = _cid;
 
     emit LibADS.SuccessfulSecondaryAddressDisconnectionEvent(_secondaryAddress);
   }
@@ -348,8 +355,8 @@ contract ArcaIdentityRegistry{
   function removeStoredRsaMasterDekForLinkedAddress(address _primaryAddress, address _secondaryAddress) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(
-      ds.accountExists[_primaryAddress], 
-      LibADS.AccountDoesNotExistError(msg.sender)
+      ds.patientExists[_primaryAddress], 
+      LibADS.PatientDoesNotExistError(msg.sender)
     );
     require(
       ds.primaryAccountOf[_secondaryAddress] == address(0), 
@@ -378,7 +385,7 @@ contract ArcaIdentityRegistry{
   /// @notice This function gets the count of secondary addresses linked to a patient identity profile.
   function getSecondaryAddressConnectionCount()public view returns(uint8){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(ds.accountExists[msg.sender], LibADS.AccountDoesNotExistError(msg.sender));
+    require(ds.patientExists[msg.sender], LibADS.PatientDoesNotExistError(msg.sender));
     return ds.secondaryAddressConnectionCount[msg.sender];
   }
 
@@ -418,30 +425,30 @@ contract ArcaIdentityRegistry{
 
 
   /// @notice This registers a medical guardian.
-  /// @param _guardianAddress The medical guardian's address. 
-  /// @param _addedAt The Unix timestamp at when registration was initialized off-chain.
-  /// @param _addedBy The address that initiated the  registration. Either medical guardian's address or address of minor patient.
-  function registerMedicalGuardian(address _guardianAddress, uint256 _addedAt, address _addedBy) public {
+  /// @param _registeredAt The Unix timestamp at when registration was initialized off-chain.
+  function registerMedicalGuardian(uint256 _registeredAt, bytes memory _cid) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.medicalGuardianExists[msg.sender], LibADS.MedicalGuardianExistsError(msg.sender));
     uint256 medicalGuardianCount = ds.medicalGuardianCount;
     medicalGuardianCount++;
     ds.medicalGuardianCount = medicalGuardianCount;
 
-    LibADS.MedicalGuardian storage newMedicalGuardian = ds.medicalGuardianAccount[_guardianAddress];
-    newMedicalGuardian.guardianAddress = _guardianAddress;
-    newMedicalGuardian.addedAt = _addedAt;
-    newMedicalGuardian.addedBy = _addedBy;
+    LibADS.MedicalGuardian storage newMedicalGuardian = ds.medicalGuardianAccount[msg.sender];
+    newMedicalGuardian.guardianAddress = msg.sender;
+    newMedicalGuardian.registeredAt = _registeredAt;
 
-    ds.medicalGuardianExists[_guardianAddress] = true;
-    ds.medicalGuardianAccount[_guardianAddress] = newMedicalGuardian;
+    ds.medicalGuardianExists[msg.sender] = true;
+    ds.medicalGuardianAccount[msg.sender] = newMedicalGuardian;
 
-    emit LibADS.MedicalGuardianCreationEvent(_guardianAddress, _addedBy, _addedAt);
+    ds.medicalGuardianFhirPersonCid[msg.sender] = _cid;
+
+    emit LibADS.MedicalGuardianRegisteredEvent(msg.sender, "Medical-guardian registration successful");
   }
 
 
   /// @notice This creates an account for the current minor(msg.sender) and assigns primary access to a medical guardian
   /// @param _registeredAt The Unix timestamp at when registration was initialized off-chain.
-  /// @param _cid The content identifier of the IPFS patient identity.
+  /// @param _fhirPatientCid The content identifier of the IPFS envelope holding the FHIR Patient resource.
   /// @param _adminInitializationSignatureUsed The admin initialization signature used to register the patient.
   /// @param _rsaMasterDEK The RSA encrypted Data Encryption Key, which is used by patient to decrypt encrypted off-chain data.
   /// @param _rsaMasterDEKforMedicalGuardian The RSA encrypted Data Encryption Key, which is used by medical guardian to decrypt encrypted off-chain data.
@@ -449,26 +456,26 @@ contract ArcaIdentityRegistry{
   /// @param _ageOfMajority The age of majority of the patient. This will be used to track majority age and disconnect access from medical guardian when due.
   function registerMinorPatientWithMedicalGuardian(
     uint256 _registeredAt, 
-    bytes memory _cid, 
+    bytes memory _fhirPatientCid, 
     bytes memory _adminInitializationSignatureUsed,
     bytes memory _rsaMasterDEK, // for minor patient
     bytes memory _rsaMasterDEKforMedicalGuardian, // for medical guardian
     address _medicalGuardianAddress,
-    uint256 _ageOfMajority
+    uint256 _ageOfMajority,
+    bytes memory _fhirRelatedPersonCid
   ) public {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-    require(!ds.accountExists[msg.sender], LibADS.AccountExistsError(msg.sender));
+    require(!ds.patientExists[msg.sender], LibADS.PatientExistsError(msg.sender));
     require(_medicalGuardianAddress != address(0), LibADS.AuthorizationError("Medical guardian must be a valid address"));
+    require(ds.medicalGuardianExists[_medicalGuardianAddress], LibADS.MedicalGuardianDoesNotExistError(_medicalGuardianAddress));
     require(_medicalGuardianAddress != msg.sender, LibADS.AuthorizationError("Patient cannot be their own medical guardian"));
-    if(!ds.medicalGuardianExists[_medicalGuardianAddress]){
-      registerMedicalGuardian(_medicalGuardianAddress, block.timestamp, msg.sender);
-    }
+    
 
     uint256 patientCount = ds.patientCount;
     patientCount++;
     ds.patientCount = patientCount;
 
-    ds.accountExists[msg.sender] = true;
+    ds.patientExists[msg.sender] = true;
 
     // creating the minor patient's identity as the current msg.sender
     LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
@@ -488,7 +495,8 @@ contract ArcaIdentityRegistry{
       identityType: LibADS.RsaIdentityType.MEDICAL_GUARDIAN
     }));
 
-    ds.addressCid[msg.sender] = _cid;
+    ds.patientAddressCid[msg.sender] = _fhirPatientCid;
+    ds.medicalGuardianFhirRelatedPersonCid[_medicalGuardianAddress][msg.sender] = _fhirRelatedPersonCid;
 
     ds.patientAccount[msg.sender] = newPatient;
     emit LibADS.PatientRegisteredEvent(msg.sender, "Minor patient registration successful");
@@ -542,7 +550,7 @@ contract ArcaIdentityRegistry{
   //   bytes memory cid
   // ) public {
   //   LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-  //   require(ds.accountExists[msg.sender] == false, LibADS.AccountExistsError(msg.sender));
+  //   require(ds.patientExists[msg.sender] == false, LibADS.PatientExistsErrorError(msg.sender));
   //   require(_guardians.length == _guardiansRequired, LibADS.IncorrectGuardianCountMatchError("Number of guardian address must equal guardians required"));
   //   address[] memory linkedAddresses;
   //   if(_linkedAddresses.length == 0){
@@ -564,7 +572,7 @@ contract ArcaIdentityRegistry{
   //     cid: cid
   //   });
   //   ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
-  //   ds.accountExists[msg.sender] = true;
+  //   ds.patientExists[msg.sender] = true;
   //   emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
   // }
 

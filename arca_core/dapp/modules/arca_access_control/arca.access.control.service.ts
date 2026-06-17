@@ -144,13 +144,13 @@ export class ArcaAccessControlService{
         throw new Error(`Medical guardian ${wallet.address} not found in patient's encrypted DEK list`)
       }
       
-      const decryptedDekForAssigner = RED.decryptDek(
+      const decryptedDekForAssigner = RED.decryptData(
         wallet.privateKey, 
         parsedOffchainData.encryptionMetaData!.rsaKeys[assignerRsaMasterDekPosition].rsaEncryptedMasterDEK
       )
 
       // RSA-encrypting the master DEK with the public key of the new medical guardian(assignee)
-      const encryptedDekForAssignee = RED.encryptDek(recoveredMedicalGuardianPublicKey!, decryptedDekForAssigner)
+      const encryptedDekForAssignee = RED.encryptData(recoveredMedicalGuardianPublicKey!, decryptedDekForAssigner)
 
       parsedOffchainData.encryptionMetaData!.rsaKeys.push({
         wallet: assigneeMedicalGuardianAddress,
@@ -160,7 +160,7 @@ export class ArcaAccessControlService{
 
       const jsonData = JSON.stringify(parsedOffchainData);
 
-      const fileName: string = `${mainPatientAddress}-patient-identity.json`; // using the wallet address as file key
+      const fileName: string = `${mainPatientAddress}-fhir-patient.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
@@ -248,7 +248,7 @@ export class ArcaAccessControlService{
 
       const jsonData = JSON.stringify(parsedOffchainData);
 
-      const fileName: string = `${mainPatientAddress}-patient-identity.json`; // using the wallet address as file key
+      const fileName: string = `${mainPatientAddress}-fhir-patient.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
         fileName,
         jsonData,
