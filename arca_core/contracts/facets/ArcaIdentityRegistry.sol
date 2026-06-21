@@ -445,6 +445,7 @@ contract ArcaIdentityRegistry{
     emit LibADS.MedicalGuardianRegisteredEvent(msg.sender, "Medical-guardian registration successful");
   }
 
+  // todo: remove this later
 
   /// @notice This creates an account for the current minor(msg.sender) and assigns primary access to a medical guardian
   /// @param _registeredAt The Unix timestamp at when registration was initialized off-chain.
@@ -529,6 +530,88 @@ contract ArcaIdentityRegistry{
   }
 
 
+  /// @notice Called by medical guardian, this enables them to enroll a minor patient 
+  /// @param _patientRegisteredAt The Unix timestamp at when registration was initialized off-chain.
+  /// @param _ageOfMajority The age of majority of the patient. This will be used to track majority age and disconnect access from medical guardian when due.
+  /// @param _fhirPatientCid The content identifier of the IPFS envelope holding the FHIR Patient resource.
+  /// @param _updatedFhirPersonCid The content identifier of the IPFS envelope holding the updated FHIR Person resource of the medical guardian.
+  /// @param _fhirRelatedPersonCid  The content identifier of the IPFS envelope holding the FHIR RelatedPerson resource of the medical guardian to the patient.
+  /// @param _adminInitializationSignatureUsed The admin initialization signature used to register the patient.
+  /// @param _rsaMasterDEKforPatient The RSA encrypted Data Encryption Key, which will be used by patient to decrypt encrypted off-chain data.
+  /// @param _rsaMasterDEKforMedicalGuardian The RSA encrypted Data Encryption Key, which will be used by medical guardian to decrypt encrypted off-chain data.
+  /// @param _patientAddress The newly generated address of the minor patient
+  function registerMinorPatient(
+    uint256 _patientRegisteredAt,
+    uint256 _ageOfMajority,
+    bytes memory _fhirPatientCid, 
+    bytes memory _updatedFhirPersonCid,
+    bytes memory _fhirRelatedPersonCid,
+    bytes memory _adminInitializationSignatureUsed,
+    bytes memory _rsaMasterDEKforPatient,
+    bytes memory _rsaMasterDEKforMedicalGuardian,
+    address _patientAddress
+  )public{
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.medicalGuardianExists[msg.sender], LibADS.MedicalGuardianDoesNotExistError(msg.sender));
+    require(!ds.patientExists[_patientAddress], LibADS.PatientExistsError(_patientAddress));
+
+    uint256 patientCount = ds.patientCount;
+    patientCount++;
+    ds.patientCount = patientCount;
+
+    ds.patientExists[_patientAddress] = true;
+
+    // creating the minor patient's identity=
+    LibADS.PatientIdentity storage newPatient = ds.patientIdentity[patientCount];
+    newPatient.primaryAddress = _patientAddress;
+    newPatient.registeredAt = _patientRegisteredAt;
+    newPatient.isVerified = false;
+    newPatient.adminInitializationSignature = _adminInitializationSignatureUsed;
+    newPatient.ageOfMajority = _ageOfMajority;
+
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: _patientAddress,
+      rsaMasterDEK: _rsaMasterDEKforPatient,
+      identityType: LibADS.RsaIdentityType.PATIENT
+    }));
+
+    newPatient.rsaMasterDEKs.push(LibADS.IdentityRSAMasterDEK({
+      identity: msg.sender,
+      rsaMasterDEK: _rsaMasterDEKforMedicalGuardian,
+      identityType: LibADS.RsaIdentityType.MEDICAL_GUARDIAN
+    }));
+
+    ds.patientAddressCid[_patientAddress] = _fhirPatientCid;
+    ds.medicalGuardianFhirPersonCid[msg.sender] = _updatedFhirPersonCid;
+    ds.medicalGuardianFhirRelatedPersonCid[msg.sender][_patientAddress] = _fhirRelatedPersonCid;
+
+    ds.patientAccount[_patientAddress] = newPatient;
+    emit LibADS.PatientRegisteredEvent(_patientAddress, "Minor patient registration successful");
+
+    ds.isMedicalGuardianOfPatient[msg.sender][_patientAddress] = true;
+    ds.patientMedicalGuardians[_patientAddress].push(ds.medicalGuardianAccount[msg.sender]);
+
+    LibADS.MedicalGuardianPermission storage medicalGuardianPermission = ds.medicalGuardianPermissionsOnPatient[msg.sender][_patientAddress];
+    medicalGuardianPermission.role = LibADS.MedicalGuardianRole.PRIMARY;
+    medicalGuardianPermission.guardian = msg.sender;
+    medicalGuardianPermission.patient = _patientAddress;
+    medicalGuardianPermission.canGrantProviderAccess = true;
+    medicalGuardianPermission.canGrantGuardianAccess = true;
+    medicalGuardianPermission.canRevokeProviderAccess = true;
+    medicalGuardianPermission.canRevokeGuardianAccess = true;
+    medicalGuardianPermission.canUploadRecords = true;
+    medicalGuardianPermission.canReadRecords = true;
+    medicalGuardianPermission.canDeleteRecords = true;
+
+    ds.medicalGuardianPermissions[msg.sender].push(medicalGuardianPermission);
+
+    emit LibADS.MedicalGuardianAssignedToPatientEvent(
+      msg.sender, 
+      _patientAddress,
+      "Primary medical guardian assigned to minor patient"
+    );
+  }
+
   /// @notice This function is used to see patient medical guardians attached to a minor patient.
   /// @param _patientAddress The primary address of the minor patient.
   function getMedicalGuardians(address _patientAddress) public returns(LibADS.MedicalGuardian[] memory _medicalGuardians) {
@@ -540,40 +623,5 @@ contract ArcaIdentityRegistry{
   }
   
 
-
-  // // register patients with social recovery guardians
-  // function registerPatientWithLinkedAddressAndGuardians(
-  //   address [] memory _linkedAddresses, 
-  //   uint8 _guardiansRequired,
-  //   address[] memory _guardians,
-  //   uint256 _registeredAt,
-  //   bytes memory cid
-  // ) public {
-  //   LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
-  //   require(ds.patientExists[msg.sender] == false, LibADS.PatientExistsErrorError(msg.sender));
-  //   require(_guardians.length == _guardiansRequired, LibADS.IncorrectGuardianCountMatchError("Number of guardian address must equal guardians required"));
-  //   address[] memory linkedAddresses;
-  //   if(_linkedAddresses.length == 0){
-  //     linkedAddresses = new address[](0);
-  //   }
-  //   else{
-  //     linkedAddresses = _linkedAddresses;
-  //   }
-  //   uint256 patientCount = ds.patientCount;
-  //   patientCount++;
-  //   ds.patientCount = patientCount;
-  //   ds.patientIdentity[patientCount] = LibADS.PatientIdentity({
-  //     primaryAddress: msg.sender,
-  //     linkedAddresses: linkedAddresses,
-  //     registeredAt: _registeredAt,
-  //     isVerified: false,
-  //     guardians: _guardians,
-  //     guardiansRequired: _guardiansRequired,
-  //     cid: cid
-  //   });
-  //   ds.patientAccount[msg.sender] = ds.patientIdentity[patientCount];
-  //   ds.patientExists[msg.sender] = true;
-  //   emit LibADS.PatientRegisteredEvent("Patient registered", ds.patientIdentity[patientCount]);
-  // }
 
 }

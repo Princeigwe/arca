@@ -5,6 +5,18 @@ import { EmploymentStatus } from "../enums/employment.status.enum";
 import crypto from "crypto";
 
 
+export function generateId(walletAddress: string) {
+    const input = `${walletAddress}`;
+  
+    const hash = crypto
+      .createHash("sha256")
+      .update(input)
+      .digest("hex");
+  
+    return hash.slice(0, 16);
+  }
+
+
 export class FhirRelatedPerson{
   walletAddress: string
   firstName: string
@@ -38,7 +50,7 @@ export class FhirRelatedPerson{
     this.walletAddress = walletAddress;
     this.firstName = firstName;
     this.lastName = lastName;
-    this.dateOfBirth = dateOfBirth;
+    this.dateOfBirth = typeof dateOfBirth === "string" ? new Date(dateOfBirth) : dateOfBirth;
     this.gender = gender;
     this.hashedPatientId = hashedPatientId;
     this.homeAddress = homeAddress;
@@ -51,19 +63,8 @@ export class FhirRelatedPerson{
   }
 
 
-  generateId(walletAddress: string) {
-    const input = `${walletAddress}`;
-  
-    const hash = crypto
-      .createHash("sha256")
-      .update(input)
-      .digest("hex");
-  
-    return hash.slice(0, 16);
-  }
-
   constructResource(){
-    const id = this.generateId(this.walletAddress)
+    const id = generateId(this.walletAddress)
     return{
       resourceType: "Person",
       id: id,

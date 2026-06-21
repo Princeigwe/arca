@@ -855,6 +855,59 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "uint256",
+          "name": "_patientRegisteredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_ageOfMajority",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_fhirPatientCid",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_updatedFhirPersonCid",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_fhirRelatedPersonCid",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_adminInitializationSignatureUsed",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDEKforPatient",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_rsaMasterDEKforMedicalGuardian",
+          "type": "bytes"
+        },
+        {
+          "internalType": "address",
+          "name": "_patientAddress",
+          "type": "address"
+        }
+      ],
+      "name": "registerMinorPatient",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
           "name": "_registeredAt",
           "type": "uint256"
         },

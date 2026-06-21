@@ -7,6 +7,16 @@ import crypto from "crypto";
 import { FhirRelatedPerson } from "./fhir.related.person.resource";
 
 
+export function generateCompositeId(medicalGuardianAddress: string, patientWalletAddress: string){
+  const input = `${medicalGuardianAddress}-${patientWalletAddress}`
+  const hash = crypto
+    .createHash("sha256")
+    .update(input)
+    .digest("hex");
+  
+  return hash.slice(0, 16);
+}
+
 export class FhirPerson{
   walletAddress: string
   firstName: string
@@ -38,7 +48,7 @@ export class FhirPerson{
     this.walletAddress = walletAddress;
     this.firstName = firstName;
     this.lastName = lastName;
-    this.dateOfBirth = dateOfBirth;
+    this.dateOfBirth = typeof dateOfBirth === "string" ? new Date(dateOfBirth) : dateOfBirth;
     this.gender = gender;
     this.homeAddress = homeAddress;
     this.cityOfResidence = cityOfResidence;
@@ -60,15 +70,6 @@ export class FhirPerson{
     return hash.slice(0, 16);
   }
 
-  generateCompositeId(medicalGuardianAddress: string, patientWalletAddress: string){
-    const input = `${medicalGuardianAddress}-${patientWalletAddress}`
-    const hash = crypto
-      .createHash("sha256")
-      .update(input)
-      .digest("hex");
-  
-    return hash.slice(0, 16);
-  }
 
   constructResource(){
     const id = this.generateId(this.walletAddress)
@@ -117,7 +118,7 @@ export class FhirPerson{
 
   // this method adds a RelatedPerson resource type reference to the link
   updateAndAddRelatedPersonResourceReference(medicalGuardianAddress: string, patientWalletAddress: string, existingFhirData: any){
-    const compositeId = this.generateCompositeId(medicalGuardianAddress, patientWalletAddress)
+    const compositeId = generateCompositeId(medicalGuardianAddress, patientWalletAddress)
     const hashedPatientId = this.generateId(patientWalletAddress)
 
     const fhirRelatedPerson = new FhirRelatedPerson(
@@ -147,10 +148,14 @@ export class FhirPerson{
     }
 
     // adding the related-person resource type reference to 'link' attribute
-    existingFhirData.link.push(relatedPersonReference)
+    const fhirObj = typeof existingFhirData === 'string' ? JSON.parse(existingFhirData) : existingFhirData
+    if (!fhirObj.link) {
+      fhirObj.link = []
+    }
+    fhirObj.link.push(relatedPersonReference)
 
     return{
-      updatedFhirPersonResource: existingFhirData,
+      updatedFhirPersonResource: fhirObj,
       relatedPersonResource: fhirRelatedPersonResource
     }
   }
