@@ -38,6 +38,7 @@
     "axios": "^1.13.5",
     "dotenv": "^17.2.3",
     "eciesjs": "^0.4.17",
+    "shamir-secret-sharing": "^0.0.4",
     "typescript": "^5.9.3"
   }
 }
