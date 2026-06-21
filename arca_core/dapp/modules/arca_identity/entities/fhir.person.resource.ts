@@ -111,11 +111,12 @@ export class FhirPerson{
         }
       ],
       link: [] // this holds references to RelatedPerson resource type
+      // todo: add extension attribute to hold employment status, if needed in future
     }
   }
 
   // this method adds a RelatedPerson resource type reference to the link
-  createAndAddRelatedPersonResourceReference(medicalGuardianAddress: string, patientWalletAddress: string, existingFhirData: any){
+  updateAndAddRelatedPersonResourceReference(medicalGuardianAddress: string, patientWalletAddress: string, existingFhirData: any){
     const compositeId = this.generateCompositeId(medicalGuardianAddress, patientWalletAddress)
     const hashedPatientId = this.generateId(patientWalletAddress)
 

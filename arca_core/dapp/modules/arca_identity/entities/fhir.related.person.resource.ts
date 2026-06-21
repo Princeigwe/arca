@@ -115,7 +115,8 @@ export class FhirRelatedPerson{
           state: this.stateOfResidence,
           country: this.countryOfResidence
         }
-      ]
+      ],
+      // todo: add extension attribute to hold employment status, if needed in future
     }
   }
 }
