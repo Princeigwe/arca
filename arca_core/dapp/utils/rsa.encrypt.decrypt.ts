@@ -85,7 +85,7 @@ export class RsaEncryptDecrypt {
       // return keys;
 
       let keys = [senderToRsaMasterKey, adminToRsaMasterKey];
-      if(medicalGuardianEncryptedDek) {
+      if(medicalGuardianEncryptedDek != null) {
         keys.push(medicalGuardianToRsaMasterKey!);
       }
       return keys;

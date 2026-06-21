@@ -76,7 +76,7 @@ export class FhirPatient {
     this.walletAddress = walletAddress;
     this.firstName = firstName;
     this.lastName = lastName;
-    this.dateOfBirth = dateOfBirth;
+    this.dateOfBirth = typeof dateOfBirth === "string" ? new Date(dateOfBirth) : dateOfBirth;
     this.gender = gender;
     this.homeAddress = homeAddress;
     this.cityOfResidence = cityOfResidence;

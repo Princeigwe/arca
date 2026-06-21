@@ -120,9 +120,9 @@ let secondaryMedicalGuardianContractConnect = secondMedicalGuardianContractConne
 
 
 // custom generated wallet for testing wallet generation functionality
-const generatedWalletPrivateKey = "0x813976d34d8d88c229729ddfe9d6441e46db5b19ce118070424a9028c076e76f"
-const generatedWalletAddress = "0xa18C07c68762cB85e74B4d8373085A2b364891d5"
-const generatedWalletMnemonics = "pare fiber lamp effort require siren canvas emerge recipe slogan onion clinic"
+const generatedWalletPrivateKey = "0xa320d83b0f50496f9187150b0ffafd4c90fffe8c33c65208ba706925841078f1"
+const generatedWalletAddress = "0xD3e5873c1095b3c526BBE68F9D3b19a3Ce8E5861"
+const generatedWalletMnemonics = "card gospel priority open during happy advance soft cloth arrange aspect palace"
 const generatedWalletInit = new TestWallet(generatedWalletPrivateKey);
 const generatedWallet = generatedWalletInit.getWallet();
 const generatedWalletContractConnectInit = new ContractConnect(

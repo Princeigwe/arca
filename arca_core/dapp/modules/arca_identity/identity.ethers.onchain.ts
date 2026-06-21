@@ -664,17 +664,18 @@ export class IdentityEthersOnchain {
     }
   }
 
-
-  async registerMinorPatientWithMedicalGuardian(
-    minorWallet: ethers.Wallet,
+  
+  async registerMinorPatient(
+    medicalGuardianWallet: ethers.Wallet,
     contractConnect: ethers.Contract,
-    fhirPatientCid: string,
-    adminInitializationSignatureUsed: string,
-    rsaMasterDEK: string,
-    rsaMasterDEKforMedicalGuardian: string,
-    medicalGuardianAddress: string,
     dateOfAgeOfMajority: Date, // this is will used in determining the age of majority
-    fhirRelatedPersonCid: string
+    fhirPatientCid: string,
+    updatedFhirPersonCid: string,
+    fhirRelatedPersonCid: string,
+    adminInitializationSignatureUsed: string,
+    rsaMasterDEKforPatient: string,
+    rsaMasterDEKforMedicalGuardian: string,
+    generatedPatientAddress: string
   ){
     try {
       contractConnect.once("PatientRegisteredEvent", (patientAddress, message) => {
@@ -684,42 +685,45 @@ export class IdentityEthersOnchain {
       contractConnect.once("MedicalGuardianAssignedToPatientEvent", (medicalGuardian, patient, message) => {
         console.log(`Event received: ${message}, Medical Guardian: ${medicalGuardian}, Patient: ${patient}`);
       })
-      const fhirPatientCidBytes = ethers.toUtf8Bytes(fhirPatientCid)
-      const rsaMasterDEKbytes = ethers.toUtf8Bytes(rsaMasterDEK)
-      const rsaMasterDEKforMedicalGuardianBytes = ethers.toUtf8Bytes( rsaMasterDEKforMedicalGuardian)
 
+      const fhirPatientCidBytes = ethers.toUtf8Bytes(fhirPatientCid)
+      const updatedFhirPersonCidBytes = ethers.toUtf8Bytes(updatedFhirPersonCid)
       const fhirRelatedPersonCidBytes = ethers.toUtf8Bytes(fhirRelatedPersonCid)
+
+      const rsaMasterDEKforPatientBytes = ethers.toUtf8Bytes(rsaMasterDEKforPatient)
+      const rsaMasterDEKforMedicalGuardianBytes = ethers.toUtf8Bytes( rsaMasterDEKforMedicalGuardian)
 
       //** converting the date of age of majority to unix timestamp in seconds for the contract
       const ageOfMajorityUnixTimestampInSeconds = Math.floor(dateOfAgeOfMajority.getTime() / 1000); //unix timestamp in seconds
       console.log("Age of Majority Unix Timestamp in second:", ageOfMajorityUnixTimestampInSeconds);
 
-      const currentUnixTimestampInSeconds = Math.floor(Date.now() / 1000); 
-
-      const iFace = new ethers.Interface(arca_identity_facet_abi);
-      const data = iFace.encodeFunctionData("registerMinorPatientWithMedicalGuardian", [
+      const currentUnixTimestampInSeconds = Math.floor(Date.now() / 1000)
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const data = iFace.encodeFunctionData("registerMinorPatient", [
         currentUnixTimestampInSeconds,
-        fhirPatientCidBytes,
-        adminInitializationSignatureUsed,
-        rsaMasterDEKbytes,
-        rsaMasterDEKforMedicalGuardianBytes,
-        medicalGuardianAddress,
         ageOfMajorityUnixTimestampInSeconds,
-        fhirRelatedPersonCidBytes
+        fhirPatientCidBytes,
+        updatedFhirPersonCidBytes,
+        fhirRelatedPersonCidBytes,
+        adminInitializationSignatureUsed,
+        rsaMasterDEKforPatientBytes,
+        rsaMasterDEKforMedicalGuardianBytes,
+        generatedPatientAddress
       ])
 
       const txOption = {
         to: arcaDiamondAddress,
         data: data,
-        nonce: await minorWallet.getNonce("pending"),
-      };
-      const response = await minorWallet.sendTransaction(txOption);
-      await response.wait();
-    } catch (error: any) {
+        nonce: await medicalGuardianWallet.getNonce("pending"),
+      }
+      const response = await medicalGuardianWallet.sendTransaction(txOption)
+      await response.wait()
+
+    } catch (error: any){
       const iFace = new ethers.Interface(arca_identity_facet_abi)
       const decodedError = iFace.parseError(error.data)
       console.log("Onchain Error:", decodedError)
-      throw new Error(`Error registering minor patient with medical guardian: ${error}`)
+      throw new Error(`Error registering minor patient on chain: ${error}`)
     }
   }
 
@@ -761,7 +765,15 @@ export class IdentityEthersOnchain {
     const generatedWallet = HDNodeWallet.fromMnemonic(generatedMnemonic)
 
     console.log("Generated Wallet Address: ", generatedWallet.address)
+    console.log("Generated Wallet public key: ", generatedWallet.publicKey)
     console.log("Generated Wallet private key: ", generatedWallet.privateKey)
     console.log("Generated Wallet Mnemonics: ", generatedWallet.mnemonic?.phrase)
+
+    return{
+      address: generatedWallet.address,
+      publicKey: generatedWallet.publicKey,
+      privateKey: generatedWallet.privateKey,
+      mnemonicPhrase: generatedWallet.mnemonic?.phrase
+    }
   }
 }

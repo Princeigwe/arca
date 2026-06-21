@@ -17,8 +17,9 @@ import { RsaEncryptDecrypt } from "../../utils/rsa.encrypt.decrypt";
 import { IdentityEthersOnchain } from "./identity.ethers.onchain";
 import { isTemplateExpression } from "typescript";
 import { IdentityType } from "./enums/identity.type.enum";
-import { FhirPerson } from "./entities/fhir.person.resource";
-import { FhirRelatedPerson } from "./entities/fhir.related.person.resource";
+import { FhirPerson, generateCompositeId } from "./entities/fhir.person.resource";
+import { FhirRelatedPerson, generateId } from "./entities/fhir.related.person.resource";
+import { FhirMedicalGuardianRelationshipRoleType } from "./enums/fhir.personal.relationship.role.type.enum";
 
 // const dotenv = require("dotenv");
 // const path = require("path");
@@ -387,17 +388,18 @@ export class ArcaIdentityService {
   }
 
 
-  async readMedicalGuardianFhirPersonIpfsData(wallet: ethers.Wallet){
+  async readMedicalGuardianFhirPersonIpfsData(wallet: ethers.Wallet, medicalGuardianAddress: string){
     try {
-      const medicalGuardianFhirPersonCid = await this.identityEthersOnchain.getMedicalGuardianFhirPersonCid(wallet, wallet.address)
+      const medicalGuardianFhirPersonCid = await this.identityEthersOnchain.getMedicalGuardianFhirPersonCid(wallet, medicalGuardianAddress)
       const ipfsDataEnvelope = await ipfsOperator.getFileByCid(medicalGuardianFhirPersonCid)
       let jsonIPFSDataEnvelope: IpfsEnvelope = JSON.parse(ipfsDataEnvelope)
       
       const encryptedFhirData = jsonIPFSDataEnvelope.encryptedData
       const decryptedFhirData = RED.decryptData(wallet.privateKey, encryptedFhirData)
       console.log("Decrypted FHIR person resource: ", decryptedFhirData)
+      return decryptedFhirData
     } catch (error) {
-      
+      throw new Error(`Error reading medical guardian FhirPerson IPFS data: ${error}`)
     }
   }
 
@@ -720,16 +722,164 @@ export class ArcaIdentityService {
     }
   }
 
-  async registerMinorPatientWithMedicalGuardian(
-    minorWallet: ethers.Wallet,
+
+
+  // todo: still a work in progress
+  async updateAndUploadMedicalGuardianFhirResourcesToIpfs(medicalGuardianWallet: ethers.Wallet, minorPatientAddress: string){
+    try {
+      const guardianPublicKey = medicalGuardianWallet.signingKey.publicKey
+      const existingMedicalGuardianFhirPersonIpFsData = await this.readMedicalGuardianFhirPersonIpfsData(medicalGuardianWallet, medicalGuardianWallet.address)
+      const existingMedicalGuardianFhirPersonResource = JSON.parse(existingMedicalGuardianFhirPersonIpFsData)
+
+      const walletAddress = existingMedicalGuardianFhirPersonResource.identifier[0].value.replace("did:ethr:", "");
+
+      const firstName = existingMedicalGuardianFhirPersonResource.name[0].given[0];
+      const lastName = existingMedicalGuardianFhirPersonResource.name[0].family;
+
+      const gender = existingMedicalGuardianFhirPersonResource.gender;
+      const birthDate = existingMedicalGuardianFhirPersonResource.birthDate;
+
+      const telephone = existingMedicalGuardianFhirPersonResource.telecom.find(
+        (t: any) => t.system === "phone"
+      )?.value;
+
+      const email = existingMedicalGuardianFhirPersonResource.telecom.find(
+        (t: any) => t.system === "email"
+      )?.value;
+
+      const homeAddress =  existingMedicalGuardianFhirPersonResource .address[0].text;
+      const cityOfResidence = existingMedicalGuardianFhirPersonResource.address[0].city;
+      const stateOfResidence = existingMedicalGuardianFhirPersonResource.address[0].state;
+      const countryOfResidence = existingMedicalGuardianFhirPersonResource.address[0].country;
+
+      const fhirPerson = new FhirPerson(
+        walletAddress,
+        firstName,
+        lastName,
+        birthDate,
+        gender,
+        homeAddress,
+        cityOfResidence,
+        stateOfResidence,
+        countryOfResidence,
+        undefined,
+        telephone,
+        email
+      )
+
+      const fhirResources = fhirPerson.updateAndAddRelatedPersonResourceReference(walletAddress, minorPatientAddress, existingMedicalGuardianFhirPersonResource)
+      console.log("FHIR Person Resources: ", fhirResources)
+
+      //* processing updated FHIR person resource of the medical guardian to be uploaded
+      const plainFhirPersonIdentityData = JSON.stringify(fhirResources.updatedFhirPersonResource)
+      const encryptedFhirPersonData = RED.encryptData(guardianPublicKey, plainFhirPersonIdentityData)
+
+      const fhirPersonIpfsData: IpfsEnvelope = {
+        storageType: fhirPersonStorageType,
+        primaryWalletAddress: medicalGuardianWallet.address,
+        uploadedAt: new Date(),
+        encryptedData: encryptedFhirPersonData
+      }
+
+      const fhirPersonJsonData = JSON.stringify(fhirPersonIpfsData);
+      const updatedFhirPersonFileName = `${medicalGuardianWallet.address}-fhir-person.json`
+
+      const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
+        updatedFhirPersonFileName,
+        fhirPersonJsonData,
+      )
+      const updatedFhirPersonCid = cid
+      console.log("Filebase fhir-person upload response: ", uploadRequest)
+
+
+      //* processing FHIR related person resource of the medical guardian to be uploaded
+      const plainFhirRelatedPersonIdentityData = JSON.stringify(fhirResources.relatedPersonResource)
+      const encryptedFhirRelatedPersonData = RED.encryptData(guardianPublicKey, plainFhirRelatedPersonIdentityData)
+
+      const fhirRelatedPersonIpfsData: IpfsEnvelope = {
+        storageType: fhirRelatedPersonStorageType,
+        primaryWalletAddress: medicalGuardianWallet.address,
+        uploadedAt: new Date(),
+        encryptedData: encryptedFhirRelatedPersonData
+      }
+
+      const fhirRelatedPersonJsonData = JSON.stringify(fhirRelatedPersonIpfsData)
+      const fhirRelatedPersonFileName = `${medicalGuardianWallet.address}-fhir-related-person.json`
+
+      const fhirRelatedPersonUpload = await ipfsOperator.uploadJsonData(
+        fhirRelatedPersonFileName,
+        fhirRelatedPersonJsonData,
+      )
+
+      const fhirRelatedPersonCid = fhirRelatedPersonUpload.cid
+      console.log("Filebase fhir-related-person upload response: ", fhirRelatedPersonUpload.uploadRequest)
+
+      return{
+        updatedFhirPersonCid,
+        fhirRelatedPersonCid
+      }
+
+    } catch (error) {
+      throw new Error(`Error processing FhirRelatedPerson resource from FhirPerson resource: ${error}`)
+    }    
+  }
+
+
+  async parseMedicalGuardianFhirPerson(wallet: ethers.Wallet, medicalGuardianAddress: string){
+    const existingMedicalGuardianFhirPersonIpFsData = await this.readMedicalGuardianFhirPersonIpfsData(wallet, medicalGuardianAddress)
+
+    const existingMedicalGuardianFhirPersonResource = JSON.parse(existingMedicalGuardianFhirPersonIpFsData)
+
+    const walletAddress = existingMedicalGuardianFhirPersonResource.identifier[0].value.replace("did:ethr:", "");
+
+    const firstName = existingMedicalGuardianFhirPersonResource.name[0].given[0];
+    const lastName = existingMedicalGuardianFhirPersonResource.name[0].family;
+
+    const gender = existingMedicalGuardianFhirPersonResource.gender;
+    const birthDate = existingMedicalGuardianFhirPersonResource.birthDate;
+
+    const telephone = existingMedicalGuardianFhirPersonResource.telecom.find(
+      (t: any) => t.system === "phone"
+    )?.value;
+
+    const email = existingMedicalGuardianFhirPersonResource.telecom.find(
+      (t: any) => t.system === "email"
+    )?.value;
+
+    const homeAddress =  existingMedicalGuardianFhirPersonResource .address[0].text;
+    const cityOfResidence = existingMedicalGuardianFhirPersonResource.address[0].city;
+    const stateOfResidence = existingMedicalGuardianFhirPersonResource.address[0].state;
+    const countryOfResidence = existingMedicalGuardianFhirPersonResource.address[0].country;
+    
+    const computedMedicalGuardianHashedId = generateId(medicalGuardianAddress)
+
+    return{
+      walletAddress,
+      firstName,
+      lastName,
+      gender,
+      birthDate,
+      telephone,
+      email,
+      homeAddress,
+      cityOfResidence,
+      stateOfResidence,
+      countryOfResidence,
+      computedMedicalGuardianHashedId
+    }
+  }
+
+
+  async registerMinorPatient(
+    medicalGuardianWallet: ethers.Wallet,
     contractConnect: ethers.Contract,
     firstName: string,
     lastName: string,
     dateOfBirth: Date,
     gender: Gender,
     homeAddress: string,
-    medicalGuardianAddress: string,
-    medicalGuardianConnectionSignature: string,
+    relationshipToMinorPatient: FhirMedicalGuardianRelationshipRoleType,
+    // medicalGuardianConnectionSignature: string, 
     cityOfResidence?: string,
     stateOfResidence?: string,
     countryOfResidence?: string,
@@ -740,25 +890,19 @@ export class ArcaIdentityService {
     try {
       const adminMsgAndSigs =
         await this.identityEthersOnchain.getAdminInitializationMessageHashesAndSignatures(
-          minorWallet,
+          medicalGuardianWallet,
         );
       if (!adminMsgAndSigs || adminMsgAndSigs.length === 0) {
         throw new Error("No admin initialization hashes found.");
       }
 
-       //* verifying signature from supposed medical provider's address
-      const {isVerifiedSignature, recoveredMedicalGuardianPublicKey} = await this.verifyPrimaryMedicalGuardianConnectionSignature(
-        medicalGuardianAddress,
-        minorWallet.address,
-        medicalGuardianConnectionSignature
-      )
-      console.log('Recovered medical guardian public key: ', recoveredMedicalGuardianPublicKey)
-      if(!isVerifiedSignature){
-        throw new Error('Signature of provided address of medical guardian is not valid')
-      }
-      
-      let identityData = new FhirPatient(
-        minorWallet.address,
+      const medicalGuardianData = await this.parseMedicalGuardianFhirPerson(medicalGuardianWallet, medicalGuardianWallet.address)
+
+      const {address, publicKey, privateKey, mnemonicPhrase} = await this.identityEthersOnchain.generateWallet()
+      const patientAddress = address
+      const patientPublicKey = publicKey
+      let minorPatientIdentityData = new FhirPatient(
+        patientAddress,
         firstName,
         lastName,
         dateOfBirth,
@@ -769,79 +913,92 @@ export class ArcaIdentityService {
         countryOfResidence,
         employmentStatus,
         telephone,
-        email
+        email,
+        medicalGuardianData.computedMedicalGuardianHashedId,
+        medicalGuardianData.firstName,
+        medicalGuardianData.lastName,
+        medicalGuardianData.telephone,
+        relationshipToMinorPatient,
+        medicalGuardianData.homeAddress,
+        medicalGuardianData.cityOfResidence,
+        medicalGuardianData.stateOfResidence,
+        medicalGuardianData.countryOfResidence
       )
 
+      const fhirPatientResource = minorPatientIdentityData.constructResource()
+      const plainIdentityJsonData = JSON.stringify(fhirPatientResource)
 
-      const fhirPatientResource = identityData.constructResource()
-
-      const plainIdentityJsonData = JSON.stringify(fhirPatientResource);
       // secret key encryption of plain data
       const { encryptedData, iv, dek } = (await SED.encryptData(
         plainIdentityJsonData,
-      ))!;
+      ))!
 
       console.log("Encrypted data: ", encryptedData);
       console.log("IV: ", iv);
 
-      const senderPk = minorWallet.signingKey.publicKey;
-
       //** getting the recovered public key and signature of a random admin from the onchain facet to encrypt the dek with the admin's public key and for registering the patient onchain with the admin's signature as proof of authorization of the patient registration by an admin */
       const { adminRecoveredPublicKey, adminMessageSignature } = await this.identityEthersOnchain.selectRandomAdminPublicKeyAndSignature(
-        minorWallet,
-      );
-
+          medicalGuardianWallet,
+        );
       const computedAdminAddress = ethers.computeAddress(adminRecoveredPublicKey!)
+      console.log("Admin Recovered Public Key: ", adminRecoveredPublicKey)
+      console.log("Admin computed address: ", computedAdminAddress)
 
       const rsaEncryptedKeys = RED.dualKeyEncryption(
         dek,
-        minorWallet.address,
-        senderPk,
-        adminRecoveredPublicKey!,
+        patientAddress,
+        patientPublicKey,
+        adminRecoveredPublicKey,
         computedAdminAddress,
-        recoveredMedicalGuardianPublicKey!,
-        medicalGuardianAddress
-      )!;
+        medicalGuardianWallet.signingKey.publicKey,
+        medicalGuardianWallet.address
+      )
 
       const encryptionMetadata: EncryptionMetadata = {
         dekIv: iv,
         rsaKeys: rsaEncryptedKeys,
-      };
+      }
 
-      const ipfsDataEnvelope: IpfsEnvelope = {
+      const data: IpfsEnvelope = {
         storageType: fhirPatientStorageType,
-        primaryWalletAddress: minorWallet.address,
+        primaryWalletAddress: patientAddress,
         uploadedAt: new Date(),
         encryptedData,
         encryptionMetaData: encryptionMetadata,
-      };
-      const jsonIpfsDataEnvelope = JSON.stringify(ipfsDataEnvelope);
+      }
 
-      const fileName: string = `${minorWallet.address}-fhir-patient.json`; // using the wallet address as file key
+      const jsonData = JSON.stringify(data);
+
+      const patientIpfsFileName: string = `${patientAddress}-fhir-patient.json`; // using the wallet address as file key
       const { cid, uploadRequest } = await ipfsOperator.uploadJsonData(
-        fileName,
-        jsonIpfsDataEnvelope,
-      );
-      console.log("Filebase upload response: ", uploadRequest);
+        patientIpfsFileName,
+        jsonData,
+      )
+      console.log("Filebase fhirPatient upload response: ", uploadRequest)
 
       //* calculating date of majority
       const dateOfAgeOfMajority = new Date(dateOfBirth);
-      dateOfAgeOfMajority.setFullYear(dateOfAgeOfMajority.getFullYear() + 18);
+      dateOfAgeOfMajority.setFullYear(dateOfAgeOfMajority.getFullYear() + 18)
 
+      const fhirPatientCid = cid
+      const guardianCids = await this.updateAndUploadMedicalGuardianFhirResourcesToIpfs(medicalGuardianWallet, patientAddress)
 
-      //* registering patient onchain with guardian
-      // await this.identityEthersOnchain.registerMinorPatientWithMedicalGuardian(
-      //   minorWallet,
-      //   contractConnect,
-      //   cid!,
-      //   adminMessageSignature,
-      //   rsaEncryptedKeys[0].rsaEncryptedMasterDEK,
-      //   rsaEncryptedKeys![0].rsaEncryptedMasterDEK,
-      //   medicalGuardianAddress,
-      //   dateOfAgeOfMajority
-      // )
+      console.log("Interacting with onchain smart contract")
+      await this.identityEthersOnchain.registerMinorPatient(
+        medicalGuardianWallet,
+        contractConnect,
+        dateOfAgeOfMajority,
+        fhirPatientCid,
+        guardianCids.updatedFhirPersonCid,
+        guardianCids.fhirRelatedPersonCid,
+        adminMessageSignature,
+        rsaEncryptedKeys[0].rsaEncryptedMasterDEK, // master DEK for minor patient
+        rsaEncryptedKeys[2].rsaEncryptedMasterDEK,  // master DEK for medical guardian
+        patientAddress
+      )
+
     } catch (error) {
-      throw new Error(`Error registering minor patient with medical guardian on/off chain: ${error}`)
+      throw new Error(`Error registering minor patient: ${error}`)
     }
   }
 
@@ -875,6 +1032,7 @@ const arcaIdentityService = new ArcaIdentityService(identityEthersOnchain);
 let patient1Wallet = testWallets[1];
 let patient1ContractConnect = testConnects[1];
 
+
 let admin2Wallet = testWallets[3];
 let admin2ContractConnect = testConnects[3];
 
@@ -882,6 +1040,8 @@ const primaryGuardianWallet = testWallets[4];
 const primaryGuardianContractConnect = testConnects[4];
 
 const secondGuardianWallet = testWallets[5];
+
+const generatedWallet = testWallets[6]
 
 
 // arcaIdentityService.isRegisteredPatient(patient1Wallet, patient1Wallet.address)
@@ -985,13 +1145,14 @@ const approvalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService.readPatientIpfsData(
-//   patient1Wallet,
+//   // patient1Wallet,
+//   // generatedWallet,
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
-//   // admin2Wallet,
-//   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+//   primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
 //   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
-//   patient1Wallet.address,
+//   // patient1Wallet.address,
+//   generatedWallet.address,
 //   adminInitMessage
 // )
 
@@ -1018,24 +1179,24 @@ const approvalMessage = "I approve the request for unified access";
 // )
 
 
-// arcaIdentityService.readMedicalGuardianFhirPersonIpfsData(primaryGuardianWallet)
+// arcaIdentityService.readMedicalGuardianFhirPersonIpfsData(primaryGuardianWallet, primaryGuardianWallet.address)
 
-// arcaIdentityService.registerMinorPatientWithMedicalGuardian(
-//   patient1Wallet,
-//   patient1ContractConnect,
-//   "John",
-//   "Doe",
-//   new Date(),
+
+// arcaIdentityService.registerMinorPatient(
+//   primaryGuardianWallet,
+//   primaryGuardianContractConnect,
+//   "Ling",
+//   "Long",
+//   new Date('2022-03-02'),
 //   Gender.MALE,
 //   "123 Main St",
-//   primaryGuardianWallet.address,
-//   "0xbed0f72088b2f47c6f82f3143de94946a1c10c2e9d501a212e621db1751f63f4789b839e671f5100825ee3e8b11ad33cfd6eabb7ff3f4780b9d5f9c177936edc1c",
+//   FhirMedicalGuardianRelationshipRoleType.FAMMEMB,
 //   "Lagos",
 //   "Lagos",
 //   "Nigeria",
 //   EmploymentStatus.STUDENT,
-//   "+2349058858858",
-//   "testprince@gmail.com",
+//   "+2349059959955",
+//   "testling@gmail.com",
 // )
 
 
