@@ -66,7 +66,7 @@ export class FhirRelatedPerson{
   constructResource(){
     const id = generateId(this.walletAddress)
     return{
-      resourceType: "Person",
+      resourceType: "RelatedPerson",
       id: id,
       identifier: [
         {
@@ -117,7 +117,12 @@ export class FhirRelatedPerson{
           country: this.countryOfResidence
         }
       ],
-      // todo: add extension attribute to hold employment status, if needed in future
+      extension: [
+        {
+          url: "arca/extensions/employment-status",
+          valueString: this.employmentStatus
+        },
+      ]
     }
   }
 }

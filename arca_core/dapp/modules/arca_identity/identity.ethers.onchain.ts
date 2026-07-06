@@ -754,6 +754,35 @@ export class IdentityEthersOnchain {
   }
 
 
+  async fetchPaginatedMedicalPermissions(wallet: ethers.Wallet, cursor: number, howMany: number){
+    try {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const data = iFace.encodeFunctionData("fetchPaginatedMedicalPermissions", [cursor, howMany])
+      const txOption = {
+        to: arcaDiamondAddress,
+        data: data
+      }
+
+      const response = await wallet.call(txOption)
+      const decoded = iFace.decodeFunctionResult("fetchPaginatedMedicalPermissions", response)
+      // console.log("Decoded medical permissions: ", decoded)
+      const values = decoded[0] 
+      const newCursor = decoded[1] 
+      console.log("New Cursor: ", newCursor)
+
+      const permissions = values.map((item: any) => item.toObject())
+      console.log("Formatted medical permissions: ", permissions);
+      console.log("New cursor: ", newCursor);
+      return { permissions, newCursor }
+    } catch (error: any) {
+      const iFace = new ethers.Interface(arca_identity_facet_abi)
+      const decodedError = iFace.parseError(error.data)
+      console.log("Onchain Error:", decodedError)
+      throw new Error(`Error getting medical guardians: ${error}`);
+    }
+  }
+
+
   async generateWallet(){
     // generating 16 random bytes
     const extraEntropy: Uint8Array = ethers.randomBytes(16)

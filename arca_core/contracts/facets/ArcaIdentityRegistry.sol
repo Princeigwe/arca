@@ -539,5 +539,33 @@ contract ArcaIdentityRegistry{
   }
   
 
+  /// @notice This function is designed to fetch paginated medical permissions that a medical guardian has 
+  /// @param _cursor The index of the first element to return (inclusive).
+  /// @param _howMany The maximum number of elements to return.
+  /// @return _values An array of MedicalGuardianPermission structs.
+  /// @return newCursor The index of the next element to return (inclusive).
+  function fetchPaginatedMedicalPermissions(uint256 _cursor, uint256 _howMany) public view returns (LibADS.MedicalGuardianPermission[] memory _values,uint256 newCursor) {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.medicalGuardianExists[msg.sender], LibADS.MedicalGuardianDoesNotExistError(msg.sender));
+
+    uint256 totalPermissionsCount = ds.medicalGuardianPermissions[msg.sender].length;
+
+    if (_cursor >= totalPermissionsCount) {
+      return (new LibADS.MedicalGuardianPermission[](0), totalPermissionsCount);
+    }
+
+    uint256 length = _howMany;
+    uint256 remaining = totalPermissionsCount - _cursor;
+    if (length > remaining) {
+      length = remaining;
+    }
+    _values = new LibADS.MedicalGuardianPermission[](length);
+    for (uint256 i = 0; i < length; i++) {
+      _values[i] = ds.medicalGuardianPermissions[msg.sender][_cursor + i];
+    }
+
+    return (_values, _cursor + length);
+  }
+
 
 }
