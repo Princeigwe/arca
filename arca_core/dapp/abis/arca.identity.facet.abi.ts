@@ -521,62 +521,22 @@ export const arca_identity_facet_abi = [
           "type": "uint256"
         }
       ],
-      "name": "fetchPaginatedMedicalPermissions",
+      "name": "fetchPaginatedPatientCids",
       "outputs": [
         {
           "components": [
-            {
-              "internalType": "enum LibArcaDiamondStorage.MedicalGuardianRole",
-              "name": "role",
-              "type": "uint8"
-            },
-            {
-              "internalType": "address",
-              "name": "guardian",
-              "type": "address"
-            },
             {
               "internalType": "address",
               "name": "patient",
               "type": "address"
             },
             {
-              "internalType": "bool",
-              "name": "canGrantProviderAccess",
-              "type": "bool"
-            },
-            {
-              "internalType": "bool",
-              "name": "canGrantGuardianAccess",
-              "type": "bool"
-            },
-            {
-              "internalType": "bool",
-              "name": "canRevokeProviderAccess",
-              "type": "bool"
-            },
-            {
-              "internalType": "bool",
-              "name": "canRevokeGuardianAccess",
-              "type": "bool"
-            },
-            {
-              "internalType": "bool",
-              "name": "canUploadRecords",
-              "type": "bool"
-            },
-            {
-              "internalType": "bool",
-              "name": "canReadRecords",
-              "type": "bool"
-            },
-            {
-              "internalType": "bool",
-              "name": "canDeleteRecords",
-              "type": "bool"
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
             }
           ],
-          "internalType": "struct LibArcaDiamondStorage.MedicalGuardianPermission[]",
+          "internalType": "struct LibArcaDiamondStorage.PatientCidRecord[]",
           "name": "_values",
           "type": "tuple[]"
         },

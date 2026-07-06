@@ -754,17 +754,17 @@ export class IdentityEthersOnchain {
   }
 
 
-  async fetchPaginatedMedicalPermissions(wallet: ethers.Wallet, cursor: number, howMany: number){
+  async fetchPaginatedPatientCids(wallet: ethers.Wallet, cursor: number, howMany: number){
     try {
       const iFace = new ethers.Interface(arca_identity_facet_abi)
-      const data = iFace.encodeFunctionData("fetchPaginatedMedicalPermissions", [cursor, howMany])
+      const data = iFace.encodeFunctionData("fetchPaginatedPatientCids", [cursor, howMany])
       const txOption = {
         to: arcaDiamondAddress,
         data: data
       }
 
       const response = await wallet.call(txOption)
-      const decoded = iFace.decodeFunctionResult("fetchPaginatedMedicalPermissions", response)
+      const decoded = iFace.decodeFunctionResult("fetchPaginatedPatientCids", response)
       // console.log("Decoded medical permissions: ", decoded)
       const values = decoded[0] 
       const newCursor = decoded[1] 

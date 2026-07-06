@@ -1014,9 +1014,9 @@ export class ArcaIdentityService {
   }
 
 
-  async fetchPaginatedMedicalPermissions(wallet: ethers.Wallet, cursor: number, howMany: number){
+  async fetchPaginatedPatientCids(wallet: ethers.Wallet, cursor: number, howMany: number){
     try {
-      await  this.identityEthersOnchain.fetchPaginatedMedicalPermissions(wallet, cursor, howMany)
+      await  this.identityEthersOnchain.fetchPaginatedPatientCids(wallet, cursor, howMany)
     } catch (error) {
       throw new Error(`Error getting paginated medical permissions: ${error}`);
     }
@@ -1216,4 +1216,4 @@ const approvalMessage = "I approve the request for unified access";
 //   patient1Wallet.address
 // )
 
-arcaIdentityService.fetchPaginatedMedicalPermissions(primaryGuardianWallet, 0, 3)
+// arcaIdentityService.fetchPaginatedPatientCids(primaryGuardianWallet, 0, 3)
