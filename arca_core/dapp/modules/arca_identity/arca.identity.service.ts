@@ -1053,6 +1053,10 @@ const secondGuardianWallet = testWallets[5];
 
 const generatedWallet = testWallets[6]
 
+const minorPatientGeneratedWallet = testWallets[7]
+
+
+
 
 // arcaIdentityService.isRegisteredPatient(patient1Wallet, patient1Wallet.address)
 // arcaIdentityService.isRegisteredMedicalGuardian(patient1Wallet, primaryGuardianWallet.address)
@@ -1155,13 +1159,15 @@ const approvalMessage = "I approve the request for unified access";
 
 
 // arcaIdentityService.readPatientIpfsData(
-//   patient1Wallet,
+//   // patient1Wallet,
+//   minorPatientGeneratedWallet,
 //   // generatedWallet,
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
 //   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
 //   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
-//   patient1Wallet.address,
+//   // patient1Wallet.address,
+//   minorPatientGeneratedWallet.address,
 //   // generatedWallet.address,
 //   adminInitMessage
 // )

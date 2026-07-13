@@ -134,6 +134,19 @@ const generatedWalletContractConnect = generatedWalletContractConnectInit.connec
 
 
 
+const patientGeneratedWalletPrivateKey='6185e7df3bda46b8cc5cdfed3160e84ce9455c0bf31fa02df8e4b4ef9031a0b5'
+const patientGeneratedWalletAddress='0x3a110E029Aa9eEaadd3E863b74eADDc784E209F0'
+const patientGeneratedWalletMnemonics='vivid idle sorry crisp erosion picnic opera fetch enroll drama rural diploma'
+const patientGeneratedWalletInit = new TestWallet(patientGeneratedWalletPrivateKey);
+const patientGeneratedWallet = patientGeneratedWalletInit.getWallet();
+const patientGeneratedWalletContractConnectInit = new ContractConnect(
+  arcaDiamondAddress,
+  combinedABIs,
+  patientGeneratedWallet,
+)
+const patientGeneratedWalletContractConnect = patientGeneratedWalletContractConnectInit.connect()
+
+
 export const testWallets = [
   ownerWallet, 
   patient1Wallet, 
@@ -141,7 +154,8 @@ export const testWallets = [
   admin2Wallet,
   primaryMedicalGuardianWallet,
   secondMedicalGuardianWallet,
-  generatedWallet
+  generatedWallet,
+  patientGeneratedWallet
 ];
 
 
@@ -152,5 +166,6 @@ export const testConnects = [
   admin2ContractConnect,
   primaryMedicalGuardianContractConnect,
   secondaryMedicalGuardianContractConnect,
-  generatedWalletContractConnect
+  generatedWalletContractConnect,
+  patientGeneratedWalletContractConnect
 ];
