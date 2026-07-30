@@ -97,7 +97,8 @@ let patient1SecondaryContractConnectInit = new ContractConnect(
 let patient1SecondaryContractConnect = patient1SecondaryContractConnectInit.connect();
 
 
-const primaryMedicalGuardianPrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" // account 4
+// const primaryMedicalGuardianPrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" // account 4
+const primaryMedicalGuardianPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" // used on the mobile app
 let primaryMedicalGuardianWalletInit = new TestWallet(primaryMedicalGuardianPrivateKey);
 let primaryMedicalGuardianWallet = primaryMedicalGuardianWalletInit.getWallet();
 let primaryMedicalGuardianContractConnectInit = new ContractConnect(

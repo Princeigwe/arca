@@ -805,7 +805,7 @@ export class ArcaIdentityService {
       }
 
       const fhirRelatedPersonJsonData = JSON.stringify(fhirRelatedPersonIpfsData)
-      const fhirRelatedPersonFileName = `${medicalGuardianWallet.address}-fhir-related-person.json`
+      const fhirRelatedPersonFileName = `${medicalGuardianWallet.address}-${minorPatientAddress}-fhir-related-person.json`
 
       const fhirRelatedPersonUpload = await ipfsOperator.uploadJsonData(
         fhirRelatedPersonFileName,
@@ -1112,7 +1112,7 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 //   dekIv
 // )
 
-// arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
+arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
 // arcaIdentityService.readPatientOnchainData(
 //   // ownerWallet,
