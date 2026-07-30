@@ -134,6 +134,12 @@ library LibArcaDiamondStorage{
     bytes messageSignature;
   }
 
+  // this will be needed by the frontend client to fetch all patients CID data at once, reducing gas cost on multiple calls (for medical guardian view)
+  struct PatientCidRecord {
+    address patient;
+    bytes cid;
+  }
+
   // the main storage of Arca diamond contract
   struct DiamondStorage{
     mapping(bytes4 => FacetAddressAndFunctionSelectorPosition) selectorToFacetAddressAndFunctionSelectorPosition;

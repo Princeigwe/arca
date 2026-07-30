@@ -539,5 +539,38 @@ contract ArcaIdentityRegistry{
   }
   
 
+  /// @notice This function is designed to fetch paginated cid records of minors that a medical guardian is assigned to 
+  /// @param _cursor The index of the first element to return (inclusive).
+  /// @param _howMany The maximum number of elements to return.
+  /// @return _values An array of MedicalGuardianPermission structs.
+  /// @return newCursor The index of the next element to return (inclusive).
+  function fetchPaginatedPatientCids(uint256 _cursor, uint256 _howMany) public view returns (LibADS.PatientCidRecord[] memory _values,uint256 newCursor) {
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(ds.medicalGuardianExists[msg.sender], LibADS.MedicalGuardianDoesNotExistError(msg.sender));
+
+    uint256 total = ds.medicalGuardianPermissions[msg.sender].length;
+
+    if (_cursor >= total) {
+        return (new LibADS.PatientCidRecord[](0), total);
+    }
+
+    uint256 length = _howMany;
+    uint256 remaining = total - _cursor;
+    if (length > remaining) {
+        length = remaining;
+    }
+
+    _values = new LibADS.PatientCidRecord[](length);
+    for (uint256 i = 0; i < length; i++) {
+        address patientAddr = ds.medicalGuardianPermissions[msg.sender][_cursor + i].patient;
+        _values[i] = LibADS.PatientCidRecord({
+            patient: patientAddr,
+            cid: ds.patientAddressCid[patientAddr]
+        });
+    }
+
+    return (_values, _cursor + length);
+  }
+
 
 }

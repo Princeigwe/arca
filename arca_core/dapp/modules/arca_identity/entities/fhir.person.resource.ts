@@ -78,7 +78,7 @@ export class FhirPerson{
       id: id,
       identifier: [
         {
-          system: 'urn:arca:patient:did',
+          system: 'urn:arca:medical-guardian:did',
           value: `did:ethr:${this.walletAddress}`
         }
       ],
@@ -111,8 +111,13 @@ export class FhirPerson{
           country: this.countryOfResidence
         }
       ],
-      link: [] // this holds references to RelatedPerson resource type
-      // todo: add extension attribute to hold employment status, if needed in future
+      link: [], // this holds references to RelatedPerson resource type
+      extension: [
+        {
+          url: "arca/extensions/employment-status",
+          valueString: this.employmentStatus
+        },
+      ]
     }
   }
 

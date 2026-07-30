@@ -97,7 +97,8 @@ let patient1SecondaryContractConnectInit = new ContractConnect(
 let patient1SecondaryContractConnect = patient1SecondaryContractConnectInit.connect();
 
 
-const primaryMedicalGuardianPrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" // account 4
+// const primaryMedicalGuardianPrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" // account 4
+const primaryMedicalGuardianPrivateKey = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" // used on the mobile app
 let primaryMedicalGuardianWalletInit = new TestWallet(primaryMedicalGuardianPrivateKey);
 let primaryMedicalGuardianWallet = primaryMedicalGuardianWalletInit.getWallet();
 let primaryMedicalGuardianContractConnectInit = new ContractConnect(
@@ -134,6 +135,19 @@ const generatedWalletContractConnect = generatedWalletContractConnectInit.connec
 
 
 
+const patientGeneratedWalletPrivateKey='6185e7df3bda46b8cc5cdfed3160e84ce9455c0bf31fa02df8e4b4ef9031a0b5'
+const patientGeneratedWalletAddress='0x3a110E029Aa9eEaadd3E863b74eADDc784E209F0'
+const patientGeneratedWalletMnemonics='vivid idle sorry crisp erosion picnic opera fetch enroll drama rural diploma'
+const patientGeneratedWalletInit = new TestWallet(patientGeneratedWalletPrivateKey);
+const patientGeneratedWallet = patientGeneratedWalletInit.getWallet();
+const patientGeneratedWalletContractConnectInit = new ContractConnect(
+  arcaDiamondAddress,
+  combinedABIs,
+  patientGeneratedWallet,
+)
+const patientGeneratedWalletContractConnect = patientGeneratedWalletContractConnectInit.connect()
+
+
 export const testWallets = [
   ownerWallet, 
   patient1Wallet, 
@@ -141,7 +155,8 @@ export const testWallets = [
   admin2Wallet,
   primaryMedicalGuardianWallet,
   secondMedicalGuardianWallet,
-  generatedWallet
+  generatedWallet,
+  patientGeneratedWallet
 ];
 
 
@@ -152,5 +167,6 @@ export const testConnects = [
   admin2ContractConnect,
   primaryMedicalGuardianContractConnect,
   secondaryMedicalGuardianContractConnect,
-  generatedWalletContractConnect
+  generatedWalletContractConnect,
+  patientGeneratedWalletContractConnect
 ];

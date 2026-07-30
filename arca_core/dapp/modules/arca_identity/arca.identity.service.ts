@@ -737,6 +737,7 @@ export class ArcaIdentityService {
       const lastName = existingMedicalGuardianFhirPersonResource.name[0].family;
 
       const gender = existingMedicalGuardianFhirPersonResource.gender;
+      const employmentStatus = existingMedicalGuardianFhirPersonResource.extension[0].valueString
       const birthDate = existingMedicalGuardianFhirPersonResource.birthDate;
 
       const telephone = existingMedicalGuardianFhirPersonResource.telecom.find(
@@ -762,7 +763,7 @@ export class ArcaIdentityService {
         cityOfResidence,
         stateOfResidence,
         countryOfResidence,
-        undefined,
+        employmentStatus,
         telephone,
         email
       )
@@ -804,7 +805,7 @@ export class ArcaIdentityService {
       }
 
       const fhirRelatedPersonJsonData = JSON.stringify(fhirRelatedPersonIpfsData)
-      const fhirRelatedPersonFileName = `${medicalGuardianWallet.address}-fhir-related-person.json`
+      const fhirRelatedPersonFileName = `${medicalGuardianWallet.address}-${minorPatientAddress}-fhir-related-person.json`
 
       const fhirRelatedPersonUpload = await ipfsOperator.uploadJsonData(
         fhirRelatedPersonFileName,
@@ -1013,6 +1014,15 @@ export class ArcaIdentityService {
   }
 
 
+  async fetchPaginatedPatientCids(wallet: ethers.Wallet, cursor: number, howMany: number){
+    try {
+      await  this.identityEthersOnchain.fetchPaginatedPatientCids(wallet, cursor, howMany)
+    } catch (error) {
+      throw new Error(`Error getting paginated medical permissions: ${error}`);
+    }
+  }
+
+
   async generateWallet(){
     return await this.identityEthersOnchain.generateWallet()
   }
@@ -1042,6 +1052,10 @@ const primaryGuardianContractConnect = testConnects[4];
 const secondGuardianWallet = testWallets[5];
 
 const generatedWallet = testWallets[6]
+
+const minorPatientGeneratedWallet = testWallets[7]
+
+
 
 
 // arcaIdentityService.isRegisteredPatient(patient1Wallet, patient1Wallet.address)
@@ -1098,7 +1112,7 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 //   dekIv
 // )
 
-// arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
+arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
 // arcaIdentityService.readPatientOnchainData(
 //   // ownerWallet,
@@ -1146,13 +1160,15 @@ const approvalMessage = "I approve the request for unified access";
 
 // arcaIdentityService.readPatientIpfsData(
 //   // patient1Wallet,
+//   minorPatientGeneratedWallet,
 //   // generatedWallet,
 //   // patient1SecondaryWallet,
 //   // ownerWallet,
-//   primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
+//   // primaryGuardianWallet, // primary medical guardian trying to read the patient IPFS data 
 //   // secondGuardianWallet, // second medical guardian trying to read the patient IPFS data
 //   // patient1Wallet.address,
-//   generatedWallet.address,
+//   minorPatientGeneratedWallet.address,
+//   // generatedWallet.address,
 //   adminInitMessage
 // )
 
@@ -1185,10 +1201,10 @@ const approvalMessage = "I approve the request for unified access";
 // arcaIdentityService.registerMinorPatient(
 //   primaryGuardianWallet,
 //   primaryGuardianContractConnect,
-//   "Ling",
-//   "Long",
+//   "Samantha",
+//   "Cole",
 //   new Date('2022-03-02'),
-//   Gender.MALE,
+//   Gender.FEMALE,
 //   "123 Main St",
 //   FhirMedicalGuardianRelationshipRoleType.FAMMEMB,
 //   "Lagos",
@@ -1196,7 +1212,7 @@ const approvalMessage = "I approve the request for unified access";
 //   "Nigeria",
 //   EmploymentStatus.STUDENT,
 //   "+2349059959955",
-//   "testling@gmail.com",
+//   "testsamantha@gmail.com",
 // )
 
 
@@ -1205,3 +1221,5 @@ const approvalMessage = "I approve the request for unified access";
 //   // patient1SecondaryWallet,
 //   patient1Wallet.address
 // )
+
+// arcaIdentityService.fetchPaginatedPatientCids(primaryGuardianWallet, 0, 3)

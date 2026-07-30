@@ -509,6 +509,47 @@ export const arca_identity_facet_abi = [
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_cursor",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_howMany",
+          "type": "uint256"
+        }
+      ],
+      "name": "fetchPaginatedPatientCids",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "patient",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cid",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct LibArcaDiamondStorage.PatientCidRecord[]",
+          "name": "_values",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newCursor",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "getAdminInitializationMessageHashesAndSignatures",
       "outputs": [
