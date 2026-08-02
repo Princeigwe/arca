@@ -1,5 +1,5 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { AppModule } from './app.module';
+import {AppModule} from './app.module'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, VersioningType, ClassSerializerInterceptor } from '@nestjs/common';
 import * as compression from 'compression';
@@ -15,6 +15,7 @@ async function bootstrap() {
   app.use(compression());
   app.enableCors();
 
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER))
 
   app.enableVersioning({
     type: VersioningType.URI,

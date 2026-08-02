@@ -1027,6 +1027,10 @@ export class ArcaIdentityService {
     return await this.identityEthersOnchain.generateWallet()
   }
 
+  async generateSignature(wallet: ethers.Wallet, message: string){
+    return await this.identityEthersOnchain.generateSignature(wallet, message)
+  }
+
   // async dummyReadPatientData(encryptedData: string, dek: string, iv: string) {
   //   const decryptedData = await SED.decryptData(encryptedData, dek, iv);
   //   const decryptedJsonData = JSON.parse(decryptedData!);
@@ -1112,7 +1116,7 @@ const dekIv = "790845267e816c1bae50ab7ce235b816";
 //   dekIv
 // )
 
-arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
+// arcaIdentityService.verifyPatient(ownerWallet, patient1Wallet.address)
 
 // arcaIdentityService.readPatientOnchainData(
 //   // ownerWallet,
@@ -1223,3 +1227,9 @@ const approvalMessage = "I approve the request for unified access";
 // )
 
 // arcaIdentityService.fetchPaginatedPatientCids(primaryGuardianWallet, 0, 3)
+
+
+arcaIdentityService.generateSignature(
+  patient1Wallet,
+  "I am a user in Arca's system"
+)
