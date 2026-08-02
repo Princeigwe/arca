@@ -805,4 +805,22 @@ export class IdentityEthersOnchain {
       mnemonicPhrase: generatedWallet.mnemonic?.phrase
     }
   }
+
+
+  /**
+   * @param wallet: The wallet to sign the message with. This is used to test signature verification on the REST API 
+   * @param message: The message to sign
+   * 
+   * @returns The signature of the message
+   */
+  async generateSignature(wallet: ethers.Wallet, message: string){
+    try {
+      const signature = await wallet.signMessage(message)
+      console.log("MessError generating wallet access token:age: ", message)
+      console.log("Signature: ", signature)
+      return signature;
+    } catch (error: any) {
+      throw new Error(`Error generating signature: ${error}`);
+    }
+  }
 }
