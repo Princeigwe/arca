@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RecoveryShare } from './recovery.shamir.share.entity';
 import { AesEncryptionService } from '../../utils/aes.encryption.service';
 import { UploadRecoveryShareDto } from './dtos/upload.secret.share.dto';
-import * as bcrypt from 'bcryptjs'
+import * as crypto from 'crypto'
 import { ethers } from "ethers"
 
 @Injectable()
@@ -20,7 +20,7 @@ export class RecoveryService {
 
   async uploadSecretShare(data: UploadRecoveryShareDto){
     try {
-      const walletAddressHash = bcrypt.hashSync(data.walletAddress)
+      const walletAddressHash = crypto.createHash('sha256').update(data.walletAddress).digest('hex')
       const existingShare = await this.recoveryShareRepo.findOne({
         where: {
           walletAddressHash: walletAddressHash
@@ -44,7 +44,7 @@ export class RecoveryService {
         message: "Secret share uploaded successfully"
       }
     } catch (error) {
-      this.logger.error(`Error uploading secret share: ${error.message}`, error.stack)
+      this.logger.error(`Error uploading secret share: ${error.message}`, error.stack, RecoveryService.name)
       if(error instanceof HttpException){
         throw error
       }
