@@ -28,7 +28,7 @@ export class RecoveryService {
       })
 
       if(existingShare){
-        throw new HttpException("Secret share already exists for this wallet address", HttpStatus.BAD_REQUEST)
+        throw new HttpException("Secret share already exists for this wallet address", HttpStatus.CONFLICT)
       }
 
       const encryptedShare = await this.aesEncryptionService.encrypt(data.secretShare)
