@@ -76,17 +76,21 @@ export class ShamirSecretService{
 
 //TESTING
 
-// const shamirSecretService = new ShamirSecretService()
+const shamirSecretService = new ShamirSecretService()
 
-// const testPrivateKey = "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+const testPrivateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
-// shamirSecretService.splitSecret(testPrivateKey)
+// console.log("--- RUNNING SPLIT TEST ---")
+// shamirSecretService.splitSecret(testPrivateKey).then(shares => {
+//   console.log("Splitting with '0x' prefix:")
+//   console.log("Share 1 length (hex chars):", shares.share1String.length)
+// })
 
 
-// const share1String = "924348f575a636cc094684c0d14922cee1fb37584c738d6815903f25755cf6794afb36576337e708b6de3b6ff9159405ed8050c187e3aeb3897779b89ed96e85b36a57"
-// const share2String = "985ee6c4527cead24ddf0f02318cfabee30259773e7292fce7c3c0931a55f5828f6cb3933f6eb9c931f39da237e7acbb4952eef9be61e503cfaa5ef2b7464dd23127e0"
-// const share3String = "4f97980a120bd0b01a220a5acf09b6c1d84344db7ae2600be18accc297295ef80a30178647f0fa3aae640fcbf5e11e06e0c9534b9c18831fa3001e0456f67bed480c21"
+// console.log("--- RUNNING COMBINE TEST ---")
+// const share1String = "01321d9dc65b7da800668a3cd77a3e6dc89ff64ed86ba6e20037f8b69801da272c91db0b447a820cb1b9045097035bda29b77715573cce83479955392aaeb2b9f9"
+// const share2String = "0202d30f2c7dc7eb996add40838e1a79600ebc6581732194c73bc23d0298561d1ff186da2290ccdd3416ca69c8cf7f801f0e88f4794768a42cd17410e92f3011c0"
 
-// shamirSecretService.combineSecrets(share1String, share3String)
+// shamirSecretService.combineSecrets(share1String, share2String)
 
 // shamirSecretService.verifyCombined(testPrivateKey, share1String, share3String)
