@@ -135,7 +135,7 @@ const generatedWalletContractConnect = generatedWalletContractConnectInit.connec
 
 
 
-const patientGeneratedWalletPrivateKey='6185e7df3bda46b8cc5cdfed3160e84ce9455c0bf31fa02df8e4b4ef9031a0b5'
+const patientGeneratedWalletPrivateKey='bb0e93ebb780fba55574c0543343ec19157fd863a97f2793ef1519bba6bf29f7'
 const patientGeneratedWalletAddress='0x3a110E029Aa9eEaadd3E863b74eADDc784E209F0'
 const patientGeneratedWalletMnemonics='vivid idle sorry crisp erosion picnic opera fetch enroll drama rural diploma'
 const patientGeneratedWalletInit = new TestWallet(patientGeneratedWalletPrivateKey);

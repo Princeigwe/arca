@@ -1229,7 +1229,7 @@ const approvalMessage = "I approve the request for unified access";
 // arcaIdentityService.fetchPaginatedPatientCids(primaryGuardianWallet, 0, 3)
 
 
-arcaIdentityService.generateSignature(
-  patient1Wallet,
-  "I am a user in Arca's system"
-)
+// arcaIdentityService.generateSignature(
+//   patient1Wallet,
+//   "I am a user in Arca's system"
+// )

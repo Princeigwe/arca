@@ -51,4 +51,32 @@ export class RecoveryService {
       throw new InternalServerErrorException("Error uploading secret share")
     }
   }
+
+
+  async retrieveSecretShare(walletAddress: string){
+    try {
+      const walletAddressHash = crypto.createHash('sha256').update(walletAddress).digest('hex')
+      const existingShare = await this.recoveryShareRepo.findOne({
+        where: {
+          walletAddressHash: walletAddressHash
+        }
+      })
+
+      if(!existingShare){
+        throw new HttpException("Secret share not found for this wallet address", HttpStatus.NOT_FOUND)
+      }
+
+      const secretShare = await this.aesEncryptionService.decrypt(existingShare.encryptedShare)
+
+      return {
+        secretShare: secretShare
+      }
+    } catch (error) {
+      this.logger.error(`Error retrieving secret share: ${error.message}`, error.stack, RecoveryService.name)
+      if(error instanceof HttpException){
+        throw error
+      }
+      throw new InternalServerErrorException("Error retrieving secret share")
+    }
+  }
 }
