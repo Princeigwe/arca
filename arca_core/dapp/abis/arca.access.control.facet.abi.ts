@@ -135,22 +135,22 @@ export const arca_access_control_facet_abi = [
         },
         {
           "internalType": "bool",
-          "name": "_canGrantProviderAccess",
+          "name": "_canGrantMedicalProviderAccess",
           "type": "bool"
         },
         {
           "internalType": "bool",
-          "name": "_canGrantGuardianAccess",
+          "name": "_canGrantMedicalGuardianAccess",
           "type": "bool"
         },
         {
           "internalType": "bool",
-          "name": "_canRevokeProviderAccess",
+          "name": "_canRevokeMedicalProviderAccess",
           "type": "bool"
         },
         {
           "internalType": "bool",
-          "name": "_canRevokeGuardianAccess",
+          "name": "_canRevokeMedicalGuardianAccess",
           "type": "bool"
         },
         {
@@ -218,22 +218,22 @@ export const arca_access_control_facet_abi = [
             },
             {
               "internalType": "bool",
-              "name": "canGrantProviderAccess",
+              "name": "canGrantMedicalProviderAccess",
               "type": "bool"
             },
             {
               "internalType": "bool",
-              "name": "canGrantGuardianAccess",
+              "name": "canGrantMedicalGuardianAccess",
               "type": "bool"
             },
             {
               "internalType": "bool",
-              "name": "canRevokeProviderAccess",
+              "name": "canRevokeMedicalProviderAccess",
               "type": "bool"
             },
             {
               "internalType": "bool",
-              "name": "canRevokeGuardianAccess",
+              "name": "canRevokeMedicalGuardianAccess",
               "type": "bool"
             },
             {
@@ -283,22 +283,22 @@ export const arca_access_control_facet_abi = [
             },
             {
               "internalType": "bool",
-              "name": "canGrantProviderAccess",
+              "name": "canGrantMedicalProviderAccess",
               "type": "bool"
             },
             {
               "internalType": "bool",
-              "name": "canGrantGuardianAccess",
+              "name": "canGrantMedicalGuardianAccess",
               "type": "bool"
             },
             {
               "internalType": "bool",
-              "name": "canRevokeProviderAccess",
+              "name": "canRevokeMedicalProviderAccess",
               "type": "bool"
             },
             {
               "internalType": "bool",
-              "name": "canRevokeGuardianAccess",
+              "name": "canRevokeMedicalGuardianAccess",
               "type": "bool"
             },
             {

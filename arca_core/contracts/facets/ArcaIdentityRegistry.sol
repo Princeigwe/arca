@@ -413,14 +413,14 @@ contract ArcaIdentityRegistry{
 
   /// @notice This returns the count of identity types registered.
   /// @return _patientCount Count of registered patient.
-  /// @return _providerCount Count of registered medical providers. 
+  /// @return _medicalProviderCount Count of registered medical providers. 
   /// @return _medicalGuardianCount Count of registered medical guardians.
-  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _providerCount, uint256 _medicalGuardianCount){
+  function getIdentityCount()public view returns(uint256 _patientCount, uint256 _medicalProviderCount, uint256 _medicalGuardianCount){
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     _patientCount = ds.patientCount;
-    _providerCount = ds.providerCount;
+    _medicalProviderCount = ds.medicalProviderCount;
     _medicalGuardianCount = ds.medicalGuardianCount;
-    return (_patientCount, _providerCount, _medicalGuardianCount);
+    return (_patientCount, _medicalProviderCount, _medicalGuardianCount);
   }
 
 
@@ -511,10 +511,10 @@ contract ArcaIdentityRegistry{
     medicalGuardianPermission.role = LibADS.MedicalGuardianRole.PRIMARY;
     medicalGuardianPermission.guardian = msg.sender;
     medicalGuardianPermission.patient = _patientAddress;
-    medicalGuardianPermission.canGrantProviderAccess = true;
-    medicalGuardianPermission.canGrantGuardianAccess = true;
-    medicalGuardianPermission.canRevokeProviderAccess = true;
-    medicalGuardianPermission.canRevokeGuardianAccess = true;
+    medicalGuardianPermission.canGrantMedicalProviderAccess = true;
+    medicalGuardianPermission.canGrantMedicalGuardianAccess = true;
+    medicalGuardianPermission.canRevokeMedicalProviderAccess = true;
+    medicalGuardianPermission.canRevokeMedicalGuardianAccess = true;
     medicalGuardianPermission.canUploadRecords = true;
     medicalGuardianPermission.canReadRecords = true;
     medicalGuardianPermission.canDeleteRecords = true;
@@ -544,14 +544,19 @@ contract ArcaIdentityRegistry{
   /// @param _howMany The maximum number of elements to return.
   /// @return _values An array of MedicalGuardianPermission structs.
   /// @return newCursor The index of the next element to return (inclusive).
-  function fetchPaginatedPatientCids(uint256 _cursor, uint256 _howMany) public view returns (LibADS.PatientCidRecord[] memory _values,uint256 newCursor) {
+  /// @return totalCountOfMyPatients The total number of patients that the medical guardian is assigned to.
+  function fetchPaginatedPatientCids(uint256 _cursor, uint256 _howMany) public view returns (
+    LibADS.PatientCidRecord[] memory _values, 
+    uint256 newCursor, 
+    uint256 totalCountOfMyPatients
+  ) {
     LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
     require(ds.medicalGuardianExists[msg.sender], LibADS.MedicalGuardianDoesNotExistError(msg.sender));
 
     uint256 total = ds.medicalGuardianPermissions[msg.sender].length;
 
     if (_cursor >= total) {
-        return (new LibADS.PatientCidRecord[](0), total);
+        return (new LibADS.PatientCidRecord[](0), total, total);
     }
 
     uint256 length = _howMany;
@@ -569,8 +574,42 @@ contract ArcaIdentityRegistry{
         });
     }
 
-    return (_values, _cursor + length);
+    return (_values, _cursor + length, total);
   }
 
 
+
+
+  ///  this function register a medical provider to the system
+  /// @param _registeredAt  The Unix timestamp at which the medical provider registered.
+  /// @param _cid  The Content Identifier of the medical provider's IPFS profile data
+  /// @param medicalLicenseCredentialCid  The Content Identifier of to a medical license credential.
+  function registerMedicalProvider(
+    uint256 _registeredAt,
+    bytes memory _cid,
+    bytes memory medicalLicenseCredentialCid
+  )public{
+    LibADS.DiamondStorage storage ds = LibADS.diamondStorage();
+    require(!ds.medicalProviderExists[msg.sender], LibADS.MedicalProviderExistsError(msg.sender));
+    uint256 medicalProviderCount = ds.medicalProviderCount;
+    medicalProviderCount++;
+    ds.medicalProviderCount = medicalProviderCount;
+
+    ds.medicalProviderExists[msg.sender] = true;
+
+    LibADS.MedicalProviderIdentity storage newMedicalProvider = ds.medicalProviderIdentity[medicalProviderCount];
+    newMedicalProvider.primaryAddress = msg.sender;
+    newMedicalProvider.registeredAt = _registeredAt;
+    ds.medicalProviderCid[msg.sender] = _cid;
+    ds.medicalProviderAccount[msg.sender] = newMedicalProvider;
+
+    LibADS.MedicalLicenseCredential memory licenseCredential = LibADS.MedicalLicenseCredential({
+      medicalProvider: msg.sender,
+      cid: medicalLicenseCredentialCid
+    });
+
+    // storing license CID
+    ds.medicalProviderLicenseCredentials[msg.sender].push(licenseCredential);
+    emit LibADS.MedicalProviderRegisteredEvent(msg.sender, "Medical provider registration successful");
+  }
 }

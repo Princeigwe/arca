@@ -2,413 +2,648 @@
 
 pragma solidity 0.8.30;
 
-import '../interfaces/IDiamondCut.sol';
-import '../interfaces/IDiamondLoupe.sol';
-
-library LibArcaDiamondStorage{
-  bytes32 constant ARCA_STRUCT_STORAGE_POSITION = keccak256("arca.main.diamond.storage");
-
-  // this holds details of a particular function selector; showing the facet address it belongs to,
-  // and the position of the selector FacetAddressPositionAndFunctionSelectors.functionSelectors array
-  struct FacetAddressAndFunctionSelectorPosition{
-    address facetAddress;
-    uint16 functionSelectorPosition; // position of the function selector in the FacetAddressPositionAndFunctionSelectors.functionSelectors array
-  }
-
-  // this holds details of the position of a facet address in the facetAddresses array,
-  // along with the function selectors of that facet
-  struct FacetAddressPositionAndFunctionSelectors{
-    bytes4[] functionSelectors;
-    uint16 facetAddressPosition; // position of the facet address in the facetAddresses array
-  }
-
-  //** FACETS EVENTS 
-  event PatientRegisteredEvent(address indexed patientAddress, string message);
-  event PatientIdentityVerifiedEvent(address indexed patientAddress, string message);
-  event PatientIdentityFetchedEvent(address indexed patientAddress, string message);
-  event AdminAddedEvent( address indexed admin, string message);
-  event AdminRemovedEvent( address indexed admin, string message);
-  event AdminInitializationMessageHashWrittenEvent(address indexed writer, string message, AdminInitializationMessageHashAndSignature);
-  event LinkAccountRequestEvent( address indexed requester, address indexed recipient, string message, bytes32 requestHash, bytes requestSignature);
-  event LinkAccountRequestApprovalEvent(address indexed primary, address indexed secondary, string message);
-  event PatientIdentityUpdateEvent(address indexed patientAddress, string message);
-  event SuccessfulSecondaryAddressDisconnectionEvent(address indexed secondaryAddress);
-  event MedicalGuardianRegisteredEvent(address indexed guardianAddress, string message);
-  event MedicalGuardianAssignedToPatientEvent(address indexed medicalGuardian, address indexed patient, string message);
-  event MedicalGuardianPermissionRevokedEvent (string message, address medicalGuardian, address patient);
-  // event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
-
-
-
-  //** FACETS ERRORS
-  error PatientExistsError(address caller);
-  error PatientDoesNotExistError(address identity);
-  error IncorrectGuardianCountMatchError(string);
-  error AuthorizationError(string);
-  error LinkRequestApprovalError(string);
-  error NotLinkedSecondaryAddress(address providedAddress);
-  error InvalidRsaMasterDEKRemovalError(string);
-  error MaximumSecondaryAddressConnectionReachError(string);
-  error MedicalGuardianExistsError(address guardian);
-  error MedicalGuardianDoesNotExistError(address guardian);
-  error MedicalGuardianPermissionDoesNotExistError(address guardian);
-
-  //** FACETS ENUMS
-  enum ProviderType{
-    GENERAL_PRACTITIONER,
-    SPECIALIST,
-    NURSE,
-    PHARMACIST,
-    THERAPIST,
-    EMERGENCY_SERVICES,
-    RESEARCHER
-  }
-
-
-  enum MedicalGuardianRole{
-    PRIMARY,
-    SECONDARY
-  }
-
-  // used to distinguish different identities for their RSA encrypted key
-  enum RsaIdentityType{
-    PATIENT,
-    PATIENT_LINKED_ADDRESS,
-    MEDICAL_GUARDIAN
-  }
-
-  struct MedicalGuardianPermission{
-    MedicalGuardianRole role;
-    address guardian;
-    address patient;
-    bool canGrantProviderAccess;
-    bool canGrantGuardianAccess;
-    bool canRevokeProviderAccess;
-    bool canRevokeGuardianAccess;
-    bool canUploadRecords;
-    bool canReadRecords;
-    bool canDeleteRecords;
-  }
-
-  // this is used to hold RSA-encrypted master DEK for main and linked accounts
-  // so that all parties can have a unified access to authorized records and operations 
-  struct IdentityRSAMasterDEK{
-    address identity;
-    bytes rsaMasterDEK;
-    RsaIdentityType identityType;
-  }
-
-
-  //* FACETS STRUCTS
-  struct PatientIdentity{
-    address primaryAddress;
-    address[] linkedAddresses; //optional input on identity registration
-    uint256 registeredAt;
-    bool isVerified;
-    bytes adminInitializationSignature;
-    IdentityRSAMasterDEK[] rsaMasterDEKs; // RSA encrypted master DEKs for main patient, linked accounts, and medical guardians
-    bool isMinor;
-    uint256 ageOfMajority; // Unix timestamp (seconds) representing the age of majority for the patient
-    // IdentityRSAMasterDEK[] rsaMasterDEKsForMedicalGuardians; // RSA encrypted master DEKs for medical guardians (if patient is a minor)
-  }
-
-
-  struct MedicalGuardian{
-    address guardianAddress;
-    uint256 registeredAt;
-  }
-
-
-  struct ProviderIdentity{
-    address primaryAddress;
-    address[] linkedAddresses; //optional input on identity registration
-    uint256 registeredAt;
-    bool isVerified;
-    bytes licenseHash;
-    uint32 licenseExpiresAt;
-    bool licenseIsExpired;
-  }
-
-  struct AdminInitializationMessageHashAndSignature{
-    bytes32 messageHash;
-    bytes messageSignature;
-  }
-
-  // this will be needed by the frontend client to fetch all patients CID data at once, reducing gas cost on multiple calls (for medical guardian view)
-  struct PatientCidRecord {
-    address patient;
-    bytes cid;
-  }
-
-  // the main storage of Arca diamond contract
-  struct DiamondStorage{
-    mapping(bytes4 => FacetAddressAndFunctionSelectorPosition) selectorToFacetAddressAndFunctionSelectorPosition;
-    mapping(address => FacetAddressPositionAndFunctionSelectors) addressToFacetAddressPositionAndFunctionSelectors;
-    address[] facetAddresses;
-    address contractOwner;
-
-
-    //* FACETS STATE VARIABLES
-    // these hashes will be used for public key cryptography on IPFS data
-    AdminInitializationMessageHashAndSignature[] adminInitializationMessageHashesAndSignatures;
-    mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
-    mapping(address => bool) isAdmin;
-    mapping(address => mapping (address => bool)) sentLinkRequest; // requester(secondary address) => recipient(primary address) => hasSentRequest
-    mapping(address => address) primaryAccountOf;
-    mapping(address => uint8) secondaryAddressConnectionCount;
-    mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
-    mapping(bytes => bytes32) messageHashOfAdminInitializationSignature;
-    uint256 patientCount;
-    uint256 providerCount;
-    uint256 internalNonce;
-    ProviderType providerType;
-    mapping (address => PatientIdentity) patientAccount;
-    mapping (address => bool) patientExists;
-    mapping(uint256 => PatientIdentity) patientIdentity;
-    mapping(uint256 => ProviderIdentity) providerIdentity;
-    mapping (address => bytes) patientAddressCid;
-    mapping (address => bool) medicalGuardianExists;
-    mapping (address => bytes) medicalGuardianFhirPersonCid; // the CID the points to the IPFS envelope that holds the FHIR Person resource
-
-    // the CID the points to the IPFS envelope that holds the FHIR RelatedPerson resource linked to the patient (medical guardian => patient => cidBytes)
-    mapping(address => mapping(address => bytes)) medicalGuardianFhirRelatedPersonCid; 
-
-    mapping (address => MedicalGuardian) medicalGuardianAccount;
-    mapping (address => mapping(address => bool)) isMedicalGuardianOfPatient; // medical guardian => patient => isGuardian
-    mapping(address => MedicalGuardian[]) patientMedicalGuardians; // patient => medical guardians
-    mapping(address => mapping(address => MedicalGuardianPermission)) medicalGuardianPermissionsOnPatient; // medical guardian => patient => permission
-    mapping(address => MedicalGuardianPermission[]) medicalGuardianPermissions; // medical guardian => permissions (self-request)
-    uint256 medicalGuardianCount;
-  }
-
-  event OwnershipTransferredEvent(address indexed previousOwner, address indexed newOwner);
-  event DiamondCutEvent(IDiamondCut.FacetCut[] _diamondCut, address _init, bytes _calldata);
-
-
-  // this set the diamond storage if not already set, and fetches it
-  function diamondStorage() internal pure returns (DiamondStorage storage ds){
-    bytes32 position = ARCA_STRUCT_STORAGE_POSITION;
-    assembly{
-      ds.slot := position
-    }
-  }
-
-
-  function setContractOwner(address _newOwner)internal{
-    DiamondStorage storage ds = diamondStorage();
-    address previousOwner = ds.contractOwner;
-    ds.contractOwner = _newOwner;
-    ds.isAdmin[_newOwner] = true;
-    emit OwnershipTransferredEvent(previousOwner, _newOwner);
-  }
-
-  // this returns the current diamond contract owner
-  function contractOwner()internal view returns(address _contractOwner){
-    _contractOwner = diamondStorage().contractOwner;
-  }
-
-  function enforceIsContractOwner()internal view{
-    require(msg.sender == diamondStorage().contractOwner, "LibArcaDiamondStorage: Must be contract owner to perform this action");
-  }
-
-
-  // this is the function that makes changes to the registry holding the facets and their function selectors
-  function diamondCut(
-    IDiamondCut.FacetCut[] memory _diamondCut,
-    address _init,
-    bytes memory _calldata
-  )internal{
-    for(uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++){
-      IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
-      if(action == IDiamondCut.FacetCutAction.Add){
-        // code for adding a facet with its function selectors
-        addFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
-      }
-      else if(action == IDiamondCut.FacetCutAction.Replace){
-        // code for replacing a facet with its function selectors
-        replaceFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
-      }
-      else if(action == IDiamondCut.FacetCutAction.Remove){
-        // code for removing a facet with its function selectors
-        removeFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
-      }
-      else{
-        revert("LibArcaDiamondCut: Invalid facet cut action");
-      }
-    }
-
-    emit DiamondCutEvent(_diamondCut, _init, _calldata);
-    initializeDiamondCut(_init, _calldata);
-  }
-
-
-  function initializeDiamondCut(address _init, bytes memory _calldata)internal{
-    if(_init == address(0)){
-      require(_calldata.length == 0, "LibArcaDiamondCut: _init is zero address, but _calldata is not empty");
-    }else{
-      require(_calldata.length > 0, "LibArcaDiamondCut: _init is not zero address, but _calldata is empty");
-      if(_init != address(this)){
-        enforceHasContractCode(_init, "LibArcaDiamondCut: _init address has no code");
-      }
-      (bool success, bytes memory error) = _init.delegatecall(_calldata);
-      if(!success){
-        if(error.length > 0){
-          revert(string(error));
-        }else{
-          revert("LibArcaDiamondCut: _init failed to execute");
-        }
-      }
-    }
-  }
-
-
-  // this function ensures that the smart contract address being called upon is not an empty code
-  function enforceHasContractCode(address _contract, string memory _errorMessage)internal view{
-    uint256 contractSize;
-    // getting the size of the contract code
-    assembly{
-      contractSize := extcodesize(_contract)
-    }
-    require(contractSize > 0, _errorMessage);
-  }
-
-
-  //**  diamondCut Action functions */
-
-  function addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal{
-    require(_functionSelectors.length > 0, "LibArcaDiamondCut: No selectors found in facet");
-    require(_facetAddress != address(0), "LibArcaDiamondCut: Facet to add cannot be a zero address");
-    DiamondStorage storage ds = diamondStorage();
-
-    // getting the number of function selectors in the facet and casting it to uint16
-    uint16 selectorPosition = uint16(ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors.length);
-
-    // if the uint16 casted value is zero, check if it an empty code
-    // the facet address then becomes first on the facetAddress array in the DiamondStorage
-    if(selectorPosition == 0){
-      enforceHasContractCode(_facetAddress, "LibArcaDiamondCut: New facet has no code");
-      ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].facetAddressPosition = uint16(ds.facetAddresses.length);
-      ds.facetAddresses.push(_facetAddress);
-    }
-
-
-    // registering the selectors of the new facet address
-    for(uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++){
-      bytes4 selector = _functionSelectors[selectorIndex];
-      address oldFacetAddress = ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].facetAddress;
-      require(oldFacetAddress == address(0), "LibArcaDiamondCut: Function selector already exists");
-      ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors.push(selector);
-      ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].facetAddress = _facetAddress;
-      ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].functionSelectorPosition = selectorPosition;
-      selectorPosition++;
-    }
-  }
-
-
-  // this is used in cases where a function was modified without changing its identifier
-  function replaceFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal{
-    require(_functionSelectors.length > 0, "LibArcaDiamondCut: No selectors found in facet");
-    require(_facetAddress != address(0), "LibArcaDiamondCut: Facet to replace cannot be a zero address");
-
-    DiamondStorage storage ds = diamondStorage();
-    uint16 selectorPosition = uint16(ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors.length);
-    if(selectorPosition == 0){
-      enforceHasContractCode(_facetAddress, "LibArcaDiamondCut: New facet has no code");
-      ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].facetAddressPosition = uint16(ds.facetAddresses.length);
-      ds.facetAddresses.push(_facetAddress);
-    }
-
-    for(uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++){
-      bytes4 selector = _functionSelectors[selectorIndex];
-
-      // getting the old facet address that has the same function identifier selector
-      address oldFacetAddress = ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].facetAddress;
-      require(oldFacetAddress != _facetAddress, "LibArcaDiamondCut: Function selector already exists");
-      removeFunction(oldFacetAddress, selector);
-      
-      // add new function from new smart contract
-      ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].functionSelectorPosition = selectorPosition;
-      ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors.push(selector);
-      ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].facetAddress = _facetAddress;
-      selectorPosition++;
-    }
-  }
-
-
-  function removeFunction(address _facetAddress, bytes4 _functionSelector) internal{
-    require(_facetAddress != address(0), "LibArcaDiamondCut: Facet to remove cannot be a zero address");
-    require(_facetAddress != address(this), "LibArcaDiamondCut: Facet to remove cannot be the diamond contract");
-    DiamondStorage storage ds = diamondStorage();
-
-    uint256 selectorPosition = ds.selectorToFacetAddressAndFunctionSelectorPosition[_functionSelector].functionSelectorPosition;
-    uint256 lastSelectorPosition = ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors.length - 1;
-
-    // if the function selector is not the last one, swap the position of the selector with the last one
-    if(selectorPosition != lastSelectorPosition){
-      bytes4 lastSelector = ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors[lastSelectorPosition];
-      ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors[selectorPosition] = lastSelector;
-      ds.selectorToFacetAddressAndFunctionSelectorPosition[lastSelector].functionSelectorPosition = uint16(selectorPosition);
-    }
-
-    // deleting the last selector
-    ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors.pop();
-    delete ds.selectorToFacetAddressAndFunctionSelectorPosition[_functionSelector];
-
-    // deleting the facet address if it has no more selectors
-    if(lastSelectorPosition == 0){
-      uint256 lastFacetAddressPosition = ds.facetAddresses.length - 1;
-      uint256 facetAddressPosition = ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].facetAddressPosition;
-      if(facetAddressPosition != lastFacetAddressPosition){
-        address lastFacetAddress = ds.facetAddresses[lastFacetAddressPosition];
-        ds.facetAddresses[facetAddressPosition] = lastFacetAddress;
-        ds.addressToFacetAddressPositionAndFunctionSelectors[lastFacetAddress].facetAddressPosition = uint16(facetAddressPosition);
-      }
-
-      ds.facetAddresses.pop();
-      delete ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].facetAddressPosition;
-    }
-  }
-
-  // this removes all the selectors, leading to total deletion of the facet
-  function removeFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal{
-    require(_functionSelectors.length > 0, "LibArcaDiamondCut: No selectors found in facet");
-    require(_facetAddress == address(0), "LibArcaDiamondCut: Facet to remove must be a zero address");
-    DiamondStorage storage ds = diamondStorage();
-    for(uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++){
-      bytes4 selector = _functionSelectors[selectorIndex];
-      address oldFacetAddress = ds.selectorToFacetAddressAndFunctionSelectorPosition[selector].facetAddress;
-      removeFunction(oldFacetAddress, selector);
-    }
-  }
-
-
-  //* IMPLEMENTING DIAMONDLOUPE FUNCTIONS
-
-  function facets() internal view returns(IDiamondLoupe.Facet[] memory _facets){
-    DiamondStorage storage ds = diamondStorage();
-    // address[] memory facetAddresses = ds.facetAddresses;
-    _facets = new IDiamondLoupe.Facet[](ds.facetAddresses.length);
-    for (uint i; i < ds.facetAddresses.length; i++ ){
-      bytes4[] memory selectors = ds.addressToFacetAddressPositionAndFunctionSelectors[ds.facetAddresses[i]].functionSelectors;
-      _facets[i] = IDiamondLoupe.Facet({facetAddress: ds.facetAddresses[i], functionSelectors: selectors});
-    }
-  }
-
-
-  function facetFunctionSelectors(address _facetAddress) internal view returns (bytes4[] memory _functionSelectors){
-    DiamondStorage storage ds = diamondStorage();
-    _functionSelectors = ds.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress].functionSelectors;
-  }
-
-
-  function facetAddresses() internal view returns (address[] memory _facetAddresses){
-    DiamondStorage storage ds = diamondStorage();
-    _facetAddresses = ds.facetAddresses;
-  }
-
-
-  function facetAddressOfFunctionSelector(bytes4 _functionSelector) internal view returns (address _facetAddress){
-    DiamondStorage storage ds = diamondStorage();
-    _facetAddress = ds.selectorToFacetAddressAndFunctionSelectorPosition[_functionSelector].facetAddress;
-  }
+import "../interfaces/IDiamondCut.sol";
+import "../interfaces/IDiamondLoupe.sol";
+
+library LibArcaDiamondStorage {
+	bytes32 constant ARCA_STRUCT_STORAGE_POSITION =
+		keccak256("arca.main.diamond.storage");
+
+	// this holds details of a particular function selector; showing the facet address it belongs to,
+	// and the position of the selector FacetAddressPositionAndFunctionSelectors.functionSelectors array
+	struct FacetAddressAndFunctionSelectorPosition {
+		address facetAddress;
+		uint16 functionSelectorPosition; // position of the function selector in the FacetAddressPositionAndFunctionSelectors.functionSelectors array
+	}
+
+	// this holds details of the position of a facet address in the facetAddresses array,
+	// along with the function selectors of that facet
+	struct FacetAddressPositionAndFunctionSelectors {
+		bytes4[] functionSelectors;
+		uint16 facetAddressPosition; // position of the facet address in the facetAddresses array
+	}
+
+	//** FACETS EVENTS
+	event PatientRegisteredEvent(
+		address indexed patientAddress,
+		string message
+	);
+	event PatientIdentityVerifiedEvent(
+		address indexed patientAddress,
+		string message
+	);
+	event PatientIdentityFetchedEvent(
+		address indexed patientAddress,
+		string message
+	);
+	event AdminAddedEvent(address indexed admin, string message);
+	event AdminRemovedEvent(address indexed admin, string message);
+	event AdminInitializationMessageHashWrittenEvent(
+		address indexed writer,
+		string message,
+		AdminInitializationMessageHashAndSignature
+	);
+	event LinkAccountRequestEvent(
+		address indexed requester,
+		address indexed recipient,
+		string message,
+		bytes32 requestHash,
+		bytes requestSignature
+	);
+	event LinkAccountRequestApprovalEvent(
+		address indexed primary,
+		address indexed secondary,
+		string message
+	);
+	event PatientIdentityUpdateEvent(
+		address indexed patientAddress,
+		string message
+	);
+	event SuccessfulSecondaryAddressDisconnectionEvent(
+		address indexed secondaryAddress
+	);
+	event MedicalGuardianRegisteredEvent(
+		address indexed guardianAddress,
+		string message
+	);
+	event MedicalGuardianAssignedToPatientEvent(
+		address indexed medicalGuardian,
+		address indexed patient,
+		string message
+	);
+	event MedicalGuardianPermissionRevokedEvent(
+		string message,
+		address medicalGuardian,
+		address patient
+	);
+  event MedicalProviderRegisteredEvent(
+		address indexed medicalProviderAddress,
+		string message
+	);
+	// event AdminInitializationMessageHashesEvent(string message, AdminInitializationMessageHashAndSignature[]);
+
+	//** FACETS ERRORS
+	error PatientExistsError(address caller);
+	error PatientDoesNotExistError(address identity);
+	error IncorrectGuardianCountMatchError(string);
+	error AuthorizationError(string);
+	error LinkRequestApprovalError(string);
+	error NotLinkedSecondaryAddress(address providedAddress);
+	error InvalidRsaMasterDEKRemovalError(string);
+	error MaximumSecondaryAddressConnectionReachError(string);
+	error MedicalGuardianExistsError(address guardian);
+	error MedicalGuardianDoesNotExistError(address guardian);
+	error MedicalGuardianPermissionDoesNotExistError(address guardian);
+	error MedicalProviderExistsError(address identity);
+
+	//** FACETS ENUMS
+	enum MedicalProviderType {
+		GENERAL_PRACTITIONER,
+		SPECIALIST,
+		NURSE,
+		PHARMACIST,
+		THERAPIST,
+		EMERGENCY_SERVICES,
+		RESEARCHER
+	}
+
+	enum MedicalGuardianRole {
+		PRIMARY,
+		SECONDARY
+	}
+
+	// used to distinguish different identities for their RSA encrypted key
+	enum RsaIdentityType {
+		PATIENT,
+		PATIENT_LINKED_ADDRESS,
+		MEDICAL_GUARDIAN
+	}
+
+	struct MedicalGuardianPermission {
+		MedicalGuardianRole role;
+		address guardian;
+		address patient;
+		bool canGrantMedicalProviderAccess;
+		bool canGrantMedicalGuardianAccess;
+		bool canRevokeMedicalProviderAccess;
+		bool canRevokeMedicalGuardianAccess;
+		bool canUploadRecords;
+		bool canReadRecords;
+		bool canDeleteRecords;
+	}
+
+	// this is used to hold RSA-encrypted master DEK for main and linked accounts
+	// so that all parties can have a unified access to authorized records and operations
+	struct IdentityRSAMasterDEK {
+		address identity;
+		bytes rsaMasterDEK;
+		RsaIdentityType identityType;
+	}
+
+	//* FACETS STRUCTS
+	struct PatientIdentity {
+		address primaryAddress;
+		address[] linkedAddresses; //optional input on identity registration
+		uint256 registeredAt;
+		bool isVerified;
+		bytes adminInitializationSignature;
+		IdentityRSAMasterDEK[] rsaMasterDEKs; // RSA encrypted master DEKs for main patient, linked accounts, and medical guardians
+		bool isMinor;
+		uint256 ageOfMajority; // Unix timestamp (seconds) representing the age of majority for the patient
+		// IdentityRSAMasterDEK[] rsaMasterDEKsForMedicalGuardians; // RSA encrypted master DEKs for medical guardians (if patient is a minor)
+	}
+
+	struct MedicalGuardian {
+		address guardianAddress;
+		uint256 registeredAt;
+	}
+
+
+	struct MedicalLicenseCredential {
+		address medicalProvider;
+		bytes cid;
+	}
+
+	struct MedicalProviderIdentity {
+		address primaryAddress;
+		address[] linkedAddresses; //optional input on identity registration
+		uint256 registeredAt;
+		bool isVerified;
+	}
+
+	struct AdminInitializationMessageHashAndSignature {
+		bytes32 messageHash;
+		bytes messageSignature;
+	}
+
+	// this will be needed by the frontend client to fetch all patients CID data at once, reducing gas cost on multiple calls (for medical guardian view)
+	struct PatientCidRecord {
+		address patient;
+		bytes cid;
+	}
+
+	// the main storage of Arca diamond contract
+	struct DiamondStorage {
+		mapping(bytes4 => FacetAddressAndFunctionSelectorPosition) selectorToFacetAddressAndFunctionSelectorPosition;
+		mapping(address => FacetAddressPositionAndFunctionSelectors) addressToFacetAddressPositionAndFunctionSelectors;
+		address[] facetAddresses;
+		address contractOwner;
+		//* FACETS STATE VARIABLES
+		// these hashes will be used for public key cryptography on IPFS data
+		AdminInitializationMessageHashAndSignature[] adminInitializationMessageHashesAndSignatures;
+		mapping(address => bool) hasAdminInitializationMessageHashAndSignature;
+		mapping(address => bool) isAdmin;
+		mapping(address => mapping(address => bool)) sentLinkRequest; // requester(secondary address) => recipient(primary address) => hasSentRequest
+		mapping(address => address) primaryAccountOf;
+		mapping(address => uint8) secondaryAddressConnectionCount;
+		mapping(address => AdminInitializationMessageHashAndSignature) adminInitializationMessageHashAndSignature;
+		mapping(bytes => bytes32) messageHashOfAdminInitializationSignature;
+		uint256 patientCount;
+		uint256 medicalProviderCount;
+		uint256 internalNonce;
+		MedicalProviderType providerType;
+		mapping(address => PatientIdentity) patientAccount;
+		mapping(address => bool) patientExists;
+		mapping(uint256 => PatientIdentity) patientIdentity;
+		mapping(uint256 => MedicalProviderIdentity) medicalProviderIdentity;
+		mapping(address => bytes) patientAddressCid;
+		mapping(address => bool) medicalGuardianExists;
+		mapping(address => bytes) medicalGuardianFhirPersonCid; // the CID the points to the IPFS envelope that holds the FHIR Person resource
+		// the CID the points to the IPFS envelope that holds the FHIR RelatedPerson resource linked to the patient (medical guardian => patient => cidBytes)
+		mapping(address => mapping(address => bytes)) medicalGuardianFhirRelatedPersonCid;
+		mapping(address => MedicalGuardian) medicalGuardianAccount;
+		mapping(address => mapping(address => bool)) isMedicalGuardianOfPatient; // medical guardian => patient => isGuardian
+		mapping(address => MedicalGuardian[]) patientMedicalGuardians; // patient => medical guardians
+		mapping(address => mapping(address => MedicalGuardianPermission)) medicalGuardianPermissionsOnPatient; // medical guardian => patient => permission
+		mapping(address => MedicalGuardianPermission[]) medicalGuardianPermissions; // medical guardian => permissions (self-request)
+		uint256 medicalGuardianCount;
+		mapping(address => bool) medicalProviderExists;
+		mapping(address => bytes) medicalProviderCid;
+    mapping(address => MedicalProviderIdentity) medicalProviderAccount;
+		mapping(address => MedicalLicenseCredential[]) medicalProviderLicenseCredentials;
+	}
+
+	event OwnershipTransferredEvent(
+		address indexed previousOwner,
+		address indexed newOwner
+	);
+	event DiamondCutEvent(
+		IDiamondCut.FacetCut[] _diamondCut,
+		address _init,
+		bytes _calldata
+	);
+
+	// this set the diamond storage if not already set, and fetches it
+	function diamondStorage()
+		internal
+		pure
+		returns (DiamondStorage storage ds)
+	{
+		bytes32 position = ARCA_STRUCT_STORAGE_POSITION;
+		assembly {
+			ds.slot := position
+		}
+	}
+
+	function setContractOwner(address _newOwner) internal {
+		DiamondStorage storage ds = diamondStorage();
+		address previousOwner = ds.contractOwner;
+		ds.contractOwner = _newOwner;
+		ds.isAdmin[_newOwner] = true;
+		emit OwnershipTransferredEvent(previousOwner, _newOwner);
+	}
+
+	// this returns the current diamond contract owner
+	function contractOwner() internal view returns (address _contractOwner) {
+		_contractOwner = diamondStorage().contractOwner;
+	}
+
+	function enforceIsContractOwner() internal view {
+		require(
+			msg.sender == diamondStorage().contractOwner,
+			"LibArcaDiamondStorage: Must be contract owner to perform this action"
+		);
+	}
+
+	// this is the function that makes changes to the registry holding the facets and their function selectors
+	function diamondCut(
+		IDiamondCut.FacetCut[] memory _diamondCut,
+		address _init,
+		bytes memory _calldata
+	) internal {
+		for (
+			uint256 facetIndex;
+			facetIndex < _diamondCut.length;
+			facetIndex++
+		) {
+			IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
+			if (action == IDiamondCut.FacetCutAction.Add) {
+				// code for adding a facet with its function selectors
+				addFunctions(
+					_diamondCut[facetIndex].facetAddress,
+					_diamondCut[facetIndex].functionSelectors
+				);
+			} else if (action == IDiamondCut.FacetCutAction.Replace) {
+				// code for replacing a facet with its function selectors
+				replaceFunctions(
+					_diamondCut[facetIndex].facetAddress,
+					_diamondCut[facetIndex].functionSelectors
+				);
+			} else if (action == IDiamondCut.FacetCutAction.Remove) {
+				// code for removing a facet with its function selectors
+				removeFunctions(
+					_diamondCut[facetIndex].facetAddress,
+					_diamondCut[facetIndex].functionSelectors
+				);
+			} else {
+				revert("LibArcaDiamondCut: Invalid facet cut action");
+			}
+		}
+
+		emit DiamondCutEvent(_diamondCut, _init, _calldata);
+		initializeDiamondCut(_init, _calldata);
+	}
+
+	function initializeDiamondCut(
+		address _init,
+		bytes memory _calldata
+	) internal {
+		if (_init == address(0)) {
+			require(
+				_calldata.length == 0,
+				"LibArcaDiamondCut: _init is zero address, but _calldata is not empty"
+			);
+		} else {
+			require(
+				_calldata.length > 0,
+				"LibArcaDiamondCut: _init is not zero address, but _calldata is empty"
+			);
+			if (_init != address(this)) {
+				enforceHasContractCode(
+					_init,
+					"LibArcaDiamondCut: _init address has no code"
+				);
+			}
+			(bool success, bytes memory error) = _init.delegatecall(_calldata);
+			if (!success) {
+				if (error.length > 0) {
+					revert(string(error));
+				} else {
+					revert("LibArcaDiamondCut: _init failed to execute");
+				}
+			}
+		}
+	}
+
+	// this function ensures that the smart contract address being called upon is not an empty code
+	function enforceHasContractCode(
+		address _contract,
+		string memory _errorMessage
+	) internal view {
+		uint256 contractSize;
+		// getting the size of the contract code
+		assembly {
+			contractSize := extcodesize(_contract)
+		}
+		require(contractSize > 0, _errorMessage);
+	}
+
+	//**  diamondCut Action functions */
+
+	function addFunctions(
+		address _facetAddress,
+		bytes4[] memory _functionSelectors
+	) internal {
+		require(
+			_functionSelectors.length > 0,
+			"LibArcaDiamondCut: No selectors found in facet"
+		);
+		require(
+			_facetAddress != address(0),
+			"LibArcaDiamondCut: Facet to add cannot be a zero address"
+		);
+		DiamondStorage storage ds = diamondStorage();
+
+		// getting the number of function selectors in the facet and casting it to uint16
+		uint16 selectorPosition = uint16(
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.functionSelectors
+				.length
+		);
+
+		// if the uint16 casted value is zero, check if it an empty code
+		// the facet address then becomes first on the facetAddress array in the DiamondStorage
+		if (selectorPosition == 0) {
+			enforceHasContractCode(
+				_facetAddress,
+				"LibArcaDiamondCut: New facet has no code"
+			);
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.facetAddressPosition = uint16(ds.facetAddresses.length);
+			ds.facetAddresses.push(_facetAddress);
+		}
+
+		// registering the selectors of the new facet address
+		for (
+			uint256 selectorIndex;
+			selectorIndex < _functionSelectors.length;
+			selectorIndex++
+		) {
+			bytes4 selector = _functionSelectors[selectorIndex];
+			address oldFacetAddress = ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.facetAddress;
+			require(
+				oldFacetAddress == address(0),
+				"LibArcaDiamondCut: Function selector already exists"
+			);
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.functionSelectors
+				.push(selector);
+			ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.facetAddress = _facetAddress;
+			ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.functionSelectorPosition = selectorPosition;
+			selectorPosition++;
+		}
+	}
+
+	// this is used in cases where a function was modified without changing its identifier
+	function replaceFunctions(
+		address _facetAddress,
+		bytes4[] memory _functionSelectors
+	) internal {
+		require(
+			_functionSelectors.length > 0,
+			"LibArcaDiamondCut: No selectors found in facet"
+		);
+		require(
+			_facetAddress != address(0),
+			"LibArcaDiamondCut: Facet to replace cannot be a zero address"
+		);
+
+		DiamondStorage storage ds = diamondStorage();
+		uint16 selectorPosition = uint16(
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.functionSelectors
+				.length
+		);
+		if (selectorPosition == 0) {
+			enforceHasContractCode(
+				_facetAddress,
+				"LibArcaDiamondCut: New facet has no code"
+			);
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.facetAddressPosition = uint16(ds.facetAddresses.length);
+			ds.facetAddresses.push(_facetAddress);
+		}
+
+		for (
+			uint256 selectorIndex;
+			selectorIndex < _functionSelectors.length;
+			selectorIndex++
+		) {
+			bytes4 selector = _functionSelectors[selectorIndex];
+
+			// getting the old facet address that has the same function identifier selector
+			address oldFacetAddress = ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.facetAddress;
+			require(
+				oldFacetAddress != _facetAddress,
+				"LibArcaDiamondCut: Function selector already exists"
+			);
+			removeFunction(oldFacetAddress, selector);
+
+			// add new function from new smart contract
+			ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.functionSelectorPosition = selectorPosition;
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.functionSelectors
+				.push(selector);
+			ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.facetAddress = _facetAddress;
+			selectorPosition++;
+		}
+	}
+
+	function removeFunction(
+		address _facetAddress,
+		bytes4 _functionSelector
+	) internal {
+		require(
+			_facetAddress != address(0),
+			"LibArcaDiamondCut: Facet to remove cannot be a zero address"
+		);
+		require(
+			_facetAddress != address(this),
+			"LibArcaDiamondCut: Facet to remove cannot be the diamond contract"
+		);
+		DiamondStorage storage ds = diamondStorage();
+
+		uint256 selectorPosition = ds
+			.selectorToFacetAddressAndFunctionSelectorPosition[
+				_functionSelector
+			]
+			.functionSelectorPosition;
+		uint256 lastSelectorPosition = ds
+			.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress]
+			.functionSelectors
+			.length - 1;
+
+		// if the function selector is not the last one, swap the position of the selector with the last one
+		if (selectorPosition != lastSelectorPosition) {
+			bytes4 lastSelector = ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.functionSelectors[lastSelectorPosition];
+			ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.functionSelectors[selectorPosition] = lastSelector;
+			ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[lastSelector]
+				.functionSelectorPosition = uint16(selectorPosition);
+		}
+
+		// deleting the last selector
+		ds
+			.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress]
+			.functionSelectors
+			.pop();
+		delete ds.selectorToFacetAddressAndFunctionSelectorPosition[
+			_functionSelector
+		];
+
+		// deleting the facet address if it has no more selectors
+		if (lastSelectorPosition == 0) {
+			uint256 lastFacetAddressPosition = ds.facetAddresses.length - 1;
+			uint256 facetAddressPosition = ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.facetAddressPosition;
+			if (facetAddressPosition != lastFacetAddressPosition) {
+				address lastFacetAddress = ds.facetAddresses[
+					lastFacetAddressPosition
+				];
+				ds.facetAddresses[facetAddressPosition] = lastFacetAddress;
+				ds
+					.addressToFacetAddressPositionAndFunctionSelectors[
+						lastFacetAddress
+					]
+					.facetAddressPosition = uint16(facetAddressPosition);
+			}
+
+			ds.facetAddresses.pop();
+			delete ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					_facetAddress
+				]
+				.facetAddressPosition;
+		}
+	}
+
+	// this removes all the selectors, leading to total deletion of the facet
+	function removeFunctions(
+		address _facetAddress,
+		bytes4[] memory _functionSelectors
+	) internal {
+		require(
+			_functionSelectors.length > 0,
+			"LibArcaDiamondCut: No selectors found in facet"
+		);
+		require(
+			_facetAddress == address(0),
+			"LibArcaDiamondCut: Facet to remove must be a zero address"
+		);
+		DiamondStorage storage ds = diamondStorage();
+		for (
+			uint256 selectorIndex;
+			selectorIndex < _functionSelectors.length;
+			selectorIndex++
+		) {
+			bytes4 selector = _functionSelectors[selectorIndex];
+			address oldFacetAddress = ds
+				.selectorToFacetAddressAndFunctionSelectorPosition[selector]
+				.facetAddress;
+			removeFunction(oldFacetAddress, selector);
+		}
+	}
+
+	//* IMPLEMENTING DIAMONDLOUPE FUNCTIONS
+
+	function facets()
+		internal
+		view
+		returns (IDiamondLoupe.Facet[] memory _facets)
+	{
+		DiamondStorage storage ds = diamondStorage();
+		// address[] memory facetAddresses = ds.facetAddresses;
+		_facets = new IDiamondLoupe.Facet[](ds.facetAddresses.length);
+		for (uint i; i < ds.facetAddresses.length; i++) {
+			bytes4[] memory selectors = ds
+				.addressToFacetAddressPositionAndFunctionSelectors[
+					ds.facetAddresses[i]
+				]
+				.functionSelectors;
+			_facets[i] = IDiamondLoupe.Facet({
+				facetAddress: ds.facetAddresses[i],
+				functionSelectors: selectors
+			});
+		}
+	}
+
+	function facetFunctionSelectors(
+		address _facetAddress
+	) internal view returns (bytes4[] memory _functionSelectors) {
+		DiamondStorage storage ds = diamondStorage();
+		_functionSelectors = ds
+			.addressToFacetAddressPositionAndFunctionSelectors[_facetAddress]
+			.functionSelectors;
+	}
+
+	function facetAddresses()
+		internal
+		view
+		returns (address[] memory _facetAddresses)
+	{
+		DiamondStorage storage ds = diamondStorage();
+		_facetAddresses = ds.facetAddresses;
+	}
+
+	function facetAddressOfFunctionSelector(
+		bytes4 _functionSelector
+	) internal view returns (address _facetAddress) {
+		DiamondStorage storage ds = diamondStorage();
+		_facetAddress = ds
+			.selectorToFacetAddressAndFunctionSelectorPosition[
+				_functionSelector
+			]
+			.facetAddress;
+	}
 }

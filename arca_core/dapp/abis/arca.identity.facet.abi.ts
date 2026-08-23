@@ -96,6 +96,17 @@ export const arca_identity_facet_abi = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "identity",
+          "type": "address"
+        }
+      ],
+      "name": "MedicalProviderExistsError",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "providedAddress",
           "type": "address"
         }
@@ -304,6 +315,25 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "MedicalGuardianRegisteredEvent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "medicalProviderAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        }
+      ],
+      "name": "MedicalProviderRegisteredEvent",
       "type": "event"
     },
     {
@@ -598,7 +628,7 @@ export const arca_identity_facet_abi = [
         },
         {
           "internalType": "uint256",
-          "name": "_providerCount",
+          "name": "_medicalProviderCount",
           "type": "uint256"
         },
         {
@@ -888,6 +918,29 @@ export const arca_identity_facet_abi = [
         }
       ],
       "name": "registerMedicalGuardian",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_registeredAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_cid",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "medicalLicenseCredentialCid",
+          "type": "bytes"
+        }
+      ],
+      "name": "registerMedicalProvider",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

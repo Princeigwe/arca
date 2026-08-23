@@ -1099,7 +1099,7 @@ let ownerContractConnect = testConnects[0];
 // arcaIdentityService.checkIsAdmin(ownerWallet)
 
 const adminInitMessage = "I am an Arca admin";
-// arcaIdentityService.createAdminMsgAndSig(adminInitMessage, ownerWallet, ownerContractConnect)
+arcaIdentityService.createAdminMsgAndSig(adminInitMessage, ownerWallet, ownerContractConnect)
 // arcaIdentityService.getAdminMsgAndSigs(ownerWallet);
 
 const ownerSecretKey = ownerWallet.signingKey.privateKey;
